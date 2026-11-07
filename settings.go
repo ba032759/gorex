@@ -14,8 +14,16 @@ import (
 // server's state.
 type settings struct {
 	// Appearance is "light", "dark", or "" to follow the system.
-	Appearance string  `json:"appearance,omitempty"`
-	FontSize   float32 `json:"fontSize,omitempty"`
+	Appearance       string  `json:"appearance,omitempty"`
+	FontSize         float32 `json:"fontSize,omitempty"`
+	MacOSKeybindings *bool   `json:"macosKeybindings,omitempty"`
+}
+
+func (s settings) macosKeybindings() bool {
+	if s.MacOSKeybindings == nil {
+		return true
+	}
+	return *s.MacOSKeybindings
 }
 
 const defaultFontSize = 11.6
@@ -33,6 +41,7 @@ func loadSettings() {
 	}
 	termFont.Size = prefs.FontSize
 	applyAppearance()
+	applyKeybindingLabels()
 }
 
 func saveSettings() {

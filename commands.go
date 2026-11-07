@@ -30,14 +30,14 @@ var (
 	cmdSplitRight  = command{Title: "Split Right", Accel: "CmdOrCtrl+D", Keys: "⌘D", Other: ctrlShift(ui.KeyD), Run: func(a *App) { a.split(false) }}
 	cmdSplitDown   = command{Title: "Split Down", Accel: "CmdOrCtrl+Shift+D", Keys: "⇧⌘D", Other: ctrlShift(ui.KeyE), Run: func(a *App) { a.split(true) }}
 	cmdClosePane   = command{Title: "Close Pane", Accel: "CmdOrCtrl+W", Keys: "⌘W", Other: ctrlShift(ui.KeyW), Run: func(a *App) { a.closeFocused() }}
-	cmdCloseTab    = command{Title: "Close Tab", Accel: "CmdOrCtrl+Shift+W", Keys: "⇧⌘W", Run: func(a *App) { a.closeActiveTab() }}
+	cmdCloseTab    = command{Title: "Close Tab", Accel: "CmdOrCtrl+Shift+W", Keys: "⇧⌘W", Other: ctrlShift(ui.KeyW), Run: func(a *App) { a.closeActiveTab() }}
 	cmdZoom        = command{Title: "Zoom Pane", Accel: "CmdOrCtrl+Shift+Enter", Keys: "⇧⌘↩", Other: ctrlShift(ui.KeyEnter), Run: func(a *App) { a.toggleZoom() }}
 	cmdEqualize    = command{Title: "Equalize Panes", Accel: "CmdOrCtrl+Ctrl+=", Keys: "⌃⌘=", Run: func(a *App) { a.equalize() }}
 	cmdNextTab     = command{Title: "Next Tab", Accel: "CmdOrCtrl+Shift+]", Keys: "⇧⌘]", Other: shortcut{ui.Ctrl, ui.KeyPageDown}, Run: func(a *App) { a.cycleTab(1) }}
 	cmdPrevTab     = command{Title: "Previous Tab", Accel: "CmdOrCtrl+Shift+[", Keys: "⇧⌘[", Other: shortcut{ui.Ctrl, ui.KeyPageUp}, Run: func(a *App) { a.cycleTab(-1) }}
 	cmdRenameTab   = command{Title: "Rename Tab…", Accel: "CmdOrCtrl+Shift+R", Keys: "⇧⌘R", Other: ctrlShift(ui.KeyR), Run: func(a *App) { a.startRename() }}
 	cmdPalette     = command{Title: "Command Palette…", Accel: "CmdOrCtrl+Shift+P", Keys: "⇧⌘P", Other: ctrlShift(ui.KeyP), Run: func(a *App) { a.openPalette() }, Hidden: true}
-	cmdPalette2    = command{Title: "Go to Pane…", Accel: "CmdOrCtrl+P", Keys: "⌘P", Run: func(a *App) { a.openPalette() }, Hidden: true}
+	cmdPalette2    = command{Title: "Go to Pane…", Accel: "CmdOrCtrl+P", Keys: "⌘P", Other: shortcut{ui.Ctrl, ui.KeyP}, Run: func(a *App) { a.openPalette() }, Hidden: true}
 	cmdFocusLeft   = command{Title: "Focus Pane Left", Accel: "CmdOrCtrl+Alt+Left", Keys: "⌥⌘←", Other: shortcut{ui.Alt, ui.KeyLeft}, Run: func(a *App) { a.moveFocus(-1, 0) }}
 	cmdFocusRight  = command{Title: "Focus Pane Right", Accel: "CmdOrCtrl+Alt+Right", Keys: "⌥⌘→", Other: shortcut{ui.Alt, ui.KeyRight}, Run: func(a *App) { a.moveFocus(1, 0) }}
 	cmdFocusUp     = command{Title: "Focus Pane Above", Accel: "CmdOrCtrl+Alt+Up", Keys: "⌥⌘↑", Other: shortcut{ui.Alt, ui.KeyUp}, Run: func(a *App) { a.moveFocus(0, -1) }}
@@ -72,7 +72,36 @@ var paletteCommands = []*command{
 var commands = append(slices.Clone(paletteCommands), &cmdPalette, &cmdPalette2, &cmdClear)
 
 func init() {
-	if runtime.GOOS == "darwin" {
+	applyKeybindingLabels()
+}
+
+func applyKeybindingLabels() {
+	if runtime.GOOS == "darwin" || prefs.macosKeybindings() {
+		cmdNewTab.Keys = "⌘T"
+		cmdSplitRight.Keys = "⌘D"
+		cmdSplitDown.Keys = "⇧⌘D"
+		cmdClosePane.Keys = "⌘W"
+		cmdCloseTab.Keys = "⇧⌘W"
+		cmdZoom.Keys = "⇧⌘↩"
+		cmdEqualize.Keys = "⌃⌘="
+		cmdNextTab.Keys = "⇧⌘]"
+		cmdPrevTab.Keys = "⇧⌘["
+		cmdRenameTab.Keys = "⇧⌘R"
+		cmdPalette.Keys = "⇧⌘P"
+		cmdPalette2.Keys = "⌘P"
+		cmdFocusLeft.Keys = "⌥⌘←"
+		cmdFocusRight.Keys = "⌥⌘→"
+		cmdFocusUp.Keys = "⌥⌘↑"
+		cmdFocusDown.Keys = "⌥⌘↓"
+		cmdGrowLeft.Keys = "⌃⌘←"
+		cmdGrowRight.Keys = "⌃⌘→"
+		cmdGrowUp.Keys = "⌃⌘↑"
+		cmdGrowDown.Keys = "⌃⌘↓"
+		cmdClear.Keys = "⌘K"
+		cmdBigger.Keys = "⌘+"
+		cmdSmaller.Keys = "⌘−"
+		cmdActualSize.Keys = "⌘0"
+		cmdEndAll.Keys = "⌥⌘Q"
 		return
 	}
 	for _, cmd := range commands {
@@ -319,8 +348,8 @@ func (a *App) openPalette() {
 }
 
 // shortcuts handles the keys the menus do not: Control-Tab between tabs,
-// and on Windows, where windows of native UI run no menu shortcuts, those
-// of the commands. The window's shortcuts come before the terminal's keys.
+// and on non-macOS platforms, those of the commands. The window's shortcuts
+// come before the terminal's keys.
 func (a *App) shortcuts(c *ui.Context) {
 	if c.Shortcut(ui.Ctrl, ui.KeyTab) {
 		a.cycleTab(1)
@@ -328,7 +357,101 @@ func (a *App) shortcuts(c *ui.Context) {
 	if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyTab) {
 		a.cycleTab(-1)
 	}
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS == "darwin" {
+		return
+	}
+	if prefs.macosKeybindings() {
+		// New Tab: Cmd+T (emitted by keyd as Ctrl+T or Ctrl+Shift+T or Super+T)
+		if c.Shortcut(ui.Ctrl, ui.KeyT) || c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyT) || c.Shortcut(ui.Super, ui.KeyT) {
+			a.later(c, func() { cmdNewTab.Run(a) })
+		}
+		// Split Right: Cmd+D (emitted by keyd as Ctrl+D or Super+D)
+		if c.Shortcut(ui.Ctrl, ui.KeyD) || c.Shortcut(ui.Super, ui.KeyD) {
+			a.later(c, func() { cmdSplitRight.Run(a) })
+		}
+		// Split Down: Shift+Cmd+D (emitted by keyd as Ctrl+Shift+D or Ctrl+Shift+E or Super+Shift+D)
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyD) || c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyE) || c.Shortcut(ui.Super|ui.Shift, ui.KeyD) {
+			a.later(c, func() { cmdSplitDown.Run(a) })
+		}
+		// Close Pane: Cmd+W (emitted by keyd as Ctrl+W or Super+W)
+		if c.Shortcut(ui.Ctrl, ui.KeyW) || c.Shortcut(ui.Super, ui.KeyW) {
+			a.later(c, func() { cmdClosePane.Run(a) })
+		}
+		// Close Tab: Shift+Cmd+W (Ctrl+Shift+W or Super+Shift+W)
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyW) || c.Shortcut(ui.Super|ui.Shift, ui.KeyW) {
+			a.later(c, func() { cmdCloseTab.Run(a) })
+		}
+		// Zoom Pane: Shift+Cmd+Enter (Ctrl+Shift+Enter or Super+Shift+Enter)
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyEnter) || c.Shortcut(ui.Super|ui.Shift, ui.KeyEnter) {
+			a.later(c, func() { cmdZoom.Run(a) })
+		}
+		// Command Palette: Cmd+P or Shift+Cmd+P (Ctrl+P, Ctrl+Shift+P, Super+P, Super+Shift+P)
+		if c.Shortcut(ui.Ctrl, ui.KeyP) || c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyP) || c.Shortcut(ui.Super, ui.KeyP) || c.Shortcut(ui.Super|ui.Shift, ui.KeyP) {
+			a.later(c, func() { a.openPalette() })
+		}
+		// Clear: Cmd+K (Ctrl+K, Ctrl+Shift+K, Super+K)
+		if c.Shortcut(ui.Ctrl, ui.KeyK) || c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyK) || c.Shortcut(ui.Super, ui.KeyK) {
+			a.later(c, func() { cmdClear.Run(a) })
+		}
+		// Tab Switch: Cmd+1..9 (Ctrl+1..9, Ctrl+Shift+1..9, Super+1..9)
+		for i := 1; i <= 9; i++ {
+			k := ui.Key0 + ui.Key(i)
+			if c.Shortcut(ui.Ctrl, k) || c.Shortcut(ui.Ctrl|ui.Shift, k) || c.Shortcut(ui.Super, k) {
+				i := i
+				a.later(c, func() { a.showTab(i) })
+			}
+		}
+		// Tab Navigation: Next Tab Cmd+Shift+] (Ctrl+PageDown), Prev Tab Cmd+Shift+[ (Ctrl+PageUp)
+		if c.Shortcut(ui.Ctrl, ui.KeyPageDown) {
+			a.cycleTab(1)
+		}
+		if c.Shortcut(ui.Ctrl, ui.KeyPageUp) {
+			a.cycleTab(-1)
+		}
+		// Rename Tab: Shift+Cmd+R (Ctrl+Shift+R or Super+Shift+R)
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyR) || c.Shortcut(ui.Super|ui.Shift, ui.KeyR) {
+			a.later(c, func() { cmdRenameTab.Run(a) })
+		}
+		// Text size: Cmd+=, Cmd+-, Cmd+0
+		if c.Shortcut(ui.Ctrl, ui.KeyEqual) || c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyEqual) || c.Shortcut(ui.Super, ui.KeyEqual) {
+			a.later(c, func() { a.setFontSize(termFont.Size + 1) })
+		}
+		if c.Shortcut(ui.Ctrl, ui.KeyMinus) || c.Shortcut(ui.Super, ui.KeyMinus) {
+			a.later(c, func() { a.setFontSize(termFont.Size - 1) })
+		}
+		if c.Shortcut(ui.Ctrl, ui.Key0) || c.Shortcut(ui.Super, ui.Key0) {
+			a.later(c, func() { a.setFontSize(defaultFontSize) })
+		}
+		// Focus pane: Option+Cmd+Arrows (Left Alt + Left Meta + Arrows -> Ctrl+Alt+Arrows or Alt+Arrows)
+		if c.Shortcut(ui.Ctrl|ui.Alt, ui.KeyLeft) || c.Shortcut(ui.Alt, ui.KeyLeft) || c.Shortcut(ui.Super|ui.Alt, ui.KeyLeft) {
+			a.later(c, func() { a.moveFocus(-1, 0) })
+		}
+		if c.Shortcut(ui.Ctrl|ui.Alt, ui.KeyRight) || c.Shortcut(ui.Alt, ui.KeyRight) || c.Shortcut(ui.Super|ui.Alt, ui.KeyRight) {
+			a.later(c, func() { a.moveFocus(1, 0) })
+		}
+		if c.Shortcut(ui.Ctrl|ui.Alt, ui.KeyUp) || c.Shortcut(ui.Alt, ui.KeyUp) || c.Shortcut(ui.Super|ui.Alt, ui.KeyUp) {
+			a.later(c, func() { a.moveFocus(0, -1) })
+		}
+		if c.Shortcut(ui.Ctrl|ui.Alt, ui.KeyDown) || c.Shortcut(ui.Alt, ui.KeyDown) || c.Shortcut(ui.Super|ui.Alt, ui.KeyDown) {
+			a.later(c, func() { a.moveFocus(0, 1) })
+		}
+		// Move divider: Control+Cmd+Arrows (Ctrl+Shift+Arrows or Alt+Shift+Arrows)
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyLeft) || c.Shortcut(ui.Alt|ui.Shift, ui.KeyLeft) {
+			a.later(c, func() { a.resizeFocused(-1, 0) })
+		}
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyRight) || c.Shortcut(ui.Alt|ui.Shift, ui.KeyRight) {
+			a.later(c, func() { a.resizeFocused(1, 0) })
+		}
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyUp) || c.Shortcut(ui.Alt|ui.Shift, ui.KeyUp) {
+			a.later(c, func() { a.resizeFocused(0, -1) })
+		}
+		if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyDown) || c.Shortcut(ui.Alt|ui.Shift, ui.KeyDown) {
+			a.later(c, func() { a.resizeFocused(0, 1) })
+		}
+		// Equalize panes: Control+Cmd+=
+		if c.Shortcut(ui.Ctrl|ui.Alt, ui.KeyEqual) || c.Shortcut(ui.Super|ui.Ctrl, ui.KeyEqual) {
+			a.later(c, func() { a.equalize() })
+		}
 		return
 	}
 	for _, cmd := range commands {
