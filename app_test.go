@@ -335,3 +335,93 @@ func TestPaletteScrolls(t *testing.T) {
 		t.Error("the keys chose a row out of sight")
 	}
 }
+
+func TestMacOSKeybindings(t *testing.T) {
+	a, tt := newTestApp(t)
+	tab := a.tab()
+	p := tab.Focus
+	waitFor(t, tt, "initial shell", func() bool { return p.term != nil && strings.Contains(p.term.Text(), testShell.prompt) })
+
+	// Cmd+T (emitted as Ctrl+T) opens a new tab.
+	tt.Key(ui.Ctrl, ui.KeyT)
+	tt.Frame()
+	if len(a.tabs) != 2 {
+		t.Fatalf("expected 2 tabs after Ctrl+T, got %d", len(a.tabs))
+	}
+
+	// Cmd+1 (emitted as Ctrl+1) switches back to first tab.
+	tt.Key(ui.Ctrl, ui.Key1)
+	tt.Frame()
+	if a.active != 0 {
+		t.Fatalf("expected tab 0 active after Ctrl+1, got %d", a.active)
+	}
+
+	// Cmd+D (emitted as Ctrl+D) splits right.
+	tt.Key(ui.Ctrl, ui.KeyD)
+	tt.Frame()
+	tab0 := a.tabs[0]
+	if len(tab0.panes()) != 2 {
+		t.Fatalf("expected 2 panes after Ctrl+D, got %d", len(tab0.panes()))
+	}
+
+	// Shift+Cmd+D (emitted as Ctrl+Shift+D) splits down.
+	tt.Key(ui.Ctrl|ui.Shift, ui.KeyD)
+	tt.Frame()
+	if len(tab0.panes()) != 3 {
+		t.Fatalf("expected 3 panes after Ctrl+Shift+D, got %d", len(tab0.panes()))
+	}
+
+	// Cmd+W (emitted as Ctrl+W) closes the focused pane.
+	tt.Key(ui.Ctrl, ui.KeyW)
+	tt.Frame()
+	if len(tab0.panes()) != 2 {
+		t.Fatalf("expected 2 panes after Ctrl+W, got %d", len(tab0.panes()))
+	}
+}
+
+func TestSplitWithOptionsAndHelpers(t *testing.T) {
+	a, tt := newTestApp(t)
+	tab := a.tab()
+	p := tab.Focus
+	waitFor(t, tt, "initial shell", func() bool { return p.term != nil && strings.Contains(p.term.Text(), testShell.prompt) })
+
+	// Split with custom options
+	p2, err := a.splitWithOptions(p.SID, false, rex.CreateOptions{})
+	if err != nil {
+		t.Fatalf("splitWithOptions failed: %v", err)
+	}
+	tt.Frame()
+	if len(tab.panes()) != 2 {
+		t.Fatalf("expected 2 panes, got %d", len(tab.panes()))
+	}
+	if tab.Focus != p2 {
+		t.Fatalf("expected focus on new pane")
+	}
+
+	// New tab with options
+	t2, p3 := a.newTabWithOptions(rex.CreateOptions{})
+	tt.Frame()
+	if len(a.tabs) != 2 {
+		t.Fatalf("expected 2 tabs, got %d", len(a.tabs))
+	}
+	if a.tab() != t2 || t2.Focus != p3 {
+		t.Fatalf("expected focus on new tab")
+	}
+
+	// Focus back to first pane
+	if !a.focusPane(p.SID) {
+		t.Fatalf("focusPane failed")
+	}
+	if a.active != 0 || a.tab().Focus != p {
+		t.Fatalf("expected tab 0 focus")
+	}
+
+	// Close pane
+	if !a.closePaneBySID(p2.SID) {
+		t.Fatalf("closePaneBySID failed")
+	}
+	if len(tab.panes()) != 1 {
+		t.Fatalf("expected 1 pane after close, got %d", len(tab.panes()))
+	}
+}
+

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -108,6 +109,7 @@ type App struct {
 	posted []func()
 	// services keeps redraw requests available to menu callbacks.
 	services ui.Services
+	ipc      *ipcServer
 }
 
 func (a *App) post(fn func()) {
@@ -173,20 +175,25 @@ func (t *Tab) setFocus(p *Pane) {
 
 // newPane makes a pane with a new session in dir.
 func (a *App) newPane(dir string, cols, rows int) *Pane {
-	if cols <= 0 {
-		cols, rows = 80, 24
+	return a.newPaneWithOptions(rex.CreateOptions{Dir: dir, Cols: cols, Rows: rows})
+}
+
+// newPaneWithOptions makes a pane with custom CreateOptions.
+func (a *App) newPaneWithOptions(opts rex.CreateOptions) *Pane {
+	if opts.Cols <= 0 || opts.Rows <= 0 {
+		opts.Cols, opts.Rows = 80, 24
 	}
-	info, err := a.client.Create(rex.CreateOptions{Dir: dir, Cols: cols, Rows: rows})
+	info, err := a.client.Create(opts)
 	if err != nil {
 		log.Printf("creating a session: %v", err)
 		a.err = err.Error()
 		info = rex.SessionInfo{ID: "", Exited: true}
 	}
-	p := &Pane{ID: a.id(), SID: info.ID, info: info, startDir: dir}
+	p := &Pane{ID: a.id(), SID: info.ID, info: info, startDir: opts.Dir}
 	if p.info.Dir == "" {
-		p.info.Dir = dir
+		p.info.Dir = opts.Dir
 	}
-	a.attach(p, cols, rows)
+	a.attach(p, opts.Cols, opts.Rows)
 	return p
 }
 
@@ -264,8 +271,17 @@ func (a *App) ring(p *Pane) {
 
 // newTab opens a tab with a shell in dir, after the active tab.
 func (a *App) newTab(dir string) *Tab {
+	t, _ := a.newTabWithOptions(rex.CreateOptions{Dir: dir})
+	return t
+}
+
+// newTabWithOptions opens a tab with custom CreateOptions, after the active tab.
+func (a *App) newTabWithOptions(opts rex.CreateOptions) (*Tab, *Pane) {
+	if opts.Dir == "" {
+		opts.Dir = a.currentDir()
+	}
 	t := &Tab{ID: a.id()}
-	p := a.newPane(dir, 0, 0)
+	p := a.newPaneWithOptions(opts)
 	t.Root = &Node{ID: a.id(), Pane: p}
 	p.Tab, p.Node = t, t.Root
 	t.setFocus(p)
@@ -274,7 +290,8 @@ func (a *App) newTab(dir string) *Tab {
 	a.active = at
 	a.focusReq = p
 	a.changed()
-	return t
+	a.save()
+	return t, p
 }
 
 // currentDir returns the directory new panes open in: the focused pane's.
@@ -290,12 +307,49 @@ func (a *App) currentDir() string {
 
 // split splits the focused pane, the new pane right of it or below it.
 func (a *App) split(vertical bool) {
-	t := a.tab()
-	if t == nil || t.Focus == nil {
-		return
+	a.splitWithOptions("", vertical, rex.CreateOptions{})
+}
+
+// splitWithOptions splits the target pane (or focused pane if empty) with custom CreateOptions.
+func (a *App) splitWithOptions(targetSID string, vertical bool, opts rex.CreateOptions) (*Pane, error) {
+	var targetPane *Pane
+	var targetTab *Tab
+
+	if targetSID != "" {
+		for _, t := range a.tabs {
+			for _, p := range t.panes() {
+				if p.SID == targetSID {
+					targetPane = p
+					targetTab = t
+					break
+				}
+			}
+			if targetPane != nil {
+				break
+			}
+		}
 	}
-	old := t.Focus
-	t.Zoom = nil
+
+	if targetPane == nil {
+		targetTab = a.tab()
+		if targetTab != nil {
+			targetPane = targetTab.Focus
+		}
+	}
+
+	if targetTab == nil || targetPane == nil {
+		return nil, fmt.Errorf("no target pane to split")
+	}
+
+	for ti, t := range a.tabs {
+		if t == targetTab {
+			a.active = ti
+			break
+		}
+	}
+
+	targetTab.Zoom = nil
+	old := targetPane
 	n := old.Node
 	cols, rows := 80, 24
 	if old.term != nil {
@@ -306,15 +360,107 @@ func (a *App) split(vertical bool) {
 			cols = max(cols/2, 10)
 		}
 	}
-	p := a.newPane(a.currentDir(), cols, rows)
-	p.Tab = t
+
+	if opts.Dir == "" {
+		if old.info.Dir != "" {
+			opts.Dir = old.info.Dir
+		} else {
+			opts.Dir = a.currentDir()
+		}
+	}
+	opts.Cols, opts.Rows = cols, rows
+
+	p := a.newPaneWithOptions(opts)
+	p.Tab = targetTab
 	left := &Node{ID: a.id(), Pane: old, Parent: n}
 	right := &Node{ID: a.id(), Pane: p, Parent: n}
 	old.Node, p.Node = left, right
 	n.Pane, n.A, n.B, n.Vertical, n.Ratio = nil, left, right, vertical, 0.5
-	t.setFocus(p)
+	targetTab.setFocus(p)
 	a.focusReq = p
 	a.changed()
+	a.save()
+	return p, nil
+}
+
+// focusPane brings the tab containing sid to front and focuses the pane.
+func (a *App) focusPane(sid string) bool {
+	for ti, t := range a.tabs {
+		for _, p := range t.panes() {
+			if p.SID == sid {
+				a.active = ti
+				t.setFocus(p)
+				a.focusReq = p
+				a.changed()
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// closePaneBySID closes the pane with the given SID.
+func (a *App) closePaneBySID(sid string) bool {
+	for _, t := range a.tabs {
+		for _, p := range t.panes() {
+			if p.SID == sid {
+				a.closePane(p)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+type TabInfo struct {
+	Index      int        `json:"index"`
+	Name       string     `json:"name"`
+	Active     bool       `json:"active"`
+	FocusedSID string     `json:"focusedSID"`
+	Panes      []PaneInfo `json:"panes"`
+}
+
+type PaneInfo struct {
+	SID     string `json:"sid"`
+	PID     int    `json:"pid"`
+	Program string `json:"program"`
+	Dir     string `json:"dir"`
+	Focused bool   `json:"focused"`
+	Cols    int    `json:"cols"`
+	Rows    int    `json:"rows"`
+}
+
+type LayoutListInfo struct {
+	ActiveTab int       `json:"activeTab"`
+	Tabs      []TabInfo `json:"tabs"`
+}
+
+func (a *App) listTabsAndPanes() LayoutListInfo {
+	res := LayoutListInfo{ActiveTab: a.active}
+	for ti, t := range a.tabs {
+		tiInfo := TabInfo{
+			Index:  ti,
+			Name:   t.Name,
+			Active: ti == a.active,
+		}
+		if t.Focus != nil {
+			tiInfo.FocusedSID = t.Focus.SID
+		}
+		for _, p := range t.panes() {
+			pi := PaneInfo{
+				SID:     p.SID,
+				PID:     p.info.PID,
+				Program: p.info.Program,
+				Dir:     p.info.Dir,
+				Focused: t.Focus == p,
+				Cols:    p.info.Cols,
+				Rows:    p.info.Rows,
+			}
+			tiInfo.Panes = append(tiInfo.Panes, pi)
+		}
+		res.Tabs = append(res.Tabs, tiInfo)
+	}
+	return res
 }
 
 // closePane closes a pane and ends its session.

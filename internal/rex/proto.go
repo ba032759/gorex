@@ -135,3 +135,19 @@ func SocketPath() string {
 	}
 	return filepath.Join(os.TempDir(), name)
 }
+
+// AppSocketPath returns the path of the GUI app's control socket.
+func AppSocketPath() string {
+	p := filepath.Join(Dir(), "app.sock")
+	if len(p) < 100 {
+		return p
+	}
+	h := fnv.New32a()
+	h.Write([]byte(p))
+	name := fmt.Sprintf("gorex-app-%x.sock", h.Sum32())
+	if uid := os.Getuid(); uid >= 0 {
+		name = fmt.Sprintf("gorex-app-%d-%x.sock", uid, h.Sum32())
+	}
+	return filepath.Join(os.TempDir(), name)
+}
+

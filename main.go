@@ -21,14 +21,24 @@ import (
 )
 
 func main() {
-	// -server runs the session server; other arguments are AppKit's, as
-	// -NSWindowResizeTime, which it reads itself.
-	if len(os.Args) > 1 && os.Args[1] == "-server" {
-		log.SetPrefix("[server] ")
-		if err := rex.Serve(); err != nil {
-			log.Fatal(err)
+	if len(os.Args) > 1 {
+		if os.Args[1] == "-server" {
+			log.SetPrefix("[server] ")
+			if err := rex.Serve(); err != nil {
+				log.Fatal(err)
+			}
+			return
 		}
-		return
+		switch os.Args[1] {
+		case "split", "new", "new-tab", "list", "focus", "close", "send-keys", "help", "--help", "-h":
+			if os.Getenv("GOREX_DIR") == "" {
+				if dir, err := mygo.App.Path(mygo.PathUserData); err == nil {
+					os.Setenv("GOREX_DIR", dir)
+				}
+			}
+			runCLI(os.Args[1:])
+			return
+		}
 	}
 	// The state of the sessions lives in the app's data directory, which
 	// the server it starts takes from GOREX_DIR: "GoRex", or "GoRex Dev"
@@ -113,8 +123,12 @@ func (a *App) open() {
 	}
 	a.changed()
 	go a.poll(win, client)
+	a.ipc = a.startIPC()
 	a.debugHook()
 	win.OnClosed(func() {
+		if a.ipc != nil {
+			a.ipc.close()
+		}
 		a.saveNow()
 		a.quitting = true
 		for _, t := range a.tabs {
