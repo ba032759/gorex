@@ -1,0 +1,60 @@
+# The tools GoRex is built and checked with, and its tasks. `mise install`
+# installs the tools; `mise run check` is what every change must pass:
+# formatting, linting (Go, shell, CI workflows), the tests with the race
+# detector, the spec's consistency, and builds for the other platforms.
+# The Claude Code hooks in .claude/ and CI run it too. `mise run format`
+# formats everything.
+
+[tools]
+go = "1.27.3"
+duckdb = "1.5.6"
+golangci-lint = "2.15.0"
+shellcheck = "0.11.0"
+shfmt = "3.14.1"
+actionlint = "1.7.12"
+
+[env]
+# The shell scripts' style, for shfmt.
+SHFMT_FLAGS = "-i 0 -bn"
+
+[tasks.check]
+description = "Everything a change must pass"
+depends = ["fmt", "lint", "test", "spec", "cross"]
+
+[tasks.format]
+description = "Format the Go code and the shell scripts"
+run = ["gofmt -w .", "shfmt $SHFMT_FLAGS -w .claude/hooks"]
+
+[tasks.fmt]
+description = "Fail on files the formatters would change"
+run = [
+  'out=$(gofmt -l .); if [ -n "$out" ]; then echo "not formatted (mise run format):"; echo "$out"; exit 1; fi',
+  "shfmt $SHFMT_FLAGS -d .claude/hooks",
+]
+
+[tasks.lint]
+description = "golangci-lint (.golangci.yml), shellcheck, actionlint"
+run = ["golangci-lint run ./...", "shellcheck .claude/hooks/*.sh", "actionlint"]
+
+[tasks.build]
+run = "go build ./..."
+
+[tasks.test]
+description = "Tests with the race detector; results kept in .spec/ for spec query"
+run = "go run ./tools/spec test -- go test -race -json ./..."
+
+[tasks.spec]
+description = "Spec errors fail; gaps are listed"
+run = "go run ./tools/spec check -q"
+
+[tasks.spec-strict]
+description = "Gaps (accepted items no test verifies) fail too"
+run = "go run ./tools/spec check --strict"
+
+[tasks.cross]
+description = "Build for macOS and Windows"
+run = ["GOOS=darwin go build -o /dev/null .", "GOOS=windows go build -o /dev/null ."]
+
+[tasks.query]
+description = "DuckDB over the spec, tests and GoRex's events: mise run query -- 'SQL'"
+run = "go run ./tools/spec query"

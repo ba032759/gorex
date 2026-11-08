@@ -1,0 +1,73 @@
+version: "2"
+
+# The linters a change must pass, through `mise run lint`. errcheck stays
+# on for what can lose data or hide a failure; calls whose errors are
+# best effort by design (closing, removing, printing to a terminal) are
+# excluded, and tests may ignore errors of their own setup.
+
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - nilerr
+    - errorlint
+    - misspell
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (net.Conn).Close
+        - (*net.UnixConn).Close
+        - os.Remove
+        - os.RemoveAll
+        - os.Setenv
+        - os.MkdirAll
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (*bufio.Writer).Flush
+        - (*bufio.Writer).Write
+        - (*bufio.Writer).WriteString
+        - (*os.File).Write
+        - (*os.File).Seek
+        - (*text/tabwriter.Writer).Flush
+        - (*github.com/egoist/mygo.Notification).Show
+    staticcheck:
+      checks:
+        - all
+        - -QF1001 # De Morgan: the protocol's character sets read better as written
+        - -ST1000 # package comments
+        - -ST1003 # names: the code follows Rex's and MyGo's
+        - -ST1020
+        - -ST1021
+        - -ST1022
+    misspell:
+      locale: US
+  exclusions:
+    rules:
+      # Closing and signalling are best effort everywhere: what is closed
+      # is going away.
+      - linters: [errcheck]
+        text: "Error return value of `[^`]*(\\.Close|\\.close|syscall\\.Kill)` is not checked"
+      # Fire and forget by design: the app's async calls to the server
+      # (a dead connection shows as the connection closing), terminal I/O
+      # (the block's reader sees a dead terminal), and setup whose failure
+      # shows anyway.
+      - linters: [errcheck]
+        text: "Error return value of `[^`]*\\.(View|Reply|ShutdownForget|Shutdown|DoFor|sync|input|write|resize|Write|Control|RegisterFont)` is not checked"
+      - linters: [errcheck]
+        text: "Error return value of `(os\\.Chmod|\\(\\*flag\\.FlagSet\\)\\.Parse|fl\\.Parse)` is not checked"
+      - path: _test\.go
+        linters: [errcheck]
+
+formatters:
+  enable:
+    - gofmt

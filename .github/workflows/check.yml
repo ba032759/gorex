@@ -1,0 +1,14 @@
+name: check
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: mise run check
+      - name: Traceability matrix
+        if: always()
+        run: go run ./tools/spec matrix >> "$GITHUB_STEP_SUMMARY"

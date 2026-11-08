@@ -1,0 +1,4 @@
+package x
+
+// spec: F-1, F-7
+func TestLs(t *testing.T) {}
