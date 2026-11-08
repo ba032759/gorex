@@ -6,6 +6,7 @@
 //	spec show ID...                  an item, what it traces to, what traces to it, its tests
 //	spec for FILE...                 the items the tests of these files' packages verify
 //	spec matrix                      the traceability matrix, business to tests, as markdown
+//	spec stats                       items, words and reading time per area
 //	spec index                       write .spec/*.jsonl for queries
 //	spec query [SQL]                 DuckDB over the spec, the tests, their results and the events
 //	spec test -- CMD...              run go test -json, keep the results, print the failures
@@ -92,6 +93,8 @@ func main() {
 		cmdFor(root, args)
 	case "matrix":
 		cmdMatrix(root)
+	case "stats":
+		cmdStats(root)
 	case "index":
 		if err := writeIndex(root); err != nil {
 			die(err)
@@ -261,7 +264,7 @@ func parseFile(path, rel string) ([]*Item, []Problem) {
 				it.Source = append(it.Source, src)
 			}
 		}
-		it.Words = len(strings.Fields(prose(it.Title + "\n" + it.Body)))
+		it.Words = words(it.Title + "\n" + it.Body)
 		for _, k := range []string{"status", "verify", "area", "traces", "superseded-by", "source"} {
 			delete(it.Fields, k)
 		}
@@ -424,7 +427,7 @@ func check(items []*Item, probs []Problem, refs []TestRef) []Problem {
 		}
 	}
 	sort.SliceStable(probs, func(i, j int) bool {
-		rank := map[string]int{"error": 0, "gap": 1, "warning": 2}
+		rank := map[string]int{"error": 0, "gap": 1, "warning": 2, "style": 3}
 		if rank[probs[i].Severity] != rank[probs[j].Severity] {
 			return rank[probs[i].Severity] < rank[probs[j].Severity]
 		}
@@ -466,6 +469,7 @@ func cmdCheck(root string, args []string) int {
 	strict := fl.Bool("strict", false, "gaps fail the check too")
 	asJSON := fl.Bool("json", false, "print the problems as JSON")
 	quiet := fl.Bool("q", false, "print only errors (and gaps with --strict)")
+	showStyle := fl.Bool("style", false, "print the style notes too: long sentences and items, filler")
 	fl.Parse(args)
 	items, refs, probs := load(root)
 	fail := 0
@@ -484,6 +488,9 @@ func cmdCheck(root string, args []string) int {
 		if *quiet && !(p.Severity == "error" || p.Severity == "gap" && *strict) {
 			continue
 		}
+		if p.Severity == "style" && !*showStyle {
+			continue
+		}
 		fmt.Println(p)
 	}
 	byLayer := map[string]int{}
@@ -491,9 +498,9 @@ func cmdCheck(root string, args []string) int {
 		byLayer[it.Layer]++
 	}
 	if !*quiet || fail != 0 {
-		fmt.Printf("spec: %d items (%d business, %d decisions, %d functional, %d technical), %d test links; %d errors, %d gaps, %d warnings\n",
+		fmt.Printf("spec: %d items (%d business, %d decisions, %d functional, %d technical), %d test links; %d errors, %d gaps, %d warnings, %d style notes (--style)\n",
 			len(items), byLayer["business"], byLayer["decision"], byLayer["functional"], byLayer["technical"],
-			len(refs), count["error"], count["gap"], count["warning"])
+			len(refs), count["error"], count["gap"], count["warning"], count["style"])
 	}
 	return fail
 }
@@ -593,20 +600,28 @@ func cmdMatrix(root string) {
 			tests[id] = append(tests[id], r.Test)
 		}
 	}
+	// What is in force or on the way: accepted and proposed items.
+	live := func(it *Item) bool { return it.Status == "accepted" || it.Status == "proposed" }
+	mark := func(it *Item) string {
+		if it.Status == "proposed" {
+			return " *(proposed)*"
+		}
+		return ""
+	}
 	fmt.Println("| Business | Functional | Verified by | Technical |")
 	fmt.Println("|---|---|---|---|")
 	for _, b := range items {
-		if b.Layer != "business" || b.Status != "accepted" {
+		if b.Layer != "business" || !live(b) {
 			continue
 		}
 		var fs []*Item
 		for _, f := range items {
-			if f.Layer == "functional" && slices.Contains(f.Traces, b.ID) && f.Status == "accepted" {
+			if f.Layer == "functional" && slices.Contains(f.Traces, b.ID) && live(f) {
 				fs = append(fs, f)
 			}
 		}
 		if len(fs) == 0 {
-			fmt.Printf("| %s %s | — | — | — |\n", b.ID, b.Title)
+			fmt.Printf("| %s %s%s | — | — | — |\n", b.ID, b.Title, mark(b))
 		}
 		for _, f := range fs {
 			v := f.Verify
@@ -623,7 +638,7 @@ func cmdMatrix(root string) {
 					ts = append(ts, t.ID)
 				}
 			}
-			fmt.Printf("| %s %s | %s %s | %s | %s |\n", b.ID, b.Title, f.ID, f.Title, v, strings.Join(ts, ", "))
+			fmt.Printf("| %s %s%s | %s %s%s | %s | %s |\n", b.ID, b.Title, mark(b), f.ID, f.Title, mark(f), v, strings.Join(ts, ", "))
 		}
 	}
 }
@@ -825,11 +840,14 @@ func cmdTest(root string, args []string) int {
 var notItems = map[string]bool{"readme.md": true, "glossary.md": true, "findings.md": true, "questions.md": true}
 
 var (
-	sources = []string{"owner", "rex-docs", "code", "tests"}
-	// Words a requirement does not use: they make it vague. can, may and
-	// will are only refused in functional items, where SHALL says it.
-	vagueAll = regexp.MustCompile(`(?i)\b(should|might|typically|usually|etc\.?|as needed|appropriate|and/or|note that|in order to)\b`)
-	vagueReq = regexp.MustCompile(`(?i)\b(can|may|will|could|would)\b`)
+	sources = []string{"owner", "rex-docs", "repo", "code", "tests"}
+	// A requirement is a sentence with SHALL, or a WHEN … THEN. In one,
+	// these words blur what must hold; in a description they are fine.
+	requirementRe = regexp.MustCompile(`\bSHALL\b|\bWHEN\b.*\bTHEN\b`)
+	vagueReq      = regexp.MustCompile(`(?i)\b(should|may|might|can|could|will|would|typically|usually|normally|as needed|appropriate|if possible)\b`)
+	// Vague anywhere.
+	vagueAll = regexp.MustCompile(`(?i)\betc\b\.?|\band/or\b`)
+	fillerRe = regexp.MustCompile(`(?i)\b(note that|in order to|it is important (that|to)|basically|simply|just)\b`)
 	fenceRe  = regexp.MustCompile("(?s)```.*?```")
 	codeRe   = regexp.MustCompile("`[^`]*`")
 	linkRe   = regexp.MustCompile(`\]\([^)]*\)|https?://\S+`)
@@ -837,10 +855,11 @@ var (
 	sentRe   = regexp.MustCompile(`[.!?;]\s+`)
 )
 
+// Lengths past which check --style asks whether a sentence or an item is
+// still easy to read. Not limits.
 const (
-	maxSentence  = 25
-	maxItemWords = 150
-	maxArea      = 30
+	longSentence = 30
+	longItem     = 200
 )
 
 // prose is the text of markdown without code, links and tables: what is
@@ -857,6 +876,20 @@ func prose(md string) string {
 		out = append(out, l)
 	}
 	return strings.Join(out, "\n")
+}
+
+// words counts what a reader reads: prose and tables, not code blocks.
+func words(md string) int {
+	md = fenceRe.ReplaceAllString(md, " ")
+	n := 0
+	for _, l := range strings.Split(md, "\n") {
+		t := strings.TrimSpace(l)
+		if strings.HasPrefix(t, "|") && strings.Trim(t, "|-: ") == "" {
+			continue // a table's rule
+		}
+		n += len(strings.Fields(strings.ReplaceAll(l, "|", " ")))
+	}
+	return n
 }
 
 // sentences splits prose into its sentences: list items, numbered steps
@@ -938,62 +971,71 @@ func parseGlossary(root string) ([]Term, []Problem) {
 	return terms, probs
 }
 
-// checkWriting warns on what makes the spec harder to read than it must
-// be: long sentences, vague words, avoided terms, items and areas over
-// budget, and items that do not say where they come from.
+// checkWriting warns where the writing can mislead: vague words in a
+// requirement, terms the glossary avoids, unknown sources. Length is a
+// style note, shown with check --style: readability matters, the numbers
+// only hint at it.
 func checkWriting(items []*Item, gl []Term) []Problem {
 	var probs []Problem
-	avoid := map[string]*regexp.Regexp{}
+	type avoided struct {
+		re   *regexp.Regexp
+		term string
+	}
+	var avoid []avoided
+	// Longer terms that contain an avoided word are fine: "tab bar" is a
+	// term though "tab" is avoided.
+	var compound []*regexp.Regexp
 	for _, t := range gl {
 		for _, w := range t.Avoid {
-			avoid[w+" (use "+t.Term+")"] = regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(w) + `s?\b`)
+			avoid = append(avoid, avoided{regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(w) + `s?\b`), w + " (use " + t.Term + ")"})
+		}
+		if strings.Contains(t.Term, " ") {
+			compound = append(compound, regexp.MustCompile(`(?i)\b`+regexp.QuoteMeta(t.Term)+`s?\b`))
 		}
 	}
-	perArea := map[string]int{}
-	areaFile := map[string]string{}
 	for _, it := range items {
-		p := func(msg string) { probs = append(probs, Problem{"warning", it.File, it.Line, it.ID, msg}) }
-		if it.Layer == "functional" && it.Status != "rejected" && it.Status != "superseded" {
-			perArea[it.Area]++
-			areaFile[it.Area] = it.File
-		}
 		if it.Status == "rejected" || it.Status == "superseded" {
 			continue
 		}
+		warn := func(msg string) { probs = append(probs, Problem{"warning", it.File, it.Line, it.ID, msg}) }
+		style := func(msg string) { probs = append(probs, Problem{"style", it.File, it.Line, it.ID, msg}) }
 		text := prose(it.Title + "\n" + it.Body)
-		if it.Words > maxItemWords {
-			p(fmt.Sprintf("%d words, over the budget of %d: split it, or say less", it.Words, maxItemWords))
-		}
-		for _, s := range sentences(prose(it.Body)) {
-			if n := len(strings.Fields(s)); n > maxSentence {
-				p(fmt.Sprintf("a sentence of %d words (at most %d): %q", n, maxSentence, clip(s, 60)))
+		var vague, filler []string
+		for _, sn := range sentences(prose(it.Body)) {
+			if requirementRe.MatchString(sn) {
+				vague = append(vague, vagueReq.FindAllString(sn, -1)...)
+			}
+			vague = append(vague, vagueAll.FindAllString(sn, -1)...)
+			filler = append(filler, fillerRe.FindAllString(sn, -1)...)
+			if n := len(strings.Fields(sn)); n > longSentence {
+				style(fmt.Sprintf("a sentence of %d words: %q", n, clip(sn, 60)))
 			}
 		}
-		if m := vagueAll.FindAllString(text, -1); len(m) > 0 {
-			p("vague words: " + strings.Join(uniq(m), ", "))
+		if len(vague) > 0 {
+			warn("vague in a requirement: " + strings.Join(uniq(vague), ", ") + " (say SHALL, or say exactly)")
 		}
-		if it.Layer == "functional" {
-			if m := vagueReq.FindAllString(text, -1); len(m) > 0 {
-				p("say SHALL, not " + strings.Join(uniq(m), ", "))
-			}
+		if len(filler) > 0 {
+			style("filler: " + strings.Join(uniq(filler), ", "))
 		}
-		for w, re := range avoid {
-			if re.MatchString(text) {
-				p("avoided term: " + w)
+		if it.Words > longItem {
+			style(fmt.Sprintf("%d words: does it say one thing?", it.Words))
+		}
+		masked := text
+		for _, re := range compound {
+			masked = re.ReplaceAllString(masked, "TERM")
+		}
+		for _, a := range avoid {
+			if a.re.MatchString(masked) {
+				warn("avoided term: " + a.term)
 			}
 		}
 		if len(it.Source) == 0 {
-			p("no source: (owner, rex-docs, code, tests)")
+			warn("no source: (" + strings.Join(sources, ", ") + ")")
 		}
 		for _, src := range it.Source {
 			if !slices.Contains(sources, src) {
-				p(fmt.Sprintf("source %q is not one of %s", src, strings.Join(sources, ", ")))
+				warn(fmt.Sprintf("source %q is not one of %s", src, strings.Join(sources, ", ")))
 			}
-		}
-	}
-	for area, n := range perArea {
-		if n > maxArea {
-			probs = append(probs, Problem{"warning", areaFile[area], 0, "", fmt.Sprintf("area %s has %d functional items, over the budget of %d: split the area, or say less", area, n, maxArea)})
 		}
 	}
 	return probs
@@ -1017,4 +1059,46 @@ func uniq(ws []string) []string {
 		}
 	}
 	return out
+}
+
+// cmdStats prints the size of each area, and the time it takes to read:
+// what a reviewer faces.
+func cmdStats(root string) {
+	items, refs, _ := load(root)
+	type area struct {
+		layer, name string
+		n, words    int
+		tested      int
+	}
+	tested := map[string]bool{}
+	for _, r := range refs {
+		for _, id := range r.IDs {
+			tested[id] = true
+		}
+	}
+	byArea := map[string]*area{}
+	var order []string
+	total := 0
+	for _, it := range items {
+		k := it.Layer + "/" + it.Area
+		a, ok := byArea[k]
+		if !ok {
+			a = &area{layer: it.Layer, name: it.Area}
+			byArea[k] = a
+			order = append(order, k)
+		}
+		a.n++
+		a.words += it.Words
+		total += it.Words
+		if tested[it.ID] {
+			a.tested++
+		}
+	}
+	sort.Strings(order)
+	fmt.Printf("%-12s %-18s %6s %7s %8s %7s\n", "layer", "area", "items", "words", "minutes", "tested")
+	for _, k := range order {
+		a := byArea[k]
+		fmt.Printf("%-12s %-18s %6d %7d %8.0f %7d\n", a.layer, a.name, a.n, a.words, float64(a.words)/200, a.tested)
+	}
+	fmt.Printf("%-31s %6d %7d %8.0f\n", "total", len(items), total, float64(total)/200)
 }

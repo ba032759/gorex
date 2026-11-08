@@ -58,7 +58,8 @@ THEN the phone SHALL show it within 5 seconds, with the prompt's text.
 - **verify** (functional): `test` (the default), `event` (shown by the wide
   events in real use), or `manual` (the owner checks it by hand; say how).
 - **source**: where the item comes from: `owner`, `rex-docs` (Superlogical's
-  documentation of Rex), `code`, `tests`; several joined by `,`. An item
+  documentation of Rex), `repo` (the README, docs and git history), `code`,
+  `tests`; several joined by `,`. An item
   only the code shows is a description of what is, not yet of what is
   wanted.
 - Fields go one per line or on one line joined by `·`. Any other field
@@ -95,23 +96,28 @@ status, what is on screen, the protocol's messages, what the events say.
 
 ## Writing
 
-Simple technical English, after ASD-STE100:
+Readability comes first. Simple technical English, after ASD-STE100:
 
 - One word, one meaning. Use the terms of `glossary.md`, and only in their
   meaning there. A term the glossary does not have is added to it, or not
-  used. Words it lists as `avoid:` are not used (`spec check` warns).
-- Short sentences: at most 20 words for an instruction or a requirement,
-  25 for a description. One requirement per sentence.
+  used. Words it lists as `avoid:` are not used for that thing (`spec
+  check` warns); a longer term that contains one, as "tab bar", is fine.
+- Short sentences. One requirement per sentence.
 - Active voice. Say who does it: the server, the app, `rex`, the user.
-- `SHALL` and `SHALL NOT` for requirements, nothing else: not should, may,
-  might, can, will, typically, usually, etc., as needed, appropriate,
-  and/or.
+- A requirement says `SHALL` or `SHALL NOT`, or `WHEN … THEN`. In a
+  requirement, not should, may, can, will, typically, usually, as needed:
+  they blur what must hold. A description says what is, in plain words,
+  and may use them.
 - No filler: no "note that", "in order to", "it is important that".
 - Code, commands, keys and names go in `backticks`.
+- Say each thing once, at the level a reader needs. A functional item
+  states a behaviour an observer can check; the full list of a command's
+  flags is the command's help, and need not be copied.
 
-Budgets: an item has at most 150 words; an area at most 30 functional
-items. An area that needs more is two areas, or says too much. `spec check`
-warns on long sentences, vague words, avoided terms and broken budgets.
+`spec check` warns on what can mislead: vague words in a requirement,
+avoided terms, unknown sources. Long sentences and long items are style
+notes, shown with `spec check --style`: hints, not limits. `spec stats`
+shows each area's size and reading time; that is the number to watch.
 
 The glossary's entries are headings, with an optional `avoid:` line:
 
@@ -172,6 +178,7 @@ go run ./tools/spec ls -l F -s proposed
 go run ./tools/spec show F-12      an item, its traces both ways, its tests
 go run ./tools/spec for FILE       the items the tests of FILE's package verify
 go run ./tools/spec matrix         the traceability matrix, business to tests
+go run ./tools/spec stats          items, words and reading time per area
 go run ./tools/spec query "SQL"    DuckDB over the spec, the tests, their results and GoRex's events
 ```
 

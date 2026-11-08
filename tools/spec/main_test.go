@@ -30,8 +30,8 @@ func fixture(t *testing.T) string {
 func TestCheck(t *testing.T) {
 	root := fixture(t)
 	items, refs, probs := load(root)
-	if len(items) != 6 {
-		t.Fatalf("items = %d, want 6 (code blocks, the glossary and findings hold none)", len(items))
+	if len(items) != 7 {
+		t.Fatalf("items = %d, want 7 (code blocks, the glossary and findings hold none)", len(items))
 	}
 	var got []string
 	for _, p := range probs {
@@ -44,15 +44,20 @@ func TestCheck(t *testing.T) {
 		"error F-7 a test refers to an item",
 		"gap F-3 accepted, verified by tests",
 		"warning B-2 rejected without a rationale",
-		"warning F-4 a sentence of 32 words",
-		"warning F-4 vague words: should, typically",
-		"warning F-4 say SHALL, not can",
+		"style F-4 a sentence of 3",
+		"warning F-4 vague in a requirement: typically, etc",
+		"style F-4 filler: just",
 		"warning F-4 avoided term: pane (use block)",
 		`warning F-4 source "guess" is not one of`,
 		"warning F-1 no source",
 	} {
 		if !strings.Contains(all, want) {
 			t.Errorf("no %q in:\n%s", want, all)
+		}
+	}
+	for _, bad := range []string{"F-4 vague in a requirement: can", "F-4 vague in a requirement: typically, etc, can", "F-5 avoided term", "F-5 vague"} {
+		if strings.Contains(all, bad) {
+			t.Errorf("%q in:\n%s", bad, all)
 		}
 	}
 	if strings.Contains(all, "F-1 ") && strings.Contains(all, "gap F-1") {

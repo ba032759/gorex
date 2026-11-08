@@ -2,7 +2,7 @@ You are specifying GoRex after the fact. GoRex is a terminal for Linux,
 compatible with Superlogical's Rex for macOS, and built without a spec.
 Write its spec by the rules of `spec/README.md`. Read that file first,
 whole, and keep to it: the layers, the item format, the writing rules
-(simple technical English, the glossary, SHALL), and the budgets.
+(simple technical English, the glossary, SHALL).
 
 Sources, and only these:
 
@@ -54,8 +54,8 @@ functional items to business items; technical items to functional ones.
 - Read before writing: the CLI's code (`cli.go`, `help.go`), the server's
   handling of its requests (`internal/rex/`), and the tests.
 - `go run ./tools/spec check` after each file. No errors when you finish;
-  read the warnings and fix the writing ones (long sentences, vague words,
-  avoided terms, budgets). If a rule of `spec/README.md` does not work for
+  read the warnings and fix them (vague requirements, avoided terms,
+  sources); look at `spec check --style` and `spec stats` for what reads long. If a rule of `spec/README.md` does not work for
   what you must say, do not break it quietly: record it as a finding of
   kind "spec rules".
 - `mise run check` must pass at the end.
