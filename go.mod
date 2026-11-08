@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/ebitengine/purego v0.11.1
-	github.com/egoist/mygo v0.3.5-0.20261008155018-bad73d119dc8
+	github.com/egoist/mygo v0.8.4-0.20261107092838-4219d257423d
 	golang.org/x/image v0.46.0
 	golang.org/x/sys v0.48.0
 )
@@ -16,5 +16,3 @@ require (
 )
 
 tool github.com/egoist/mygo/cmd/mygo
-
-replace github.com/egoist/mygo => ../../egoist/mygo
