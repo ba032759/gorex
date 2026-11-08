@@ -55,9 +55,9 @@ functional items to business items; technical items to functional ones.
   handling of its requests (`internal/rex/`), and the tests.
 - `go run ./tools/spec check` after each file. No errors when you finish;
   read the warnings and fix them (vague requirements, avoided terms,
-  sources); look at `spec check --style` and `spec stats` for what reads long. If a rule of `spec/README.md` does not work for
-  what you must say, do not break it quietly: record it as a finding of
-  kind "spec rules".
+  sources). `spec check --style` and `spec stats` show what reads long.
+  If a rule of `spec/README.md` does not work for what you must say, do
+  not break it quietly: record it as a finding of kind "spec rules".
 - `mise run check` must pass at the end.
 - Commit your work in this worktree when done, in one commit.
 
