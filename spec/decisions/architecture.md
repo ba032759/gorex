@@ -1,7 +1,7 @@
 # Decisions: architecture
 
 ### D-1 The server owns the model
-status: proposed · traces: B-2, B-3 · source: code
+status: proposed · traces: B-2, B-3 · source: code, repo
 
 **Context.** The first versions kept the layout of windows and blocks in
 the app (`layout.json`). The app served a socket of its own for the first
@@ -64,7 +64,7 @@ actions.
 **Rejected.** An embedded Lua runtime. The sources give no reason.
 
 ### D-5 A local server only
-status: proposed · traces: B-6 · source: code, rex-docs
+status: proposed · traces: B-6 · source: code, rex-docs, repo
 
 **Choice.** The server listens on one Unix socket in the data directory,
 readable by the user alone. `rex` refuses `-S`.

@@ -252,6 +252,7 @@ event`; the others need a test that builds the executable.
 ## Finding 22: the matrix shows nothing of a retro spec
 
 - Kind: spec rules
+- Status: resolved in the rules (the matrix shows proposed items too)
 - Items: all
 - Code: `tools/spec/main.go:599`, `tools/spec/main.go:604`
 
@@ -263,6 +264,7 @@ accepts an area. Coverage of proposed items is visible only through
 ## Finding 23: tables escape the budgets
 
 - Kind: spec rules
+- Status: resolved in the rules (tables count as words; length is a style note, not a budget)
 - Items: F-118, F-163, T-104, T-105, T-110
 - Code: `tools/spec/main.go:854`
 
@@ -274,6 +276,7 @@ then limits prose, not size.
 ## Finding 24: the sentence limit is 25, not 20
 
 - Kind: spec rules
+- Status: resolved in the rules (length is a style note (`spec check --style`), not a limit)
 - Items: all functional items
 - Code: `tools/spec/main.go:841`
 
@@ -293,6 +296,7 @@ term. The glossary names the command "rex command".
 ## Finding 26: avoided words have one meaning in the spec, more in the code
 
 - Kind: spec rules
+- Status: resolved in the rules (partly: a longer glossary term, as "tab bar", may contain an avoided word)
 - Items: glossary (window, block, close)
 - Code: `tools/spec/main.go:949`
 
@@ -303,6 +307,7 @@ outside backticks. The GUI area needs `tab` for what the app draws.
 ## Finding 27: no source for the repository's documents
 
 - Kind: spec rules
+- Status: resolved in the rules (`source: repo` for the README, docs and git history)
 - Items: all
 - Code: `tools/spec/main.go:828`
 
