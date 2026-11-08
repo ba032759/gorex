@@ -1,64 +1,53 @@
 # Experiment: specify GoRex after the fact
 
-GoRex was built without a spec. Fresh agents, which know only the
-repository, write its spec from the code, by `spec/README.md`. Then we see
-whether the spec is usable: can the owner review and accept it, can an
-agent extend GoRex through it, can another implementation be built from it.
+GoRex was built without a spec, by agents, after Superlogical's Rex for
+macOS. Its intent is in Rex's documentation and in the code; nobody can be
+interviewed about it. Fresh agents, which know only the repository and
+Rex's documentation, write the spec by `spec/README.md`. Then we see
+whether it is usable: readable, true to the code, and, above all, whether
+GoRex can be extended through it.
 
-## Phase 1: the business layer, and the questions (one agent)
+The owner skims and accepts the spec area by area, as a baseline, and
+fills gaps where they matter. The real test comes after: new features go
+through `spec-propose`, and we see if the spec helps or gets in the way.
 
-Prompt:
+## The pilot
 
-> Read spec/README.md, AGENTS.md, README.md, and skim the code, the CLI's
-> help (help.go) and the tests. Draft spec/business/ and spec/decisions/
-> for GoRex: who it is for, what they need, what constraints it lives
-> under, and the decisions visible in the code and its history (git log),
-> with the options they rejected. Everything is status: proposed. Where the
-> reason is not in the repository, do not guess: write rationale: unknown,
-> and add the question to spec/QUESTIONS.md, grouped by item, for an
-> interview with the owner. Use IDs B-1… and D-1…. Run spec check.
+One agent, one pass:
 
-Then the owner is interviewed on spec/QUESTIONS.md, and accepts, corrects
-or rejects the business items. The rest builds on them.
+1. The business layer, small: who GoRex is for and why, from Rex's
+   documentation and the repository (README, git history), with
+   GoRex's own reasons (Rex on Linux) and constraints. The decisions the
+   code and history show, with the options they rejected.
+2. `spec/glossary.md`: the terms, one meaning each.
+3. The CLI, as the first functional area.
+4. `spec/FINDINGS.md` and `spec/QUESTIONS.md`.
 
-## Phase 2: functional and technical layers (agents in parallel)
+The prompt is `docs/retro-spec-pilot.md`. The agent does not change code or
+write tests: it tags the tests that exist, and reports the rest as gaps
+and findings. Fixing the findings is a step of its own, afterwards.
 
-One agent per area, each in its own worktree, each with its own ID range
-so that numbers do not collide:
+Then the owner skims it: is it readable, is it true, is it too much? We
+change `spec/README.md` where the pilot shows it is wrong, and specify the
+next areas the same way:
 
-| Agent | Area | Functional | Technical |
-|---|---|---|---|
-| 1 | CLI: commands, targets, output, exit codes, env | F-100… | T-100… |
-| 2 | Model and layout: sessions, windows, blocks, splits, focus, zoom, restore | F-200… | T-200… |
-| 3 | GUI: tabs, panes, palette, keymap, settings, notifications | F-300… | T-300… |
-| 4 | Programs: shells, PTYs, program status (OSC 7501), agent skill and hooks, events | F-400… | T-400… |
+| Area | Functional | Technical |
+|---|---|---|
+| CLI: commands, targets, output, exit codes, environment (pilot) | F-100… | T-100… |
+| Model and layout: sessions, windows, blocks, splits, focus, zoom, restore | F-200… | T-200… |
+| GUI: tabs, panes, palette, keymap, settings, notifications | F-300… | T-300… |
+| Programs: shells, terminals, program status, agent skills and hooks, events | F-400… | T-400… |
 
-Prompt:
+## What we look at
 
-> Read spec/README.md and spec/business/. Specify the area ‹area› of GoRex
-> from its code and tests: functional items for what an observer outside
-> sees, technical items for what another implementation would have to keep
-> (protocols, formats, invariants). Trace each to the business items it
-> serves; where none fits, add the question to spec/QUESTIONS.md. Use IDs
-> from F-‹n›00 and T-‹n›00. Status: proposed. Mark the existing tests that
-> verify an item with `// spec: ID`; list the items that have no test in
-> your report, do not write tests yet. Run spec check until it has no
-> errors.
-
-## Phase 3: consolidate (one agent)
-
-Merge the worktrees, resolve overlaps (one behaviour, one item), and report
-`spec check --strict`, `spec matrix`, and the open questions.
-
-## What we measure
-
-- Size: items per layer, words per item. Too long to review is a failure.
-- Review: how long the owner takes to accept a layer, and how much is
-  corrected.
-- Coverage: accepted functional items with tests; gaps found.
-- Extension: the next feature (phone access) goes through spec-propose;
-  does the spec help or get in the way?
-- Reimplementation: an agent, with spec/ and no code, implements one area
-  (the program status parser, target matching, the key encoder) in Rust;
-  the Go tests' cases, ported, run against it. What fails is what the spec
-  did not say.
+- Readability: can the owner skim an area in minutes and know what GoRex
+  does? Words per item, items per area, `spec check`'s writing warnings.
+- Truth: does the spec say what the code does? Spot checks against the
+  app and the events.
+- Findings: competing behaviour, accidents, differences from Rex. A spec
+  written after the fact is a review of the code.
+- Coverage: functional items with tests; the gaps.
+- Extension: the next feature (access from an Android phone) goes in
+  through `spec-propose`. Does the spec help, or is it a mess to work in?
+- Later, reimplementation: an agent with `spec/` and no code implements
+  one area in Rust; the ported tests show what the spec did not say.

@@ -22,7 +22,15 @@ reasons.
 
 Files: `business/`, `decisions/`, `functional/`, `technical/`, one markdown
 file per area (`functional/layout.md`, `technical/protocol.md`). The file
-name is the item's area unless it says `area:`.
+name is the item's area unless it says `area:`. Beside them:
+
+- `glossary.md`: the terms, one meaning each (see Writing).
+- `FINDINGS.md`: problems found while specifying: competing behaviour,
+  behaviour nobody would choose, what cannot be tested, differences from
+  Rex. Each finding names the items and code it concerns.
+- `QUESTIONS.md`: what only the owner can answer.
+
+These three, and this file, hold no items.
 
 Each layer traces up: a functional item names the business items it
 serves, a technical item the functional ones. Nothing traces down; the
@@ -49,8 +57,16 @@ THEN the phone SHALL show it within 5 seconds, with the prompt's text.
 - **traces**: the IDs of the items above it.
 - **verify** (functional): `test` (the default), `event` (shown by the wide
   events in real use), or `manual` (the owner checks it by hand; say how).
+- **source**: where the item comes from: `owner`, `rex-docs` (Superlogical's
+  documentation of Rex), `code`, `tests`; several joined by `,`. An item
+  only the code shows is a description of what is, not yet of what is
+  wanted.
 - Fields go one per line or on one line joined by `·`. Any other field
   (`rationale:`, `actor:`, `priority:`) is kept.
+
+Items specified after the fact (the retro spec) are accepted area by area
+as a baseline: the owner skims an area and accepts it whole, and corrects
+what matters when it matters.
 
 ## How to write each layer
 
@@ -76,6 +92,34 @@ A rejected idea is a decision with `status: rejected`.
 
 Say what an observer outside the system sees: the CLI's output and exit
 status, what is on screen, the protocol's messages, what the events say.
+
+## Writing
+
+Simple technical English, after ASD-STE100:
+
+- One word, one meaning. Use the terms of `glossary.md`, and only in their
+  meaning there. A term the glossary does not have is added to it, or not
+  used. Words it lists as `avoid:` are not used (`spec check` warns).
+- Short sentences: at most 20 words for an instruction or a requirement,
+  25 for a description. One requirement per sentence.
+- Active voice. Say who does it: the server, the app, `rex`, the user.
+- `SHALL` and `SHALL NOT` for requirements, nothing else: not should, may,
+  might, can, will, typically, usually, etc., as needed, appropriate,
+  and/or.
+- No filler: no "note that", "in order to", "it is important that".
+- Code, commands, keys and names go in `backticks`.
+
+Budgets: an item has at most 150 words; an area at most 30 functional
+items. An area that needs more is two areas, or says too much. `spec check`
+warns on long sentences, vague words, avoided terms and broken budgets.
+
+The glossary's entries are headings, with an optional `avoid:` line:
+
+```markdown
+### block
+A terminal in a window, with its program: the leaf of a layout.
+avoid: pane
+```
 
 **Technical.** Free form, kept short: components, protocols, file formats,
 the event schema, the invariants a reimplementation must keep. Written by

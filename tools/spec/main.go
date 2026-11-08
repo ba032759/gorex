@@ -38,6 +38,8 @@ type Item struct {
 	Verify       string            `json:"verify,omitempty"`
 	Area         string            `json:"area"`
 	SupersededBy string            `json:"superseded_by,omitempty"`
+	Source       []string          `json:"source"`
+	Words        int               `json:"words"`
 	Fields       map[string]string `json:"fields,omitempty"`
 	File         string            `json:"file"`
 	Line         int               `json:"line"`
@@ -160,6 +162,9 @@ func parseSpec(root string) ([]*Item, []Problem) {
 		if d.IsDir() || !strings.HasSuffix(path, ".md") {
 			return nil
 		}
+		if filepath.Dir(path) == dir && notItems[strings.ToLower(d.Name())] {
+			return nil
+		}
 		rel, _ := filepath.Rel(root, path)
 		its, ps := parseFile(path, rel)
 		items, probs = append(items, its...), append(probs, ps...)
@@ -250,7 +255,14 @@ func parseFile(path, rel string) ([]*Item, []Problem) {
 			it.Traces = []string{}
 		}
 		it.SupersededBy = strings.Join(idRe.FindAllString(it.Fields["superseded-by"], -1), ",")
-		for _, k := range []string{"status", "verify", "area", "traces", "superseded-by"} {
+		it.Source = []string{}
+		for _, src := range strings.Split(it.Fields["source"], ",") {
+			if src = strings.TrimSpace(src); src != "" {
+				it.Source = append(it.Source, src)
+			}
+		}
+		it.Words = len(strings.Fields(prose(it.Title + "\n" + it.Body)))
+		for _, k := range []string{"status", "verify", "area", "traces", "superseded-by", "source"} {
 			delete(it.Fields, k)
 		}
 		if it.Layer == "functional" && it.Verify == "" {
@@ -443,6 +455,9 @@ func tracesOK(from, to string) bool {
 func load(root string) ([]*Item, []TestRef, []Problem) {
 	items, probs := parseSpec(root)
 	refs := scanTests(root)
+	gl, gprobs := parseGlossary(root)
+	probs = append(probs, gprobs...)
+	probs = append(probs, checkWriting(items, gl)...)
 	return items, refs, check(items, probs, refs)
 }
 
@@ -804,4 +819,202 @@ func cmdTest(root string, args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// The files of spec/ that hold no items.
+var notItems = map[string]bool{"readme.md": true, "glossary.md": true, "findings.md": true, "questions.md": true}
+
+var (
+	sources = []string{"owner", "rex-docs", "code", "tests"}
+	// Words a requirement does not use: they make it vague. can, may and
+	// will are only refused in functional items, where SHALL says it.
+	vagueAll = regexp.MustCompile(`(?i)\b(should|might|typically|usually|etc\.?|as needed|appropriate|and/or|note that|in order to)\b`)
+	vagueReq = regexp.MustCompile(`(?i)\b(can|may|will|could|would)\b`)
+	fenceRe  = regexp.MustCompile("(?s)```.*?```")
+	codeRe   = regexp.MustCompile("`[^`]*`")
+	linkRe   = regexp.MustCompile(`\]\([^)]*\)|https?://\S+`)
+	listRe   = regexp.MustCompile(`^\s*(?:[-*]|\d+[a-z]?\.)\s+`)
+	sentRe   = regexp.MustCompile(`[.!?;]\s+`)
+)
+
+const (
+	maxSentence  = 25
+	maxItemWords = 150
+	maxArea      = 30
+)
+
+// prose is the text of markdown without code, links and tables: what is
+// written in words.
+func prose(md string) string {
+	md = fenceRe.ReplaceAllString(md, " ")
+	md = codeRe.ReplaceAllString(md, "CODE")
+	md = linkRe.ReplaceAllString(md, "]")
+	var out []string
+	for _, l := range strings.Split(md, "\n") {
+		if t := strings.TrimSpace(l); strings.HasPrefix(t, "|") || strings.HasPrefix(t, "#") {
+			continue
+		}
+		out = append(out, l)
+	}
+	return strings.Join(out, "\n")
+}
+
+// sentences splits prose into its sentences: list items, numbered steps
+// and paragraphs end them too.
+func sentences(text string) []string {
+	var units []string
+	var cur []string
+	end := func() {
+		if len(cur) > 0 {
+			units = append(units, strings.Join(cur, " "))
+			cur = nil
+		}
+	}
+	for _, l := range strings.Split(text, "\n") {
+		switch {
+		case strings.TrimSpace(l) == "":
+			end()
+		case listRe.MatchString(l):
+			end()
+			cur = append(cur, listRe.ReplaceAllString(l, ""))
+		default:
+			cur = append(cur, strings.TrimSpace(l))
+		}
+	}
+	end()
+	var out []string
+	for _, u := range units {
+		for _, s := range sentRe.Split(u, -1) {
+			if s = strings.TrimSpace(s); s != "" {
+				out = append(out, s)
+			}
+		}
+	}
+	return out
+}
+
+// Term is a glossary entry.
+type Term struct {
+	Term  string
+	Avoid []string
+}
+
+// parseGlossary reads spec/glossary.md: a heading per term, and an
+// optional "avoid: a, b" line of words not to use for it.
+func parseGlossary(root string) ([]Term, []Problem) {
+	b, err := os.ReadFile(filepath.Join(root, "spec", "glossary.md"))
+	if err != nil {
+		return nil, nil
+	}
+	var terms []Term
+	var probs []Problem
+	seen := map[string]int{}
+	for i, l := range strings.Split(string(b), "\n") {
+		t := strings.TrimSpace(l)
+		switch {
+		case strings.HasPrefix(t, "### "):
+			name := strings.ToLower(strings.Trim(strings.TrimPrefix(t, "### "), " `"))
+			if n, ok := seen[name]; ok {
+				probs = append(probs, Problem{"error", "spec/glossary.md", i + 1, "", fmt.Sprintf("%q is defined twice, also at line %d", name, n)})
+			}
+			seen[name] = i + 1
+			terms = append(terms, Term{Term: name})
+		case strings.HasPrefix(t, "avoid:") && len(terms) > 0:
+			for _, w := range strings.Split(strings.TrimPrefix(t, "avoid:"), ",") {
+				if w = strings.ToLower(strings.TrimSpace(w)); w != "" {
+					terms[len(terms)-1].Avoid = append(terms[len(terms)-1].Avoid, w)
+				}
+			}
+		}
+	}
+	// A word avoided for one term must not be another term.
+	for _, t := range terms {
+		for _, w := range t.Avoid {
+			if _, ok := seen[w]; ok {
+				probs = append(probs, Problem{"error", "spec/glossary.md", seen[t.Term], "", fmt.Sprintf("%q is a term, and avoided for %q", w, t.Term)})
+			}
+		}
+	}
+	return terms, probs
+}
+
+// checkWriting warns on what makes the spec harder to read than it must
+// be: long sentences, vague words, avoided terms, items and areas over
+// budget, and items that do not say where they come from.
+func checkWriting(items []*Item, gl []Term) []Problem {
+	var probs []Problem
+	avoid := map[string]*regexp.Regexp{}
+	for _, t := range gl {
+		for _, w := range t.Avoid {
+			avoid[w+" (use "+t.Term+")"] = regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(w) + `s?\b`)
+		}
+	}
+	perArea := map[string]int{}
+	areaFile := map[string]string{}
+	for _, it := range items {
+		p := func(msg string) { probs = append(probs, Problem{"warning", it.File, it.Line, it.ID, msg}) }
+		if it.Layer == "functional" && it.Status != "rejected" && it.Status != "superseded" {
+			perArea[it.Area]++
+			areaFile[it.Area] = it.File
+		}
+		if it.Status == "rejected" || it.Status == "superseded" {
+			continue
+		}
+		text := prose(it.Title + "\n" + it.Body)
+		if it.Words > maxItemWords {
+			p(fmt.Sprintf("%d words, over the budget of %d: split it, or say less", it.Words, maxItemWords))
+		}
+		for _, s := range sentences(prose(it.Body)) {
+			if n := len(strings.Fields(s)); n > maxSentence {
+				p(fmt.Sprintf("a sentence of %d words (at most %d): %q", n, maxSentence, clip(s, 60)))
+			}
+		}
+		if m := vagueAll.FindAllString(text, -1); len(m) > 0 {
+			p("vague words: " + strings.Join(uniq(m), ", "))
+		}
+		if it.Layer == "functional" {
+			if m := vagueReq.FindAllString(text, -1); len(m) > 0 {
+				p("say SHALL, not " + strings.Join(uniq(m), ", "))
+			}
+		}
+		for w, re := range avoid {
+			if re.MatchString(text) {
+				p("avoided term: " + w)
+			}
+		}
+		if len(it.Source) == 0 {
+			p("no source: (owner, rex-docs, code, tests)")
+		}
+		for _, src := range it.Source {
+			if !slices.Contains(sources, src) {
+				p(fmt.Sprintf("source %q is not one of %s", src, strings.Join(sources, ", ")))
+			}
+		}
+	}
+	for area, n := range perArea {
+		if n > maxArea {
+			probs = append(probs, Problem{"warning", areaFile[area], 0, "", fmt.Sprintf("area %s has %d functional items, over the budget of %d: split the area, or say less", area, n, maxArea)})
+		}
+	}
+	return probs
+}
+
+func clip(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
+}
+
+func uniq(ws []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, w := range ws {
+		w = strings.ToLower(w)
+		if !seen[w] {
+			seen[w] = true
+			out = append(out, w)
+		}
+	}
+	return out
 }

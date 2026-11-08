@@ -15,3 +15,8 @@ text
 ## Notes
 
 Not part of F-3.
+
+### F-4 Vague
+status: proposed · traces: B-1 · source: code, guess
+
+The pane should typically be shown, and the user can then close it with a key, which is a long way of saying something that takes far too many words to say.
