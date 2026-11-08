@@ -130,6 +130,7 @@ func TestLayoutTree(t *testing.T) {
 	}
 }
 
+// spec: F-113
 func TestMatch(t *testing.T) {
 	items := []labeled{{id: "session:0000aaaa1111", label: "work"}, {id: "session:0000bbbb1111", label: "Work"}, {id: "session:0000cccc2222"}}
 	if _, err := match("session", "work", items, true); err == nil {
@@ -151,6 +152,7 @@ func TestMatch(t *testing.T) {
 	}
 }
 
+// spec: F-162, F-163
 func TestEncodeKey(t *testing.T) {
 	for _, c := range []struct {
 		key  string
@@ -176,6 +178,7 @@ func TestEncodeKey(t *testing.T) {
 	}
 }
 
+// spec: F-114, F-135, F-136, F-140, F-142, F-143, F-144, F-145, F-146, F-149, F-150, F-151, T-103, T-105
 func TestSessionsWindowsBlocks(t *testing.T) {
 	c, _ := startServer(t)
 	s1 := act(t, c, "session.new", Args{Label: "work", Create: &CreateOptions{Dir: "/tmp"}})
@@ -275,6 +278,7 @@ func TestSessionsWindowsBlocks(t *testing.T) {
 	}
 }
 
+// spec: F-139, F-160, F-161, F-164, F-166, F-167
 func TestSendCaptureWait(t *testing.T) {
 	c, _ := startServer(t)
 	s := act(t, c, "session.new", Args{Create: &CreateOptions{Dir: "/tmp"}})
@@ -311,6 +315,7 @@ func TestSendCaptureWait(t *testing.T) {
 	}
 }
 
+// spec: F-169, F-170, F-175, T-106, T-109
 func TestEventsAndClientActions(t *testing.T) {
 	c, _ := startServer(t)
 	s := act(t, c, "session.new", Args{Label: "ev"})
@@ -372,6 +377,7 @@ func TestEventsAndClientActions(t *testing.T) {
 	_ = s
 }
 
+// spec: F-182
 func TestRestoreAfterRestart(t *testing.T) {
 	c, dir := startServer(t)
 	s := act(t, c, "session.new", Args{Label: "keep", Create: &CreateOptions{Dir: "/tmp"}})

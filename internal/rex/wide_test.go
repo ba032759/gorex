@@ -13,6 +13,8 @@ import (
 
 // Every request the server answers is a wide event, with how it ended,
 // who asked (down to the process), and the size of the server.
+//
+// spec: T-121
 func TestWideEvents(t *testing.T) {
 	c, dir := startServer(t)
 	act(t, c, "session.new", Args{Label: "work"})

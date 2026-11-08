@@ -11,6 +11,7 @@ import (
 
 func b64(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
 
+// spec: T-110
 func TestParseStatus(t *testing.T) {
 	r, q, err := parseStatus("state=blocked:kind=permission:app=terraform:progress=30:msg=" + b64("Apply 3?"))
 	if err != nil || q || r.State != "blocked" || r.Kind != "permission" || r.App != "terraform" || r.Progress != 30 || r.Msg != "Apply 3?" {
@@ -76,6 +77,7 @@ func TestOSCScanner(t *testing.T) {
 	}
 }
 
+// spec: F-172, F-173, T-110
 func TestProgramStatus(t *testing.T) {
 	c, _ := startServer(t)
 	s := act(t, c, "session.new", Args{Create: &CreateOptions{Dir: "/tmp"}})

@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// spec: T-100, T-101, T-102, T-108
 func TestServer(t *testing.T) {
 	// A short path, for the socket: macOS's temporary directory is long.
 	base, shell, work := "/tmp", "/bin/sh", "/tmp"

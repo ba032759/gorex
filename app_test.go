@@ -491,6 +491,7 @@ func TestMacOSKeybindings(t *testing.T) {
 	}
 }
 
+// spec: T-122
 func TestKeymap(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "keymap.json")
@@ -586,6 +587,7 @@ func cli(t *testing.T, env map[string]string, args ...string) (string, int) {
 	return b.String(), code
 }
 
+// spec: F-102, F-103, F-104, F-105, F-112, F-116, F-117, F-130, F-131, F-135, F-136, F-137, F-138, F-141, F-143, F-144, F-149, F-152, F-160, F-161, F-164, F-166, F-175
 func TestCLI(t *testing.T) {
 	c := startTestServer(t)
 	var s map[string]any
@@ -670,6 +672,7 @@ func TestCLI(t *testing.T) {
 	}
 }
 
+// spec: F-185, F-186, F-187, F-188
 func TestSkillSetup(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -770,6 +773,7 @@ func TestProgramStatusInView(t *testing.T) {
 	}
 }
 
+// spec: F-189
 func TestHookStatus(t *testing.T) {
 	dir := t.TempDir()
 	tr := filepath.Join(dir, "t.jsonl")
