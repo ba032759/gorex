@@ -46,7 +46,9 @@ func (a *App) debug(dir, line string) {
 			if arg != "" {
 				name = arg
 			}
-			os.WriteFile(filepath.Join(dir, name), png, 0o644)
+			if err := os.WriteFile(filepath.Join(dir, name), png, 0o644); err != nil {
+				log.Printf("debug: %v", err)
+			}
 		}
 	case "sleep":
 		d, _ := time.ParseDuration(arg)
@@ -77,7 +79,7 @@ func (a *App) debug(dir, line string) {
 			win.Update(func() {
 				if t := a.tab(); t != nil {
 					if ps := t.panes(); atoi(arg)-1 < len(ps) {
-						t.setFocus(ps[atoi(arg)-1])
+						a.setFocus(ps[atoi(arg)-1])
 						a.focusReq = t.Focus
 					}
 				}
@@ -85,7 +87,7 @@ func (a *App) debug(dir, line string) {
 		case "name":
 			win.Update(func() {
 				if t := a.tab(); t != nil {
-					t.Name = arg
+					a.renameTab(t, arg)
 				}
 			})
 		case "close":

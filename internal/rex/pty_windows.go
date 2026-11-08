@@ -221,7 +221,8 @@ func environmentBlock(env []string) []uint16 {
 // for a session: when cmd is empty, $SHELL when it names a program of
 // Windows (not one of MSYS's paths), else PowerShell, else the command
 // interpreter.
-func shellCommand(cmd []string) (path string, argv []string, name string, err error) {
+func shellCommand(o CreateOptions) (path string, argv []string, name string, err error) {
+	cmd := o.Command
 	if len(cmd) > 0 {
 		path, err = exec.LookPath(cmd[0])
 		if err != nil {

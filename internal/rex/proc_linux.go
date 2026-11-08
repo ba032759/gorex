@@ -2,6 +2,8 @@ package rex
 
 import (
 	"fmt"
+	"golang.org/x/sys/unix"
+	"net"
 	"os"
 	"strings"
 )
@@ -24,3 +26,23 @@ func inspect(pid int) (p procInfo) {
 func sysctlString(string) string { return "" }
 
 func sysctlUint64(string) uint64 { return 0 }
+
+// peerPID is the process at the other end of a unix socket, 0 when it
+// cannot tell.
+func peerPID(c net.Conn) int {
+	uc, ok := c.(*net.UnixConn)
+	if !ok {
+		return 0
+	}
+	raw, err := uc.SyscallConn()
+	if err != nil {
+		return 0
+	}
+	pid := 0
+	raw.Control(func(fd uintptr) {
+		if cred, err := unix.GetsockoptUcred(int(fd), unix.SOL_SOCKET, unix.SO_PEERCRED); err == nil {
+			pid = int(cred.Pid)
+		}
+	})
+	return pid
+}

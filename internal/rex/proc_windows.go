@@ -1,6 +1,7 @@
 package rex
 
 import (
+	"net"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -192,3 +193,6 @@ func started(pid uint32) (int64, bool) {
 	}
 	return created.Nanoseconds() / 100, true
 }
+
+// peerPID is the process at the other end of a connection: unknown here.
+func peerPID(net.Conn) int { return 0 }

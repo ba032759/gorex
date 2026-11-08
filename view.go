@@ -18,7 +18,9 @@ const (
 )
 
 func (a *App) view(c *ui.Context) {
+	a.postMu.Lock()
 	a.services = c.Services()
+	a.postMu.Unlock()
 	a.runPosted()
 	k := colorsOf(c)
 	a.focusedWin = a.win == nil || a.win.IsFocused()
@@ -34,16 +36,20 @@ func (a *App) view(c *ui.Context) {
 	if a.err != "" {
 		a.errorBanner(c, k)
 	}
+	if len(a.keySeq) > 0 {
+		a.keySeqBanner(c, k)
+	}
 	a.shortcuts(c)
 	a.palette(c, k)
-	if a.saveDue && time.Since(a.lastSave) > time.Second {
-		a.save()
-	}
 	// The window's title, which the Window menu and Mission Control show,
-	// is the active tab's.
+	// is the active tab's, after the session's when there are several.
 	if t := a.tab(); t != nil && a.win != nil {
 		name, detail := t.label()
-		if title := strings.TrimSpace(name + " " + detail); title != a.title {
+		title := strings.TrimSpace(name + " " + detail)
+		if a.model != nil && len(a.model.Sessions) > 1 {
+			title = a.sessionName(a.currentSession()) + " — " + title
+		}
+		if title != a.title {
 			a.title = title
 			a.win.SetTitle(title)
 		}
@@ -66,6 +72,7 @@ func (a *App) titleBar(c *ui.Context, k *colors) {
 	}
 	ui.Row(c).Height(titleH).Padding(0, max(bar.Right, 10), 0, left).Gap(14).AlignItems(ui.Center).DragWindow().Children(func() {
 		a.hostChip(c, k)
+		a.sessionChip(c, k)
 		a.tabStrip(c, k)
 		// The title bar between the tabs and the buttons, which drags the
 		// window, and a double click on which zooms it.
@@ -132,10 +139,10 @@ var closeRed = ui.Hex("#c42b1c")
 // tip is the tooltip of a button that runs a command: its label and its
 // keys.
 func tip(label string, cmd *command) string {
-	if cmd.Keys == "" {
-		return label
+	if k := cmd.Keys(); k != "" {
+		return label + "  " + k
 	}
-	return label + "  " + cmd.Keys
+	return label
 }
 
 // iconButton is a borderless button of an icon, with a face on hover;
@@ -197,14 +204,14 @@ func (a *App) node(c *ui.Context, k *colors, t *Tab, n *Node) ui.Element {
 			if n.Vertical {
 				total, d = bounds.H-gap, dy
 			}
-			if total > 0 {
-				n.Ratio = min(max(n.Ratio+d/total, 0.08), 0.92)
-				a.changed()
+			if total > 0 && d != 0 {
+				a.setRatio(n, min(max(n.Ratio+d/total, 0.08), 0.92), false)
 			}
+		} else if a.dragging == n.SplitID && !div.Dragging() {
+			a.setRatio(n, n.Ratio, true) // the drag ended
 		}
 		if div.DoubleClicked() {
-			n.Ratio = 0.5
-			a.changed()
+			a.setRatio(n, 0.5, true)
 		}
 		if div.Hovered() || div.Dragging() || div.Pressed() {
 			div.Draw(func(p *ui.Painter, r ui.Rect) {
@@ -245,18 +252,23 @@ func (a *App) paneCard(c *ui.Context, k *colors, t *Tab, p *Pane) ui.Element {
 				tv.Focus()
 				a.focusReq = nil
 			}
-			if tv.Focused() && t.Focus != p {
-				t.setFocus(p)
-				a.changed()
+			// The keyboard went to this terminal, by a click or the Tab
+			// key: it has the tab's focus, unless a focus to give is on
+			// its way.
+			if tv.Focused() && t.Focus != p && a.focusReq == nil {
+				a.later(c, func() { a.setFocus(p) })
 			}
 			if tv.Focused() {
 				p.attention = false
+				if a.focusedWin && len(p.info.Status) > 0 {
+					p.statusSeen = time.Now()
+				}
 			}
 		})
 	})
 	p.bounds = card.Bounds()
 	if card.Pressed() && t.Focus != p {
-		t.setFocus(p)
+		a.later(c, func() { a.setFocus(p) })
 		a.focusReq = p
 	}
 	return card
@@ -272,11 +284,13 @@ func (a *App) paneHeader(c *ui.Context, k *colors, t *Tab, p *Pane, focused, hov
 	}
 	h := ui.Row(c).Height(headerH).Padding(0, 8, 0, 12).Gap(7).AlignItems(ui.Center).MinWidth(0)
 	if h.DoubleClicked() {
-		t.setFocus(p)
-		a.toggleZoom()
+		a.later(c, func() {
+			a.setFocus(p)
+			a.toggleZoom()
+		})
 	}
 	if h.Clicked() {
-		t.setFocus(p)
+		a.later(c, func() { a.setFocus(p) })
 		a.focusReq = p
 	}
 	h.Children(func() {
@@ -286,7 +300,9 @@ func (a *App) paneHeader(c *ui.Context, k *colors, t *Tab, p *Pane, focused, hov
 			if detail != "" {
 				ui.Text(c, detail).FontSize(12.5).FontWeight(500).TextColor(k.text.Alpha(0.86)).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 			}
-			a.activityBadge(c, k, p)
+			if !a.statusChip(c, k, p) {
+				a.activityBadge(c, k, p)
+			}
 		})
 		show := focused || hovered
 		ui.Row(c).Gap(1).AlignItems(ui.Center).Opacity(map[bool]float32{true: 1, false: 0}[show]).Children(func() {
@@ -294,20 +310,26 @@ func (a *App) paneHeader(c *ui.Context, k *colors, t *Tab, p *Pane, focused, hov
 				return
 			}
 			if iconButton(c, k, "columns-2", "Split Right", 26, 16).Tooltip(tip("Split Right", &cmdSplitRight)).Clicked() {
-				t.setFocus(p)
-				a.split(false)
+				a.later(c, func() {
+					a.setFocus(p)
+					a.split(false)
+				})
 			}
 			if iconButton(c, k, "rows-2", "Split Down", 26, 16).Tooltip(tip("Split Down", &cmdSplitDown)).Clicked() {
-				t.setFocus(p)
-				a.split(true)
+				a.later(c, func() {
+					a.setFocus(p)
+					a.split(true)
+				})
 			}
 			zoom, label := "maximize-2", "Zoom"
 			if t.Zoom == p {
 				zoom, label = "minimize-2", "Unzoom"
 			}
 			if iconButton(c, k, zoom, "Zoom", 26, 16).Tooltip(tip(label, &cmdZoom)).Clicked() {
-				t.setFocus(p)
-				a.toggleZoom()
+				a.later(c, func() {
+					a.setFocus(p)
+					a.toggleZoom()
+				})
 			}
 			if iconButton(c, k, "x", "Close Pane", 26, 17).Tooltip(tip("Close Pane", &cmdClosePane)).Clicked() {
 				a.later(c, func() { a.closePane(p) })
@@ -328,6 +350,12 @@ const (
 
 func (a *App) statusOf(c *ui.Context, p *Pane) status {
 	if p.attention {
+		return statusAttention
+	}
+	if st := p.programStatus(); st != nil {
+		if st.State == "working" {
+			return statusRunning
+		}
 		return statusAttention
 	}
 	if p.info.Idle || p.info.Program == "" || programOf(p.info.Program).Shell {
@@ -364,6 +392,19 @@ func activityDot(c *ui.Context, col ui.Color, size float32) ui.Element {
 		p.Fill(ui.Rect{X: cx - size/2, Y: cy - size/2, W: size, H: size}, col, size/2)
 	})
 	return e
+}
+
+// keySeqBanner shows the keys of a sequence begun, waiting for the next.
+func (a *App) keySeqBanner(c *ui.Context, k *colors) {
+	ui.Overlay(c, func() {
+		ui.Row(c).Absolute().Bottom(18).Left(0).Right(0).Justify(ui.Center).PassThrough().Children(func() {
+			ui.Row(c).Gap(8).Padding(6, 12).Radius(10).Background(k.panel).Border(1, k.panelBorder).
+				Shadow(0, 8, 24, 0, k.shadowFocused).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, icon("keyboard")).Size(15, 15).TextColor(k.textMuted)
+				ui.Text(c, showKeys(a.keySeq)+" …").FontSize(12.5).TextColor(k.text)
+			})
+		})
+	})
 }
 
 // errorBanner shows what went wrong with the server.

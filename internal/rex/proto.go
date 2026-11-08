@@ -17,24 +17,112 @@ import (
 )
 
 // ProtocolVersion changes whenever the wire protocol does.
-const ProtocolVersion = 1
+const ProtocolVersion = 2
+
+// Version is GoRex's version, as "rex version" prints it.
+const Version = "0.2.0"
 
 // Request is a line of the control connection, from the client.
 type Request struct {
-	ID     int64           `json:"id"`
-	Op     string          `json:"op"`
-	SID    string          `json:"sid,omitempty"`
-	Cols   int             `json:"cols,omitempty"`
-	Rows   int             `json:"rows,omitempty"`
-	Create *CreateOptions  `json:"create,omitempty"`
-	Layout json.RawMessage `json:"layout,omitempty"`
+	ID     int64          `json:"id"`
+	Op     string         `json:"op"`
+	SID    string         `json:"sid,omitempty"`
+	Cols   int            `json:"cols,omitempty"`
+	Rows   int            `json:"rows,omitempty"`
+	Create *CreateOptions `json:"create,omitempty"`
+	// Args are the arguments of the model's actions and of the requests
+	// added after the first version.
+	Args *Args `json:"args,omitempty"`
 }
 
 // Response answers the Request with the same ID.
 type Response struct {
-	ID    int64           `json:"id"`
-	Error string          `json:"error,omitempty"`
-	Data  json.RawMessage `json:"data,omitempty"`
+	ID    int64  `json:"id"`
+	Error string `json:"error,omitempty"`
+	// Code classifies an error: "not_found" or "ambiguous" for a target,
+	// "usage" for a request that makes no sense, "no_client" for a client
+	// action no app takes.
+	Code string          `json:"code,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
+	// Event is an event the connection subscribed to, in a line of its
+	// own, whose ID is 0.
+	Event *Event `json:"event,omitempty"`
+}
+
+// Event is something that changed, as "rex events" prints it: a server
+// event, as "session_created", or a session's, as "session_event" whose
+// payload holds the session's ID and the event.
+type Event struct {
+	Type      string         `json:"type"`
+	Time      time.Time      `json:"time"`
+	SessionID string         `json:"session_id,omitempty"`
+	Payload   map[string]any `json:"payload,omitempty"`
+	// Model is the model after the change, for a client that asked for it.
+	Model *Model `json:"model,omitempty"`
+}
+
+// Args are what a request acts on, and how. Session, Window and Block are
+// targets: IDs, labels, positions or the ends of IDs; CtxSession and
+// CtxBlock are where the client runs (REX_SESSION and REX_BLOCK), the
+// defaults of a request that names neither.
+type Args struct {
+	Session    string `json:"session,omitempty"`
+	Window     string `json:"window,omitempty"`
+	Block      string `json:"block,omitempty"`
+	CtxSession string `json:"ctx_session,omitempty"`
+	CtxBlock   string `json:"ctx_block,omitempty"`
+	// Target is a second target, or one of any kind: the anchor of a
+	// move, the other block of a swap, what "focus" goes to.
+	Target string `json:"target,omitempty"`
+	Split  string `json:"split,omitempty"`
+
+	Label     string  `json:"label,omitempty"`
+	Direction string  `json:"direction,omitempty"`
+	Ratio     float32 `json:"ratio,omitempty"` // the new or moved block's share, 0 to 1
+	Amount    float32 `json:"amount,omitempty"`
+	Index     int     `json:"index,omitempty"`
+	Before    string  `json:"before,omitempty"`
+	After     string  `json:"after,omitempty"`
+	NoFocus   bool    `json:"no_focus,omitempty"`
+	Wrap      bool    `json:"wrap,omitempty"`
+	Zoom      string  `json:"zoom,omitempty"` // "on", "off" or "" to toggle
+	// Window label of a new session's first window.
+	WindowLabel string         `json:"window_label,omitempty"`
+	Create      *CreateOptions `json:"create,omitempty"`
+
+	Data   string   `json:"data,omitempty"`
+	Keys   []string `json:"keys,omitempty"`
+	Format string   `json:"format,omitempty"`
+	Trim   bool     `json:"trim,omitempty"`
+
+	// Subscriptions: one session's events, every event, the model.
+	All   bool `json:"all,omitempty"`
+	Model bool `json:"model,omitempty"`
+
+	// Client actions: the client, the action and its arguments, and the
+	// answer of the app that ran one.
+	Client   string          `json:"client,omitempty"`
+	Action   string          `json:"action,omitempty"`
+	ActionID int64           `json:"action_id,omitempty"`
+	Params   json.RawMessage `json:"params,omitempty"`
+	Result   json.RawMessage `json:"result,omitempty"`
+	Error    string          `json:"error,omitempty"`
+
+	// Hello: who the client is.
+	Kind string `json:"kind,omitempty"`
+	Name string `json:"name,omitempty"`
+
+	// Forget, on shutdown, drops the saved state, so that the next server
+	// starts with nothing.
+	Forget bool `json:"forget,omitempty"`
+	// WantModel asks for the model after an action, with its result.
+	WantModel bool `json:"want_model,omitempty"`
+}
+
+// ActResult is the answer to an action asked WantModel.
+type ActResult struct {
+	Result json.RawMessage `json:"result,omitempty"`
+	Model  *Model          `json:"model,omitempty"`
 }
 
 // CreateOptions start a session.
@@ -45,14 +133,26 @@ type CreateOptions struct {
 	Env     []string `json:"env,omitempty"`
 	Cols    int      `json:"cols,omitempty"`
 	Rows    int      `json:"rows,omitempty"`
+	// Shell runs Command through that shell's login environment, the
+	// user's shell when empty; "none" starts it directly. Interactive
+	// also reads the shell's interactive startup files.
+	Shell       string `json:"shell,omitempty"`
+	Interactive bool   `json:"interactive,omitempty"`
+	// KeepOpen keeps the block once its program exits.
+	KeepOpen bool   `json:"keep_open,omitempty"`
+	Label    string `json:"label,omitempty"`
 }
 
-// SessionInfo describes a session and what runs in it now.
-type SessionInfo struct {
-	ID      string    `json:"id"`
-	PID     int       `json:"pid"`
-	Shell   string    `json:"shell"`
-	Created time.Time `json:"created"`
+// BlockInfo describes a block and what runs in it now.
+type BlockInfo struct {
+	ID       string    `json:"id"`
+	Label    string    `json:"label,omitempty"`
+	Session  string    `json:"session_id,omitempty"`
+	Window   string    `json:"window_id,omitempty"`
+	KeepOpen bool      `json:"keep_open,omitempty"`
+	PID      int       `json:"pid"`
+	Shell    string    `json:"shell"`
+	Created  time.Time `json:"created"`
 	// Program is the name of the program in the foreground, and Args its
 	// arguments; Idle tells that it is the shell itself, at its prompt.
 	Program string   `json:"program"`
@@ -69,8 +169,10 @@ type SessionInfo struct {
 	Exited     bool      `json:"exited"`
 	ExitCode   int       `json:"exitCode"`
 	Attached   int       `json:"attached"`
-	Cols       int       `json:"cols"`
-	Rows       int       `json:"rows"`
+	// Status is what programs reported of themselves (OSC 7501).
+	Status []StatusRecord `json:"status,omitempty"`
+	Cols   int            `json:"cols"`
+	Rows   int            `json:"rows"`
 }
 
 // Hello is the server's answer to "hello".
@@ -84,6 +186,21 @@ type Hello struct {
 	// its own, to replace a server of an older build.
 	Exe     string    `json:"exe,omitempty"`
 	ExeTime time.Time `json:"exeTime,omitzero"`
+	// ClientID is the ID the server gave the connection.
+	ClientID string `json:"clientID,omitempty"`
+	// Bin is the directory of the rex command the server puts first in
+	// its terminals' PATH.
+	Bin string `json:"bin,omitempty"`
+}
+
+// ClientInfo describes a client connected to the server.
+type ClientInfo struct {
+	ID        string    `json:"client_id"`
+	Kind      string    `json:"kind"`
+	Name      string    `json:"name,omitempty"`
+	PID       int       `json:"pid,omitempty"`
+	Connected time.Time `json:"connected_at"`
+	Viewing   string    `json:"viewing_session_id,omitempty"`
 }
 
 // HostInfo describes the machine the server runs on.
@@ -136,18 +253,6 @@ func SocketPath() string {
 	return filepath.Join(os.TempDir(), name)
 }
 
-// AppSocketPath returns the path of the GUI app's control socket.
-func AppSocketPath() string {
-	p := filepath.Join(Dir(), "app.sock")
-	if len(p) < 100 {
-		return p
-	}
-	h := fnv.New32a()
-	h.Write([]byte(p))
-	name := fmt.Sprintf("gorex-app-%x.sock", h.Sum32())
-	if uid := os.Getuid(); uid >= 0 {
-		name = fmt.Sprintf("gorex-app-%d-%x.sock", uid, h.Sum32())
-	}
-	return filepath.Join(os.TempDir(), name)
-}
-
+// BinDir returns the directory of the rex command the server gives its
+// terminals.
+func BinDir() string { return filepath.Join(Dir(), "bin") }

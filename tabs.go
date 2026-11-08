@@ -84,7 +84,7 @@ func (a *App) tabItem(c *ui.Context, k *colors, i int, t *Tab, width float32) {
 	e.Transition(ui.ElementTransition{Colors: true, Position: true, Duration: 160 * time.Millisecond})
 	e.Drag(t)
 	if dragged, ok := ui.Drop[*Tab](e); ok && dragged != t {
-		a.moveTab(dragged, i)
+		a.later(c, func() { a.moveTab(dragged, i) })
 	}
 	if _, over := ui.DragOver[*Tab](e); over {
 		e.Border(1.5, k.busy.Alpha(0.6))
@@ -93,11 +93,13 @@ func (a *App) tabItem(c *ui.Context, k *colors, i int, t *Tab, width float32) {
 		e.Opacity(0.4)
 	}
 	if e.Clicked() && !active {
-		a.selectTab(i)
+		a.later(c, func() { a.selectTab(i) })
 	}
 	if e.DoubleClicked() {
-		a.selectTab(i)
-		a.startRename()
+		a.later(c, func() {
+			a.selectTab(i)
+			a.startRename()
+		})
 	}
 	e.ContextMenu(func(m *ui.Menu) { a.tabMenu(m, t) })
 	// The tab stays hovered while its close button is pressed, which it
@@ -136,12 +138,12 @@ func (a *App) tabItem(c *ui.Context, k *colors, i int, t *Tab, width float32) {
 func (a *App) renameField(c *ui.Context, t *Tab, name string) {
 	in := ui.TextInput(c, &a.renameText).Placeholder(name).Grow(1).MinWidth(0).Height(22).FontSize(13).AutoFocus()
 	done := func(keep bool) {
-		if keep {
-			t.Name = strings.TrimSpace(a.renameText)
-			a.changed()
-		}
 		a.renaming, a.renameFocus = nil, false
 		a.focusReq = t.Focus
+		if name := strings.TrimSpace(a.renameText); keep && name != t.Name {
+			t.Name = name
+			a.later(c, func() { a.renameTab(t, name) })
+		}
 	}
 	switch {
 	case in.Shortcut(0, ui.KeyEscape):
@@ -160,6 +162,9 @@ func (t *Tab) attention() bool {
 		if p.attention {
 			return true
 		}
+		if st := p.programStatus(); st != nil && st.State != "working" {
+			return true
+		}
 	}
 	return false
 }
@@ -173,42 +178,33 @@ func (a *App) tabBusy(c *ui.Context, t *Tab) bool {
 	return false
 }
 
-func (a *App) moveTab(t *Tab, to int) {
-	from := slices.Index(a.tabs, t)
-	if from < 0 || to == from {
-		return
-	}
-	activeTab := a.tab()
-	a.tabs = slices.Delete(a.tabs, from, from+1)
-	a.tabs = slices.Insert(a.tabs, min(to, len(a.tabs)), t)
-	a.active = slices.Index(a.tabs, activeTab)
-	a.changed()
-}
-
 func (a *App) tabMenu(m *ui.Menu, t *Tab) {
 	if m.Item("Rename Tab…").Chosen() {
-		a.selectTab(slices.Index(a.tabs, t))
-		a.startRename()
+		a.laterService(func() {
+			a.selectTab(slices.Index(a.tabs, t))
+			a.startRename()
+		})
 	}
 	if t.Name != "" && m.Item("Reset Name").Chosen() {
-		t.Name = ""
-		a.changed()
+		a.laterService(func() { a.renameTab(t, "") })
 	}
 	m.Separator()
 	i := slices.Index(a.tabs, t)
 	if m.Item("Move Left").Disabled(i <= 0).Chosen() {
-		a.moveTab(t, i-1)
+		a.laterService(func() { a.moveTab(t, i-1) })
 	}
 	if m.Item("Move Right").Disabled(i >= len(a.tabs)-1).Chosen() {
-		a.moveTab(t, i+1)
+		a.laterService(func() { a.moveTab(t, i+1) })
 	}
 	m.Separator()
-	mods, key := ui.Cmd, ui.KeyT
-	if runtime.GOOS != "darwin" {
-		mods, key = cmdNewTab.Other.Mods, cmdNewTab.Other.Key
+	item := m.Item("New Tab")
+	if seq, ok := keys.firstChord("client.tab.new"); ok {
+		item.Shortcut(seq.mods, seq.key)
+	} else if runtime.GOOS == "darwin" {
+		item.Shortcut(ui.Cmd, ui.KeyT)
 	}
-	if m.Item("New Tab").Shortcut(mods, key).Chosen() {
-		a.newTab(a.currentDir())
+	if item.Chosen() {
+		a.laterService(func() { a.newTab(a.currentDir()) })
 	}
 	if m.Item("Close Tab").Chosen() {
 		a.laterService(func() { a.closeTab(t) })

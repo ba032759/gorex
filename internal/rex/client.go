@@ -23,7 +23,19 @@ type Client struct {
 	pending map[int64]chan Response
 	err     error
 	closed  chan struct{}
+
+	// OnEvent, when set before Subscribe, hears the events the client
+	// subscribed to, from the reading goroutine.
+	OnEvent func(Event)
 }
+
+// Error is an error the server answered, with what kind it is: Code is
+// "not_found" or "ambiguous" for a target, "usage", "no_client" or "".
+type Error struct {
+	Code, Msg string
+}
+
+func (e *Error) Error() string { return e.Msg }
 
 // Connect connects to the server, starting one in the background when
 // none runs.
@@ -44,6 +56,17 @@ func Connect() (*Client, error) {
 				return nil, fmt.Errorf("rex: connecting to the server: %w", err)
 			}
 		}
+	}
+	c := &Client{conn: conn, pending: map[int64]chan Response{}, closed: make(chan struct{})}
+	go c.read()
+	return c, nil
+}
+
+// Dial connects to the server that runs, without starting one.
+func Dial() (*Client, error) {
+	conn, err := net.Dial("unix", SocketPath())
+	if err != nil {
+		return nil, err
 	}
 	c := &Client{conn: conn, pending: map[int64]chan Response{}, closed: make(chan struct{})}
 	go c.read()
@@ -101,6 +124,12 @@ func (c *Client) read() {
 		if json.Unmarshal(line, &res) != nil {
 			continue
 		}
+		if res.Event != nil {
+			if f := c.OnEvent; f != nil {
+				f(*res.Event)
+			}
+			continue
+		}
 		c.mu.Lock()
 		ch := c.pending[res.ID]
 		delete(c.pending, res.ID)
@@ -112,7 +141,10 @@ func (c *Client) read() {
 }
 
 // call sends a request and decodes the response's data into out.
-func (c *Client) call(req Request, out any) error {
+func (c *Client) call(req Request, out any) error { return c.callFor(req, out, 15*time.Second) }
+
+// callFor is call waiting at most d for the answer, or forever when d is 0.
+func (c *Client) callFor(req Request, out any, d time.Duration) error {
 	ch := make(chan Response, 1)
 	c.mu.Lock()
 	if c.err != nil {
@@ -131,16 +163,22 @@ func (c *Client) call(req Request, out any) error {
 		return err
 	}
 	var res Response
+	var timeout <-chan time.Time
+	if d > 0 {
+		t := time.NewTimer(d)
+		defer t.Stop()
+		timeout = t.C
+	}
 	select {
 	case res = <-ch:
-	case <-time.After(15 * time.Second):
+	case <-timeout:
 		c.mu.Lock()
 		delete(c.pending, req.ID)
 		c.mu.Unlock()
 		return fmt.Errorf("rex: %s timed out", req.Op)
 	}
 	if res.Error != "" {
-		return errors.New(res.Error)
+		return &Error{Code: res.Code, Msg: res.Error}
 	}
 	if out != nil && len(res.Data) > 0 {
 		return json.Unmarshal(res.Data, out)
@@ -153,14 +191,82 @@ func (c *Client) Hello() (h Hello, err error) {
 	return
 }
 
-func (c *Client) List() (s []SessionInfo, err error) {
+// HelloAs says who the client is: "app" for an app, which client actions
+// go to, "cli" for the command line.
+func (c *Client) HelloAs(kind, name string) (h Hello, err error) {
+	err = c.call(Request{Op: "hello", Args: &Args{Kind: kind, Name: name}}, &h)
+	return
+}
+
+func (c *Client) List() (s []BlockInfo, err error) {
 	err = c.call(Request{Op: "list"}, &s)
 	return
 }
 
-func (c *Client) Create(o CreateOptions) (s SessionInfo, err error) {
+// Create starts a block in a session of its own.
+func (c *Client) Create(o CreateOptions) (s BlockInfo, err error) {
 	err = c.call(Request{Op: "create", Create: &o}, &s)
 	return
+}
+
+// Model returns the model of every session.
+func (c *Client) Model() (m *Model, err error) {
+	err = c.call(Request{Op: "model"}, &m)
+	return
+}
+
+// Clients lists the clients connected to the server.
+func (c *Client) Clients() (cs []ClientInfo, err error) {
+	err = c.call(Request{Op: "clients"}, &cs)
+	return
+}
+
+// Do sends a request of the op with args, and decodes its answer into out.
+func (c *Client) Do(op string, args *Args, out any) error {
+	return c.call(Request{Op: op, Args: args}, out)
+}
+
+// DoFor is Do waiting at most d, or forever when d is 0: for wait and for
+// client actions.
+func (c *Client) DoFor(op string, args *Args, out any, d time.Duration) error {
+	return c.callFor(Request{Op: op, Args: args}, out, d)
+}
+
+// Act performs an action of the model and returns its result and the
+// model after it.
+func (c *Client) Act(op string, args *Args) (json.RawMessage, *Model, error) {
+	if args == nil {
+		args = &Args{}
+	}
+	a := *args
+	a.WantModel = true
+	var r ActResult
+	if err := c.call(Request{Op: op, Args: &a}, &r); err != nil {
+		return nil, nil, err
+	}
+	return r.Result, r.Model, nil
+}
+
+// Subscribe asks for events, which OnEvent hears: a session's, every
+// one, or the model as it changes.
+func (c *Client) Subscribe(args Args) error {
+	return c.call(Request{Op: "subscribe", Args: &args}, nil)
+}
+
+// View tells the server the session an app shows: the CLI's default.
+func (c *Client) View(session string) error {
+	return c.call(Request{Op: "view", Args: &Args{Session: session}}, nil)
+}
+
+// Reply answers a client action the server sent.
+func (c *Client) Reply(id int64, result any, err error) error {
+	a := &Args{ActionID: id}
+	if err != nil {
+		a.Error = err.Error()
+	} else if result != nil {
+		a.Result, _ = json.Marshal(result)
+	}
+	return c.call(Request{Op: "client.reply", Args: a}, nil)
 }
 
 func (c *Client) Kill(sid string) error { return c.call(Request{Op: "kill", SID: sid}, nil) }
@@ -169,17 +275,14 @@ func (c *Client) Resize(sid string, cols, rows int) error {
 	return c.call(Request{Op: "resize", SID: sid, Cols: cols, Rows: rows}, nil)
 }
 
-func (c *Client) Layout() (json.RawMessage, error) {
-	var l json.RawMessage
-	err := c.call(Request{Op: "getLayout"}, &l)
-	return l, err
-}
-
-func (c *Client) SetLayout(l json.RawMessage) error {
-	return c.call(Request{Op: "setLayout", Layout: l}, nil)
-}
-
+// Shutdown ends the server and its blocks, which start again with the
+// next server, in their directories.
 func (c *Client) Shutdown() error { return c.call(Request{Op: "shutdown"}, nil) }
+
+// ShutdownForget ends the server and its blocks, for good.
+func (c *Client) ShutdownForget() error {
+	return c.call(Request{Op: "shutdown", Args: &Args{Forget: true}}, nil)
+}
 
 func (c *Client) Close() error { return c.conn.Close() }
 

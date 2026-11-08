@@ -3,6 +3,7 @@ package rex
 import (
 	"bytes"
 	"encoding/binary"
+	"net"
 	"sync"
 	"unsafe"
 
@@ -86,4 +87,24 @@ func sysctlString(name string) string {
 func sysctlUint64(name string) uint64 {
 	v, _ := unix.SysctlUint64(name)
 	return v
+}
+
+// peerPID is the process at the other end of a unix socket, 0 when it
+// cannot tell.
+func peerPID(c net.Conn) int {
+	uc, ok := c.(*net.UnixConn)
+	if !ok {
+		return 0
+	}
+	raw, err := uc.SyscallConn()
+	if err != nil {
+		return 0
+	}
+	pid := 0
+	raw.Control(func(fd uintptr) {
+		if p, err := unix.GetsockoptInt(int(fd), unix.SOL_LOCAL, unix.LOCAL_PEERPID); err == nil {
+			pid = p
+		}
+	})
+	return pid
 }

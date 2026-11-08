@@ -117,22 +117,62 @@ func (p *pty) hangup() {
 	p.master.Close()
 }
 
-// shellCommand returns the program, its arguments and the shell's name
-// for a session: the user's login shell when cmd is empty.
-func shellCommand(cmd []string) (path string, argv []string, name string, err error) {
-	if len(cmd) == 0 {
-		sh := os.Getenv("SHELL")
-		if sh == "" {
-			sh = defaultShell
+// shellCommand returns the program, its arguments and the program's name
+// for a block: the user's login shell when there is no command. A command
+// runs through the login shell's environment, as Rex runs it, so that the
+// profile's variables and PATH apply but not its aliases: the shell execs
+// it. o.Shell "none" starts it directly, and o.Interactive also reads the
+// shell's interactive startup files.
+func shellCommand(o CreateOptions) (path string, argv []string, name string, err error) {
+	sh := o.Shell
+	if sh == "" || sh == "none" && len(o.Command) == 0 {
+		sh = os.Getenv("SHELL")
+	}
+	if sh == "" {
+		sh = defaultShell
+	}
+	if sh != "none" && !filepath.IsAbs(sh) {
+		if p, err := exec.LookPath(sh); err == nil {
+			sh = p
 		}
+	}
+	cmd := o.Command
+	if len(cmd) == 0 {
 		// A login shell, as terminal apps start it: "-zsh".
 		return sh, []string{"-" + filepath.Base(sh)}, filepath.Base(sh), nil
 	}
-	path, err = exec.LookPath(cmd[0])
-	if err != nil {
-		return "", nil, "", err
+	name = filepath.Base(cmd[0])
+	if sh == "none" || !execsArgs(filepath.Base(sh)) {
+		path, err = exec.LookPath(cmd[0])
+		if err != nil {
+			return "", nil, "", err
+		}
+		return path, cmd, name, nil
 	}
-	return path, cmd, filepath.Base(cmd[0]), nil
+	flags := []string{"-l"}
+	if o.Interactive {
+		flags = append(flags, "-i")
+	}
+	script := `exec "$@"`
+	if filepath.Base(sh) == "fish" {
+		script = "exec $argv"
+	}
+	argv = append([]string{filepath.Base(sh)}, flags...)
+	argv = append(argv, "-c", script)
+	if filepath.Base(sh) != "fish" {
+		argv = append(argv, name) // $0
+	}
+	return sh, append(argv, cmd...), name, nil
+}
+
+// execsArgs tells the shells that take a command's arguments after -c's
+// script, as $@ or fish's $argv.
+func execsArgs(sh string) bool {
+	switch sh {
+	case "sh", "bash", "zsh", "dash", "ksh", "mksh", "fish", "ash", "yash":
+		return true
+	}
+	return false
 }
 
 // processAlive reports whether a process runs.

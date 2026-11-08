@@ -1,18 +1,22 @@
-// GoRex is a terminal of tabs and split panes, after Superlogical's Rex,
-// in MyGo's native UI. Its shells run in a session server of their own,
-// so that they outlive the app: quit it, open it again, and every tab and
-// pane is back as it was, its programs still running.
+// GoRex is a terminal of sessions, tabs and split panes, after
+// Superlogical's Rex, in MyGo's native UI. Its shells run in a session
+// server of their own, so that they outlive the app: quit it, open it
+// again, and every session, tab and pane is back as it was, its programs
+// still running. The rex command drives the same server, from any of its
+// terminals or from scripts and agents.
 //
 //	go tool mygo dev    the app, rebuilt as the code changes
 //	go run . -server    the session server alone, in the foreground
+//	go run . help       the rex command
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
-	"time"
+	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -21,33 +25,21 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 {
-		if os.Args[1] == "-server" {
-			log.SetPrefix("[server] ")
-			if err := rex.Serve(); err != nil {
-				log.Fatal(err)
-			}
-			return
+	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "-server" {
+		setDir()
+		log.SetPrefix("[server] ")
+		if err := rex.Serve(); err != nil {
+			log.Fatal(err)
 		}
-		switch os.Args[1] {
-		case "split", "new", "new-tab", "list", "focus", "close", "send-keys", "help", "--help", "-h":
-			if os.Getenv("GOREX_DIR") == "" {
-				if dir, err := mygo.App.Path(mygo.PathUserData); err == nil {
-					os.Setenv("GOREX_DIR", dir)
-				}
-			}
-			runCLI(os.Args[1:])
-			return
-		}
+		return
 	}
-	// The state of the sessions lives in the app's data directory, which
-	// the server it starts takes from GOREX_DIR: "GoRex", or "GoRex Dev"
-	// under mygo dev, which keeps the installed app's sessions apart.
-	if os.Getenv("GOREX_DIR") == "" {
-		if dir, err := mygo.App.Path(mygo.PathUserData); err == nil {
-			os.Setenv("GOREX_DIR", dir)
-		}
+	// Run as rex, or with a command of rex's, it is the CLI.
+	if invokedAsRex() || len(args) > 0 && isCLICommand(args[0]) {
+		setDir()
+		os.Exit(runCLI(args))
 	}
+	setDir()
 	registerFonts()
 	loadSettings()
 	a := &App{}
@@ -63,15 +55,32 @@ func main() {
 			mygo.App.Quit()
 		}
 	})
-	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) {
-		a.saveNow()
-	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-// open opens the window, with the tabs the server kept.
+// setDir sets GOREX_DIR, the directory of the server's state that the
+// server takes it from: the app's data directory, "GoRex", or "GoRex Dev"
+// under mygo dev, which keeps the installed app's sessions apart. A
+// terminal of GoRex has it set already, so that its rex talks to the
+// server that runs it.
+func setDir() {
+	if os.Getenv("GOREX_DIR") == "" {
+		if dir, err := mygo.App.Path(mygo.PathUserData); err == nil {
+			os.Setenv("GOREX_DIR", dir)
+		}
+	}
+}
+
+// invokedAsRex tells that the executable runs by the name rex, as the
+// link the server puts in its terminals' PATH.
+func invokedAsRex() bool {
+	name := strings.TrimSuffix(strings.ToLower(filepath.Base(os.Args[0])), ".exe")
+	return name == "rex"
+}
+
+// open opens the window, on the sessions the server keeps.
 func (a *App) open() {
 	client, err := rex.Connect()
 	if err != nil {
@@ -80,25 +89,49 @@ func (a *App) open() {
 		mygo.App.Quit()
 		return
 	}
-	a.client = client
-	a.hello, err = client.Hello()
-	if err == nil && mygo.IsDev() && staleServer(a.hello) {
-		// A server a build before this one started runs that build's
-		// code: start one of this build's, ending its sessions.
-		if client, err = client.Restart(a.hello.PID); err == nil {
-			a.client = client
-			a.hello, err = client.Hello()
-		} else {
-			log.Print(err)
-			mygo.Dialog.Error("GoRex could not restart its session server", err.Error())
+	h, err := client.Hello()
+	switch {
+	case err != nil:
+	case h.Version != rex.ProtocolVersion:
+		// A server of another version of GoRex, which this app cannot
+		// drive: restarting it ends what runs in its sessions, which
+		// start again as shells in the same directories.
+		res, _ := mygo.Dialog.Message(mygo.MessageOptions{
+			Type:    mygo.MessageWarning,
+			Title:   "Restart the session server?",
+			Message: "The session server runs another version of GoRex.",
+			Detail: "Restarting it ends the programs running in its sessions. Your sessions, tabs and panes come back, " +
+				"with shells in the directories they were in.",
+			Buttons:            []string{"Restart Server", "Quit"},
+			DestructiveButtons: []int{0},
+		})
+		if res.Button != 0 {
 			mygo.App.Quit()
 			return
 		}
+		client, err = client.Restart(h.PID)
+	case mygo.IsDev() && staleServer(h):
+		// A server a build before this one started runs that build's
+		// code: start one of this build's, its sessions starting again.
+		client, err = client.Restart(h.PID)
 	}
-	if err == nil && a.hello.Version != rex.ProtocolVersion {
-		a.err = "The session server is of another version of GoRex: quit and end all sessions to restart it."
+	if err == nil {
+		a.reset()
+		err = a.connect(client)
 	}
-	a.reset()
+	if err != nil {
+		log.Print(err)
+		mygo.Dialog.Error("GoRex could not connect to its session server", err.Error())
+		mygo.App.Quit()
+		return
+	}
+	if a.model == nil || len(a.model.Sessions) == 0 {
+		home, _ := os.UserHomeDir()
+		a.act("session.new", rex.Args{Create: &rex.CreateOptions{Dir: home}})
+	}
+	if a.session != "" {
+		go client.View(a.session)
+	}
 	opts := mygo.WindowOptions{
 		Title:                "GoRex",
 		Width:                1000,
@@ -117,26 +150,17 @@ func (a *App) open() {
 	}
 	win := mygo.NewWindow(opts)
 	a.win = win
-	if !a.restore() {
-		home, _ := os.UserHomeDir()
-		a.newTab(home)
-	}
-	a.changed()
 	go a.poll(win, client)
-	a.ipc = a.startIPC()
 	a.debugHook()
+	if problems := keys.problems; len(problems) > 0 {
+		a.err = "keymap.json: " + strings.Join(problems, "; ")
+	}
 	win.OnClosed(func() {
-		if a.ipc != nil {
-			a.ipc.close()
-		}
-		a.saveNow()
 		a.quitting = true
-		for _, t := range a.tabs {
-			for _, p := range t.panes() {
-				p.closed = true
-				if p.term != nil {
-					p.term.Close() // detaches: the session goes on
-				}
+		for _, p := range a.panes {
+			p.closed = true
+			if p.term != nil {
+				p.term.Close() // detaches: the block goes on
 			}
 		}
 		a.client.Close()
@@ -144,32 +168,12 @@ func (a *App) open() {
 	})
 }
 
-// saveNow sends the layout to the server and waits for it to be kept.
-func (a *App) saveNow() {
-	if a.client == nil || len(a.tabs) == 0 && !a.quitting {
-		return
-	}
-	b, err := json.Marshal(a.snapshot())
-	if err != nil {
-		return
-	}
-	done := make(chan struct{})
-	go func() {
-		a.client.SetLayout(b)
-		close(done)
-	}()
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-	}
-}
-
-// reset forgets the state of a window that closed, keeping the server's
-// connection, for the next window.
+// reset forgets the state of a window that closed, for the next window.
 func (a *App) reset() {
-	a.tabs, a.active, a.focusReq = nil, 0, nil
-	a.paletteOpen, a.hostOpen, a.renaming = false, false, nil
-	a.saveDue, a.quitting, a.lastSnapshot, a.title = false, false, "", ""
+	a.model, a.session, a.tabs, a.active, a.focusReq = nil, "", nil, 0, nil
+	a.panes, a.tabOf = map[string]*Pane{}, map[string]*Tab{}
+	a.paletteOpen, a.hostOpen, a.renaming, a.prompt = false, false, nil, nil
+	a.quitting, a.title, a.err = false, "", ""
 }
 
 // staleServer reports whether the server runs another build of the app
@@ -177,4 +181,9 @@ func (a *App) reset() {
 func staleServer(h rex.Hello) bool {
 	exe, at := rex.Executable()
 	return h.Exe != exe || !h.ExeTime.Equal(at)
+}
+
+// fatalf prints an error of the CLI.
+func fatalf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 }

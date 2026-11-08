@@ -25,6 +25,8 @@ func (a *App) hostChip(c *ui.Context, k *colors) {
 		glyph = "laptop"
 	case strings.Contains(model, "iMac"), runtime.GOOS == "windows":
 		glyph = "monitor"
+	case runtime.GOOS == "linux" && !h.Portable:
+		glyph = "monitor"
 	case model == "Linux":
 		glyph = "server"
 	}
@@ -78,26 +80,28 @@ func (a *App) hostPanel(c *ui.Context, k *colors, name, glyph string) {
 		row("Model", h.Model)
 		row("Chip", h.Chip)
 		if h.Memory > 0 {
-			row("Memory", fmt.Sprintf("%d GB", h.Memory>>30))
+			row("Memory", fmt.Sprintf("%d GB", (h.Memory+(1<<29))>>30))
 		}
 		row("System", h.OS)
 		row("User", h.User)
 	})
 	ui.Divider(c)
-	sessions, running := 0, 0
-	for _, t := range a.tabs {
-		for _, p := range t.panes() {
-			sessions++
-			if !p.info.Idle && p.info.Program != "" {
-				running++
-			}
+	blocks, running, sessions := 0, 0, 0
+	if a.model != nil {
+		sessions = len(a.model.Sessions)
+	}
+	for _, p := range a.panes {
+		blocks++
+		if !p.info.Idle && p.info.Program != "" {
+			running++
 		}
 	}
 	ui.Column(c).Gap(7).Children(func() {
 		row("Server", fmt.Sprintf("pid %d · up %s", a.hello.PID, roundDur(time.Since(a.hello.Started))))
-		row("Sessions", fmt.Sprintf("%d open, %d running a program", sessions, running))
+		row("Sessions", fmt.Sprintf("%d, with %d panes, %d running a program", sessions, blocks, running))
+		row("CLI", a.hello.Bin+"/rex")
 	})
-	ui.Text(c, "Sessions live in the server: quit GoRex and they keep running, and come back as they were when it opens again.").
+	ui.Text(c, "Sessions live in the server: quit GoRex and they keep running, and come back as they were when it opens again. The rex command in every pane drives them.").
 		FontSize(11.5).TextColor(k.textFaint).LineHeight(1.35)
 }
 
