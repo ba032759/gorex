@@ -246,11 +246,7 @@ func SocketPath() string {
 	}
 	h := fnv.New32a()
 	h.Write([]byte(p))
-	name := fmt.Sprintf("gorex-%x.sock", h.Sum32())
-	if uid := os.Getuid(); uid >= 0 { // Windows has none, and a temporary directory per user
-		name = fmt.Sprintf("gorex-%d-%x.sock", uid, h.Sum32())
-	}
-	return filepath.Join(os.TempDir(), name)
+	return filepath.Join(os.TempDir(), fmt.Sprintf("gorex-%d-%x.sock", os.Getuid(), h.Sum32()))
 }
 
 // BinDir returns the directory of the rex command the server gives its

@@ -23,10 +23,6 @@ func inspect(pid int) (p procInfo) {
 	return p
 }
 
-func sysctlString(string) string { return "" }
-
-func sysctlUint64(string) uint64 { return 0 }
-
 // peerPID is the process at the other end of a unix socket, 0 when it
 // cannot tell.
 func peerPID(c net.Conn) int {
