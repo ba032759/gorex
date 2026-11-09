@@ -672,6 +672,56 @@ func TestCLI(t *testing.T) {
 	}
 }
 
+// spec: F-132
+func TestNewBlockDirectory(t *testing.T) {
+	c := startTestServer(t)
+	beside, _ := filepath.EvalSymlinks(t.TempDir())
+	here, _ := filepath.EvalSymlinks(t.TempDir())
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Label: "work", Create: &rex.CreateOptions{Dir: beside}}, &s); err != nil {
+		t.Fatal(err)
+	}
+	env := map[string]string{"REX_SESSION": s["session_id"].(string), "REX_BLOCK": s["block_id"].(string)}
+	t.Chdir(here)
+	dirOf := func(id string) string {
+		var dir string
+		for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(30 * time.Millisecond) {
+			bs, _ := c.List()
+			for _, b := range bs {
+				if b.ID == id {
+					dir = b.Dir
+				}
+			}
+			if dir != "" {
+				break
+			}
+		}
+		return dir
+	}
+	for _, tc := range []struct {
+		args []string
+		key  string
+		want string
+	}{
+		{[]string{"split", "--focus=false", "--json"}, "block_id", beside},
+		{[]string{"split", "--focus=false", "--json", "--", "sh"}, "block_id", beside},
+		{[]string{"run", "--split=right", "--focus=false", "--json", "--", "sh"}, "block_id", beside},
+		{[]string{"run", "--focus=false", "--json", "--", "sh"}, "block_id", here},
+		{[]string{"window", "new", "--focus=false", "--json"}, "block_id", here},
+		{[]string{"window", "new", "--focus=false", "--json", "--", "sh"}, "block_id", here},
+		{[]string{"new", "--json"}, "block_id", here},
+	} {
+		out, code := cli(t, env, tc.args...)
+		var res map[string]any
+		if code != 0 || json.Unmarshal([]byte(out), &res) != nil {
+			t.Fatalf("%v: %d %s", tc.args, code, out)
+		}
+		if got := dirOf(res[tc.key].(string)); got != tc.want {
+			t.Errorf("%v started in %q, not %q", tc.args, got, tc.want)
+		}
+	}
+}
+
 // spec: F-185, F-186, F-187, F-188
 func TestSkillSetup(t *testing.T) {
 	home := t.TempDir()

@@ -51,7 +51,7 @@ starts in `rex`'s directory with a command and in the focused block's
 directory without one. A script that opens a session and a window in a
 row gets two different directories.
 
-- Status: decided: beside a block (`split`, `run --split`), its directory; otherwise (`new`, `run`, `window new`), the directory `rex` runs in.
+- Status: resolved (2026-11-09): beside a block (`split`, `run --split`), its directory; otherwise (`new`, `run`, `window new`), with or without a command, the directory `rex` runs in (F-132).
 
 ## Finding 4: --timeout does not limit most requests
 

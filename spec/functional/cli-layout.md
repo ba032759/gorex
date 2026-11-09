@@ -34,7 +34,7 @@ WHEN a command follows `--`, the block SHALL run it instead of the shell.
 IF two labels are given, THEN `rex` SHALL exit with 2.
 
 ### F-132 A new block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex new`, `rex run`, `rex split` and `rex window new` SHALL take these
 options for the block they create:
@@ -48,15 +48,10 @@ options for the block they create:
 | `--label TEXT` | the block's label; `rex run` and `rex split` only |
 | `--focus=false` | the focus and the active window stay as they were; not `rex new` |
 
-Without `--cwd`, the block SHALL start in the directory of this table:
-
-| Command | Directory |
-|---|---|
-| `rex new` | the directory `rex` runs in |
-| `rex run`, also with `--split` | the directory `rex` runs in |
-| `rex split` | the anchor's directory |
-| `rex window new`, with a command | the directory `rex` runs in |
-| `rex window new`, without a command | the directory of the focused block of the active window |
+WHEN `rex split` or `rex run --split` creates a block without `--cwd`,
+the block SHALL start in the directory of the block it goes beside.
+WHEN `rex new`, `rex run` or `rex window new` creates a block without
+`--cwd`, the block SHALL start in the directory `rex` runs in.
 
 WHEN `rex run`, `rex split` or `rex window new` creates a block without
 `--focus=false`, the block SHALL take the focus and its window SHALL

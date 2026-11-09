@@ -919,7 +919,7 @@ func cliWindowNew(n *newOpts, f *call) error {
 		a.WindowLabel = f.args[0]
 	}
 	o.Command = f.command
-	if o.Dir == "" && len(o.Command) > 0 {
+	if o.Dir == "" {
 		o.Dir, _ = os.Getwd()
 	}
 	fixDir(o)
@@ -1139,7 +1139,9 @@ func cliPlace(p *placeOpts, f *call, split bool) error {
 		dir = "right"
 	}
 	o.Command = cmd
-	if o.Dir == "" && len(cmd) > 0 && !split {
+	if o.Dir == "" && !split && dir == "" {
+		// A new window starts where rex runs; a split, in its anchor's
+		// directory.
 		o.Dir, _ = os.Getwd()
 	}
 	fixDir(o)
