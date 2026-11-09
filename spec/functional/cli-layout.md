@@ -92,12 +92,12 @@ WHILE `rex` waits for the program, `--timeout` SHALL NOT end the wait.
 IF no command follows `--`, THEN `rex` SHALL exit with 2.
 
 ### F-135 Split a block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests · conflicts: F-145
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex split [-- COMMAND...]` SHALL put a new block beside the anchor: the
 block of `-b`, else the block of F-112.
 The split SHALL end the zoom of the window.
-IF `--ratio` is not above 0 and below 100, THEN `rex` SHALL exit with 2.
+IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2, and say the range.
 
 ### F-136 Focus after a new block
 status: superseded · superseded-by: F-132 · traces: B-4 · source: code, rex-docs, tests
@@ -372,9 +372,11 @@ The table SHALL leave out clients of kind `cli`, unless `--all` is given.
 WHEN `--json` is given, `rex` SHALL print every client.
 
 ### F-193 Inspect a client
-status: proposed · traces: B-3 · source: code, rex-docs · conflicts: F-113
+status: proposed · traces: B-3 · source: code, rex-docs
 
-`rex client inspect CLIENT` SHALL print, as JSON, the client whose full
-ID, end of ID or name is `CLIENT`.
-Without a client, it SHALL print the first client of kind `app`.
-IF no client matches, THEN `rex` SHALL exit with 3.
+`rex client inspect [CLIENT]` SHALL print an app and the actions it
+offers; `--json` SHALL print them as JSON.
+It SHALL find the app as `rex do -C` does (F-113): `CLIENT`, else `-C`
+or `REX_CLIENT`, else the app when exactly one is connected.
+IF no app matches, or several do and none is named, THEN `rex` SHALL
+exit with 3.

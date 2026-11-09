@@ -802,3 +802,59 @@ func TestHookStatus(t *testing.T) {
 }
 
 func b64s(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
+
+// rex client inspect finds the app as rex do -C does: CLIENT, else -C or
+// REX_CLIENT, else the one app.
+//
+// spec: F-193
+func TestClientInspect(t *testing.T) {
+	startTestServer(t)
+	app := func(name string) *rex.Client {
+		c, err := rex.Connect()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := c.HelloAs("app", name); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+	studio := app("studio")
+	defer studio.Close()
+	desk := app("desk")
+	name := func(out string) string {
+		var r struct {
+			Client  rex.ClientInfo   `json:"client"`
+			Actions []map[string]any `json:"actions"`
+		}
+		if err := json.Unmarshal([]byte(out), &r); err != nil || len(r.Actions) == 0 {
+			t.Fatalf("not a client with actions: %q", out)
+		}
+		return r.Client.Name
+	}
+	if out, code := cli(t, nil, "client", "inspect", "studio", "--json"); code != 0 || name(out) != "studio" {
+		t.Errorf("by name: %d %s", code, out)
+	}
+	if out, code := cli(t, nil, "-C", "desk", "client", "inspect", "--json"); code != 0 || name(out) != "desk" {
+		t.Errorf("by -C: %d %s", code, out)
+	}
+	if out, code := cli(t, map[string]string{"REX_CLIENT": "studio"}, "client", "inspect", "--json"); code != 0 || name(out) != "studio" {
+		t.Errorf("by REX_CLIENT: %d %s", code, out)
+	}
+	t.Setenv("REX_CLIENT", "")
+	if _, code := cli(t, nil, "client", "inspect"); code != exitTarget {
+		t.Errorf("two apps and no name: %d, want %d", code, exitTarget)
+	}
+	desk.Close()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		out, code := cli(t, nil, "client", "inspect", "--json")
+		if code == 0 && name(out) == "studio" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("one app left: %d %s", code, out)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}

@@ -20,6 +20,8 @@ the help and the reference show ("above 0 and below 100", "1 to 99").
 Making them one is a change of one line; the choice of range is the
 owner's.
 
+- Status: resolved (2026-11-09): every `--ratio` takes 1 to 99, as Rex's reference says; one message from the range (D-14).
+
 ## Finding 2: rex focus DIRECTION starts from another block than every other command
 
 - Kind: competing behaviour
@@ -89,6 +91,8 @@ name in any case, position, end of ID of at least 4 characters. `rex
 client inspect` matches in `rex` itself: full ID, an end of ID of any
 length, or the exact name. `rex client inspect 1` matches every client
 whose ID ends in `1`, and prints the first.
+
+- Status: resolved (2026-11-09): `rex client inspect` asks the server, which finds the app as `rex do -C` does (F-193, T-109).
 
 ## Finding 8: one fact, two JSON names
 
@@ -209,6 +213,8 @@ different results with exit status 0.
 Changed by D-13 (proposed): a flag declared as ignored says so in the
 help and the reference ("taken, and ignored"). They still change
 nothing.
+
+- Status: decided (2026-11-09): kept, so that Rex's command lines run; the help and the reference say each one is ignored (D-13).
 
 ## Finding 18: Rex's flags that GoRex refuses with exit status 2
 
@@ -359,6 +365,8 @@ named `--json` and exits with 3. Without a client it takes the first app;
 Rex takes `-C`, then `REX_CLIENT`, then the app when exactly one is
 connected. Rex also prints the actions the client offers.
 
+- Status: resolved (2026-11-09): it takes `--json`, `-C` and `REX_CLIENT`, and prints the app's actions, as Rex's reference says (F-193).
+
 ## Finding 30: small accidents of the layout commands
 
 - Kind: accidental behaviour
@@ -431,3 +439,16 @@ server answers. A wrong value is a wrong command line (F-104: 2). D-13
 did not declare the formats as the values `--format` takes, which would
 make both exit with 2 before connecting.
 
+## Finding 35: the server clamps a ratio in three ways
+
+- Kind: competing behaviour
+- Items: F-135, F-145, F-147
+- Code: `internal/rex/actions.go` (0.05 to 0.95, and 0.1 to 0.9), `view.go` (0.08 to 0.92)
+
+`rex` takes `--ratio` from 1 to 99 (D-14), as Rex does. The server then
+holds a split's ratio to 5–95 % in one place and 10–90 % in another, and
+the app's view to 8–92 %. `--ratio 3` gives 5 %, without a word. Found by
+the percentage change of the experiment (`p2-old-pct`).
+
+- Status: deferred: the clamps keep a block from becoming too small to
+  use; one limit, and whether `rex` says so, is a decision of its own.

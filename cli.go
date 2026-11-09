@@ -201,7 +201,7 @@ func init() {
 		help: "Takes a block out of its window and puts it beside ANCHOR, toward DIRECTION: right, left,\nabove or below."},
 		func(o *moveOpts, f *flagSet) {
 			targetFlags(f, &o.a, "sw")
-			f.percent(&o.ratio, "ratio", 50, pctRange{1, 99, true, "takes a percentage between 1 and 99"},
+			f.percent(&o.ratio, "ratio", 50, pctRange{1, 99, true},
 				"the block's share of its new split, in percent: `PCT`")
 		}, cliMove)
 	blockSwap := cmd(cliCmd{name: "swap", use: "BLOCK OTHER", short: "swap two blocks"},
@@ -237,7 +237,7 @@ func init() {
 			help: "Moves the divider nearest the block on DIRECTION's axis toward DIRECTION."},
 			func(o *resizeOpts, f *flagSet) {
 				targetFlags(f, &o.a, "swb")
-				f.percent(&o.amount, "amount", 5, pctRange{0, math.Inf(1), false, "takes a percentage"},
+				f.percent(&o.amount, "amount", 5, pctRange{0, math.Inf(1), false},
 					"how far to move it, `PCT` percent of the split")
 				f.str(&o.a.Direction, "direction", "", "the `DIRECTION`, when no argument gives it")
 			}, cliResize),
@@ -295,7 +295,9 @@ func init() {
 					jsonFlag(f, &o.json)
 					f.boolean(&o.all, "all", false, "rex's commands too")
 				}, cliClientLs),
-			rawCmd(cliCmd{name: "inspect", use: "[CLIENT]", short: "print a client, the first app without CLIENT"}, cliClientInspect)),
+			cmd(cliCmd{name: "inspect", use: "[CLIENT]", short: "print an app and the actions it offers",
+				help: "CLIENT is an app's ID, name, position or end of ID. Without it, -C or REX_CLIENT names\nthe app, else the app when exactly one is connected, as rex do finds it."},
+				func(o *clientInspectOpts, f *flagSet) { jsonFlag(f, &o.json) }, cliClientInspect)),
 		cmd(cliCmd{name: "list", short: "the whole tree of sessions, windows and blocks", section: secResources},
 			func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliTree),
 
@@ -1106,7 +1108,7 @@ func placeFlags(p *placeOpts, f *flagSet, split bool) {
 	if !split {
 		d.defaults("a new tab")
 	}
-	f.percent(&p.ratio, "ratio", 50, pctRange{0, 100, false, "takes a percentage between 1 and 99"},
+	f.percent(&p.ratio, "ratio", 50, pctRange{1, 99, true},
 		"the new block's share of the split, in percent: `PCT`")
 	f.str(&p.o.Label, "label", "", "a `LABEL` to target it by")
 	f.boolean(&p.focus, "focus", true, "focus it; --focus=false leaves the focus where it is")
@@ -1580,23 +1582,34 @@ func cliClientLs(o *clientLsOpts, _ *call) error {
 	return w.Flush()
 }
 
-func cliClientInspect(args []string) error {
-	c, err := connect()
-	if err != nil {
+type clientInspectOpts struct{ json bool }
+
+// cliClientInspect prints the app that -C would reach, found by the
+// server as rex do finds it, and the actions it offers.
+func cliClientInspect(o *clientInspectOpts, c *call) error {
+	name := opts.client
+	switch len(c.args) {
+	case 0:
+	case 1:
+		name = c.args[0]
+	default:
+		return usagef("usage: rex client inspect [CLIENT]")
+	}
+	var cl rex.ClientInfo
+	if err := do("client.inspect", &rex.Args{Client: name}, &cl); err != nil {
 		return err
 	}
-	defer c.Close()
-	cs, err := c.Clients()
-	if err != nil {
-		return err
-	}
-	for _, cl := range cs {
-		if len(args) == 0 && cl.Kind == "app" || len(args) > 0 && (cl.ID == args[0] || strings.HasSuffix(cl.ID, args[0]) || cl.Name == args[0]) {
-			printJSON(cl)
-			return nil
+	actions := actionList()
+	output(o.json, map[string]any{"client": cl, "actions": actions}, func() {
+		fmt.Printf("%s  %s  %s  connected %s\n", cl.ID, cl.Kind, dash(cl.Name), ago(cl.Connected))
+		w := table()
+		fmt.Fprintln(w, "\nACTION\tTITLE\tARGS")
+		for _, x := range actions {
+			fmt.Fprintf(w, "%s\t%s\t%s\n", x.Name, x.Title, x.Args)
 		}
-	}
-	return &cliError{exitTarget, errors.New("client not found")}
+		w.Flush()
+	})
+	return nil
 }
 
 type eventsOpts struct {

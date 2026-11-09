@@ -164,7 +164,7 @@ Else it SHALL act on the focused block of the window of F-111, or its
 first block.
 
 ### F-113 How a target matches
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140, F-193
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140
 
 `rex` SHALL match a target in this order, and stop at the first kind
 that matches:

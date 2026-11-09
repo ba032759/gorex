@@ -136,7 +136,7 @@ attached status cols rows
 is at its prompt.
 
 ### T-109 Client actions
-status: proposed · traces: F-174, F-175 · source: code, tests
+status: proposed · traces: F-174, F-175, F-193 · source: code, tests
 
 For `client.do`, the server sends the chosen app the event
 `client_action`, with `action_id`, `name`, `params`, `ctx_session` and
@@ -146,6 +146,8 @@ The app answers with the request `client.reply`: `action_id`, and
 The server then answers `client.do` with the result, or fails it with the
 error.
 It fails it after 30 seconds without an answer, or when the app goes.
+`client.inspect` answers with the client record of the app that
+`client.do` would choose for the same `client`, or fails as it would.
 
 ### T-110 A status report
 status: proposed · traces: F-172, F-173 · source: code, rex-docs, tests

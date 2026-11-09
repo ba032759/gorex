@@ -173,7 +173,7 @@ interface (MyGo) and a terminal emulator in the same executable
 **Reason.** Unknown. The README names it as a feature.
 
 ### D-13 Declare rex's commands with Go's standard library
-status: proposed · traces: B-3, B-5 · source: code
+status: accepted · traces: B-3, B-5 · source: code, owner
 
 **Context.** A command of `rex` lived in five places: the list of
 commands, its handler's flags, the defaults in its logic, `help.go` and
@@ -206,3 +206,31 @@ declared default is the value that `rex` sends: `--ratio` 50 and
 events show `arg_ratio` 0.5 where they showed 0. The two ranges of
 `--ratio` stay (Finding 1); the help now shows both. Look at the choice
 again when `rex` needs a syntax the parser lacks, as `-qA` for `-q -A`.
+
+### D-14 Percentages are percent, as Rex's
+status: rejected · traces: B-5 · source: rex-docs, owner
+rationale: Rex's reference takes `--ratio PCT` as percent, from 1 to 99;
+a fraction would make `0.5` mean another thing than in Rex.
+
+**Context.** A change tried on branch `p2-stdlib-pct` (the experiment of
+`docs/experiments/cli-declared.md`) let every percentage flag also take a
+fraction: `0.3` is 30 %.
+**Options.** (a) Percent only, `30` or `30%`. (b) Percent or a fraction.
+**Choice.** (a). One range for every `--ratio`, from 1 to 99, as Rex's
+reference gives it; the error says the range.
+**Reason.** Rex's documentation. Of the change, what stays: one place
+parses a percentage, the message comes from the declared range, and NaN
+is refused.
+
+### D-15 No --quiet for rex split and rex run
+status: rejected · traces: B-5 · source: rex-docs, owner
+rationale: in Rex, `-q`, `--quiet` means "print IDs only", on the
+listing commands; split and run already print only the new block's ID.
+
+**Context.** A change tried on branches `p2-*-quiet` gave `rex split` and
+`rex run` a `-q` that prints nothing. The three tries did not agree on
+`-q --json`.
+**Options.** (a) Add it. (b) Leave it out.
+**Choice.** (b).
+**Reason.** Rex's reference. A second meaning of `-q` breaks "one flag,
+one meaning", and scripts can send the ID to `/dev/null`.

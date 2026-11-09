@@ -281,11 +281,18 @@ func (v *durationValue) String() string {
 }
 
 // pctRange is the percentages a flag takes: above lo and below hi, or,
-// closed, from lo to hi. msg is what rex says of a value outside it.
+// closed, from lo to hi.
 type pctRange struct {
 	lo, hi float64
 	closed bool
-	msg    string
+}
+
+// has tells whether n is in the range; NaN is in none.
+func (r pctRange) has(n float64) bool {
+	if r.closed {
+		return n >= r.lo && n <= r.hi
+	}
+	return n > r.lo && n < r.hi
 }
 
 func (r pctRange) String() string {
@@ -293,7 +300,7 @@ func (r pctRange) String() string {
 	case math.IsInf(r.hi, 1):
 		return "above " + fmtFloat(r.lo)
 	case r.closed:
-		return fmtFloat(r.lo) + " to " + fmtFloat(r.hi)
+		return "from " + fmtFloat(r.lo) + " to " + fmtFloat(r.hi)
 	}
 	return "above " + fmtFloat(r.lo) + " and below " + fmtFloat(r.hi)
 }
@@ -310,8 +317,8 @@ func (v *percentValue) Set(s string) error {
 		return nil
 	}
 	n, err := strconv.ParseFloat(strings.TrimSuffix(s, "%"), 64)
-	if err != nil || v.r.closed && (n < v.r.lo || n > v.r.hi) || !v.r.closed && (n <= v.r.lo || n >= v.r.hi) {
-		return phraseError(v.r.msg)
+	if err != nil || !v.r.has(n) {
+		return phraseError("takes a percentage " + v.r.String())
 	}
 	*v.p = n
 	return nil

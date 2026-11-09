@@ -22,7 +22,7 @@ func TestFlagParse(t *testing.T) {
 	f.str(&label, "label", "", "`LABEL`")
 	f.boolean(&json, "json", false, "")
 	f.boolean(&focus, "focus", true, "")
-	f.percent(&ratio, "ratio", 50, pctRange{0, 100, false, "takes a percentage between 1 and 99"}, "`PCT`")
+	f.percent(&ratio, "ratio", 50, pctRange{1, 99, true}, "`PCT`")
 	f.position(&index, "index", "`N`")
 	f.list(&agents, "agent", "`AGENT`")
 	c, err := f.parse(strings.Fields("a -d /tmp b --json --focus=false -5 --ratio=30% --agent x --agent=y -- sh -c --json"))
@@ -43,7 +43,9 @@ func TestFlagParse(t *testing.T) {
 		{"--nope", "unknown flag --nope"},
 		{"--label", "--label needs a value"},
 		{"--json=yes", "--json=yes takes true or false"},
-		{"--ratio 100", "--ratio takes a percentage between 1 and 99"},
+		{"--ratio 100", "--ratio takes a percentage from 1 to 99"},
+		{"--ratio 0.5", "--ratio takes a percentage from 1 to 99"},
+		{"--ratio NaN", "--ratio takes a percentage from 1 to 99"},
 		{"--index 0", "--index takes a position from 1"},
 	} {
 		_, err := f.parse(strings.Fields(bad.args))

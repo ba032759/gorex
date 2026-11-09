@@ -433,6 +433,18 @@ func (s *Server) do(c *conn, req Request) (any, error) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		return s.snapshot(), nil
+	case "client.inspect":
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		name := ""
+		if a != nil {
+			name = a.Client
+		}
+		c, err := s.appLocked(name)
+		if err != nil {
+			return nil, err
+		}
+		return s.clientInfoLocked(c), nil
 	case "clients":
 		s.mu.Lock()
 		defer s.mu.Unlock()

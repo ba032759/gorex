@@ -127,3 +127,4 @@ documentation or the repository.
 
 29. Should `rex client inspect` take `--json` and `-C`, and match a
     client as every other target does (Findings 7, 29)?
+    *Answered (2026-11-09):* yes, as Rex's reference says (F-193).

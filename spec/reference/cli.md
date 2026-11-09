@@ -83,7 +83,7 @@ Also: `rex move`.
 |---|---|---|---|
 | `-s`, `--session` | `SESSION` | none | the SESSION to act in |
 | `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
-| `--ratio` | `PCT`, 1 to 99 | `50` | the block's share of its new split, in percent: PCT |
+| `--ratio` | `PCT`, from 1 to 99 | `50` | the block's share of its new split, in percent: PCT |
 
 ## `rex block new`
 
@@ -146,7 +146,9 @@ Also: `rex zoom`.
 
 ## `rex client inspect`
 
-Flags: none; it reads its arguments itself.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex client ls`
 
@@ -234,7 +236,7 @@ Flags: none; it reads its arguments itself.
 | `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 | `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
 | `--split` | `DIRECTION` | a new tab | put the block beside the anchor, toward DIRECTION: right, left, above or below |
-| `--ratio` | `PCT`, above 0 and below 100 | `50` | the new block's share of the split, in percent: PCT |
+| `--ratio` | `PCT`, from 1 to 99 | `50` | the new block's share of the split, in percent: PCT |
 | `--label` | `LABEL` | none | a LABEL to target it by |
 | `--focus` |  | `true` | focus it; --focus=false leaves the focus where it is |
 | `--json` |  | `false` | print JSON |
@@ -371,7 +373,7 @@ Flags: none; it reads its arguments itself.
 | `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 | `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
 | `--split` | `DIRECTION` | `right` | the DIRECTION of the new block: right, left, above or below |
-| `--ratio` | `PCT`, above 0 and below 100 | `50` | the new block's share of the split, in percent: PCT |
+| `--ratio` | `PCT`, from 1 to 99 | `50` | the new block's share of the split, in percent: PCT |
 | `--label` | `LABEL` | none | a LABEL to target it by |
 | `--focus` |  | `true` | focus it; --focus=false leaves the focus where it is |
 | `--json` |  | `false` | print JSON |

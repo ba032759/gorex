@@ -1119,10 +1119,10 @@ func (s *Server) wait(a *Args) (any, error) {
 	}
 }
 
-// clientDo asks an app to perform one of its actions, and waits for its
-// answer.
-func (s *Server) clientDo(a *Args) (any, error) {
-	s.mu.Lock()
+// appLocked finds the app a request names, as Rex's -C does: by ID, name,
+// position or end of ID; without a name, the app when exactly one is
+// connected. s.mu is held.
+func (s *Server) appLocked(name string) (*conn, error) {
 	var apps []*conn
 	for c := range s.conns {
 		if c.kind == "app" {
@@ -1130,31 +1130,37 @@ func (s *Server) clientDo(a *Args) (any, error) {
 		}
 	}
 	slices.SortFunc(apps, func(x, y *conn) int { return x.connected.Compare(y.connected) })
-	var target *conn
 	switch {
 	case len(apps) == 0:
-		s.mu.Unlock()
 		return nil, ErrNoClient
-	case a.Client != "":
+	case name != "":
 		items := make([]labeled, len(apps))
 		for i, c := range apps {
 			items[i] = labeled{id: c.id, label: c.name, name: c.name}
 		}
-		i, err := match("client", a.Client, items, true)
+		i, err := match("client", name, items, true)
 		if err != nil {
-			s.mu.Unlock()
 			return nil, err
 		}
-		target = apps[i]
+		return apps[i], nil
 	case len(apps) == 1:
-		target = apps[0]
-	default:
-		e := &TargetError{Kind: "client", Target: "(default)"}
-		for _, c := range apps {
-			e.Matches = append(e.Matches, fmt.Sprintf("%-8s %s", shortID(c.id), c.name))
-		}
+		return apps[0], nil
+	}
+	e := &TargetError{Kind: "client", Target: "(default)"}
+	for _, c := range apps {
+		e.Matches = append(e.Matches, fmt.Sprintf("%-8s %s", shortID(c.id), c.name))
+	}
+	return nil, e
+}
+
+// clientDo asks an app to perform one of its actions, and waits for its
+// answer.
+func (s *Server) clientDo(a *Args) (any, error) {
+	s.mu.Lock()
+	target, err := s.appLocked(a.Client)
+	if err != nil {
 		s.mu.Unlock()
-		return nil, e
+		return nil, err
 	}
 	s.nextAction++
 	aid := s.nextAction
