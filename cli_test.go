@@ -1336,3 +1336,17 @@ func TestInspect(t *testing.T) {
 		t.Errorf("block ls: %s", ls)
 	}
 }
+
+// rex server stop returns once the server has ended, so that a start
+// right after it starts a new server.
+//
+// spec: F-182
+func TestServerStopWaits(t *testing.T) {
+	startTestServer(t)
+	if out, code := cli(t, nil, "server", "stop"); code != 0 {
+		t.Fatalf("server stop: %d %s", code, out)
+	}
+	if serverRuns() {
+		t.Error("a server still answers after rex server stop returned")
+	}
+}

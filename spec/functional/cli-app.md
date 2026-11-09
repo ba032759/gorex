@@ -127,6 +127,10 @@ status: accepted · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server stop` SHALL end the server and every program in its blocks,
 after the server saves the model for the next server to restore (D-9).
+`rex server stop` SHALL return once the server has ended, so that a
+`rex server start` right after it starts a new server.
+IF the server has not ended within `--timeout`, THEN `rex` SHALL exit
+with 1.
 WHERE `--discard` is given, `rex` SHALL delete the saved model once the
 server has stopped, so that the next server starts with no session.
 WHERE `--if-idle` is given, the server SHALL stop only when it has no

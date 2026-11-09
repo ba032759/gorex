@@ -2082,16 +2082,33 @@ func cliServerStop(o *stopOpts, _ *call) error {
 	case o.discard:
 		err = c.ShutdownForget()
 	default:
-		return c.Shutdown()
+		err = c.Shutdown()
 	}
-	if err != nil || !o.discard {
+	if err != nil {
 		return err
 	}
-	// The saved sessions are gone once the server has stopped.
-	for deadline := time.Now().Add(10 * time.Second); serverRuns() && time.Now().Before(deadline); {
+	// The server answers, then saves and ends: rex returns once it has
+	// ended, so that "rex server stop; rex server start" starts a new one.
+	c.Close()
+	for deadline := time.Now().Add(stopWait()); serverRuns(); {
+		if time.Now().After(deadline) {
+			return errors.New("the server did not stop in time")
+		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	return rex.DiscardState()
+	if o.discard {
+		return rex.DiscardState() // the saved sessions go once it has stopped
+	}
+	return nil
+}
+
+// stopWait is how long server stop waits for the server to end: the
+// timeout, and 10 seconds when the timeout is off.
+func stopWait() time.Duration {
+	if opts.timeout > 0 {
+		return opts.timeout
+	}
+	return 10 * time.Second
 }
 
 func cliServerStart(args []string) error {
