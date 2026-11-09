@@ -481,7 +481,7 @@ server answers. A wrong value is a wrong command line (F-104: 2). D-13
 did not declare the formats as the values `--format` takes, which would
 make both exit with 2 before connecting.
 
-- Status: decided: `--format` declares its values; an unknown one exits with 2 before connecting.
+- Status: resolved (2026-11-09): `--format` declares its values, `text` and `vt`; another, `html` too, exits with 2 before connecting (F-164).
 
 ## Finding 35: the server clamps a ratio in three ways
 

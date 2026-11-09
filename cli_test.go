@@ -45,3 +45,19 @@ func TestAutostartIsBoolean(t *testing.T) {
 		}
 	}
 }
+
+// capture's formats are the values --format takes: another is a wrong
+// command line, before rex connects.
+//
+// spec: F-164
+func TestCaptureFormats(t *testing.T) {
+	t.Setenv("GOREX_DIR", t.TempDir()) // no server runs there
+	for _, f := range []string{"html", "foo", "TEXT"} {
+		if out, code := cli(t, nil, "--autostart=false", "capture", "--format", f); code != exitUsage || !strings.Contains(out, "text or vt") {
+			t.Errorf("--format %s: %d %s", f, code, out)
+		}
+	}
+	if _, code := cli(t, nil, "--autostart=false", "capture", "--format", "vt"); code != exitNoServer {
+		t.Errorf("--format vt without a server: %d", code)
+	}
+}

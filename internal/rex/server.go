@@ -527,7 +527,7 @@ func (s *Server) do(c *conn, req Request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		text, err := b.capture(a.Format, a.Trim)
+		text, err := b.capture(a.Format, a.Trim, a.Unwrap)
 		if err != nil {
 			return nil, usageError(err.Error())
 		}

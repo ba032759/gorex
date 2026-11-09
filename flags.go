@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -71,6 +72,8 @@ func (d *flagDef) values() string {
 		return "a duration, as 300ms, 10s, 2h45m"
 	case *listValue:
 		return "again for more"
+	case *choiceValue:
+		return strings.Join(v.values, " or ")
 	}
 	return ""
 }
@@ -137,6 +140,12 @@ func (f *flagSet) percent(p *float64, names string, def float64, r pctRange, usa
 func (f *flagSet) position(p *int, names, usage string) *flagDef {
 	*p = 0
 	return f.add(names, usage, (*positionValue)(p), false)
+}
+
+// choice declares a flag of text that takes one of values.
+func (f *flagSet) choice(p *string, names, def string, values []string, usage string) *flagDef {
+	*p = def
+	return f.add(names, usage, &choiceValue{p, def, values}, false)
 }
 
 // list declares a flag that may repeat, each value added to the list.
@@ -354,6 +363,26 @@ func (v *positionValue) String() string {
 	}
 	return strconv.Itoa(int(*v))
 }
+
+type choiceValue struct {
+	p      *string
+	def    string
+	values []string
+}
+
+func (v *choiceValue) Set(s string) error {
+	switch {
+	case s == "":
+		*v.p = v.def
+	case slices.Contains(v.values, s):
+		*v.p = s
+	default:
+		return phraseError("takes " + strings.Join(v.values, " or "))
+	}
+	return nil
+}
+
+func (v *choiceValue) String() string { return *v.p }
 
 type listValue []string
 

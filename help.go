@@ -29,8 +29,9 @@ const placeHelp = `split splits a block (yours by default) and places a terminal
 run places one in a new tab, or beside a block with --split. Without a
 command, the terminal runs your shell.`
 
-const captureHelp = `Prints a terminal's screen and scrollback. Lines a program's long output
-wrapped come joined.`
+const captureHelp = `Prints a terminal's screen and scrollback, a line for each row: a line the
+terminal wrapped comes as its rows, unless --unwrap joins them. A terminal
+keeps about 64 MiB of scrollback; once full, its oldest lines go.`
 
 const sendKeyHelp = `Keys as Rex writes them: modifiers (ctrl, alt, shift) and a key joined by
 "+": enter, tab, escape, backspace, space, delete, up, down, left, right,

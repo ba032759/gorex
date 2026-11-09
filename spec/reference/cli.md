@@ -32,9 +32,9 @@ Also: `rex capture`.
 | `-s`, `--session` | `SESSION` | none | the SESSION to act in |
 | `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 | `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
-| `--format` | `FORMAT` | text | the FORMAT: text, or vt to keep the escape sequences |
+| `--format` | `FORMAT`, text or vt | `text` | the FORMAT: text, or vt to keep the escape sequences |
 | `--trim` |  | `false` | drop trailing blank lines |
-| `--unwrap` |  | `false` | Rex's; GoRex joins wrapped lines always; taken, and ignored |
+| `--unwrap` |  | `false` | join the rows of a line the terminal wrapped |
 
 ## `rex block close`
 

@@ -186,9 +186,9 @@ func init() {
 	blockCapture := cmd(cliCmd{name: "capture", short: "print a terminal's screen and scrollback", help: captureHelp},
 		func(o *captureOpts, f *flagSet) {
 			targetFlags(f, &o.a, "swb")
-			f.str(&o.a.Format, "format", "", "the `FORMAT`: text, or vt to keep the escape sequences").defaults("text")
+			f.choice(&o.a.Format, "format", "text", []string{"text", "vt"}, "the `FORMAT`: text, or vt to keep the escape sequences")
 			f.boolean(&o.a.Trim, "trim", false, "drop trailing blank lines")
-			f.boolean(&o.unwrap, "unwrap", false, "Rex's; GoRex joins wrapped lines always").ignore()
+			f.boolean(&o.a.Unwrap, "unwrap", false, "join the rows of a line the terminal wrapped")
 		}, cliCapture)
 	blockZoom := cmd(cliCmd{name: "zoom", use: "[BLOCK]", short: "zoom a block to fill its window (--on, --off)",
 		help: "Zooms a block to fill its window, or ends its zoom: without --on or --off, it toggles."},
@@ -1242,16 +1242,10 @@ func cliSendKeysCompat(args []string) error {
 	return err
 }
 
-type captureOpts struct {
-	a      rex.Args
-	unwrap bool
-}
+type captureOpts struct{ a rex.Args }
 
 func cliCapture(o *captureOpts, _ *call) error {
 	a := &o.a
-	if a.Format == "html" {
-		return usagef("GoRex captures text or vt, not html")
-	}
 	var res map[string]any
 	if err := do("capture", a, &res); err != nil {
 		return err
