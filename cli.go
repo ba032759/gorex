@@ -608,6 +608,20 @@ func wideCommand(args []string, code int, err error, start time.Time) {
 	rex.WideFlush()
 }
 
+// asksHelp tells whether a command's arguments ask for its help: --help
+// or -h, before "--".
+func asksHelp(args []string) bool {
+	for _, a := range args {
+		switch a {
+		case "--":
+			return false
+		case "--help", "-h":
+			return true
+		}
+	}
+	return false
+}
+
 // commandPath is the path in the tree of the command that args name, as
 // dispatch finds it: "session new", or "session" for a group and a word
 // it does not have; empty for a word that is not a command.
@@ -645,6 +659,10 @@ func dispatch(word string, args []string) error {
 			return usagef("unknown command \"%s %s\": run \"rex help %s\"", word, args[0], word)
 		}
 		c, args = s, args[1:]
+	}
+	if asksHelp(args) {
+		fmt.Print(commandHelp(c))
+		return nil
 	}
 	if c.raw != nil {
 		return c.raw(args)

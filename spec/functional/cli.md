@@ -59,6 +59,8 @@ commands, the options before the command, the target rules and the exit
 statuses.
 `rex help COMMAND` SHALL print the help of a command or a group, as
 `rex help session new`.
+WHEN `--help` or `-h` follows a command, before `--`, `rex` SHALL print
+that command's help, as `rex help COMMAND` does, and exit with 0.
 WHEN a group runs without a command, as `rex session`, `rex` SHALL
 print the group's help, which lists its commands, and exit with 0.
 WHEN the topic of `rex help` is not a command, `rex` SHALL print the

@@ -651,3 +651,23 @@ func TestWideCommandNames(t *testing.T) {
 		t.Errorf("the events of rex send ls secret: %s", b)
 	}
 }
+
+// --help or -h after a command prints its help, as rex help COMMAND does,
+// and exits with 0; after --, it is the command's.
+//
+// spec: F-103
+func TestHelpAfterCommand(t *testing.T) {
+	t.Setenv("GOREX_DIR", t.TempDir()) // no server runs there
+	for args, topic := range map[string]string{
+		"split --help": "split", "split -h": "split", "split --ratio 30 --help": "split",
+		"session new -h": "session new", "ls --help": "ls", "server run --help": "server run", "send-keys -h": "send-keys",
+	} {
+		want, _ := cli(t, nil, "help", topic)
+		if out, code := cli(t, nil, append([]string{"--autostart=false"}, strings.Fields(args)...)...); code != 0 || out != want || !strings.Contains(out, "Usage") {
+			t.Errorf("rex %s: %d %q", args, code, out)
+		}
+	}
+	if _, code := cli(t, nil, "--autostart=false", "split", "--", "grep", "-h"); code != exitNoServer {
+		t.Errorf("rex split -- grep -h: %d, want the split tried", code)
+	}
+}

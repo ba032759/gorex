@@ -558,8 +558,9 @@ terminal. B-8 says the record holds no text the user typed.
 documentation shows `rex help COMMAND` only; agents try `--help` first,
 and spend a turn on the error (B-4).
 
-- Status: decided: `--help` or `-h` after a command prints that
-  command's help and exits with 0, as `rex help COMMAND` does.
+- Status: resolved (2026-11-09): `--help` or `-h` after a command prints
+  that command's help and exits with 0, as `rex help COMMAND` does
+  (F-103).
 
 ## Finding 41: rex events -s does not print its own session's end
 

@@ -24,7 +24,7 @@ Exit status: 0 ok, 1 failed, 2 usage, 3 target not found or ambiguous,
 4 server unreachable, 130 interrupted; wait and --wait exit with the
 program's status.
 
-Run "rex help COMMAND" for one command.
+Run "rex help COMMAND", or "rex COMMAND --help", for one command.
 `
 
 const placeHelp = `split splits a block (yours by default) and places a terminal beside it;
