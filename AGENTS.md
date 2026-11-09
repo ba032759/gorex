@@ -1,6 +1,6 @@
 # GoRex
 
-A Linux (and macOS, Windows) terminal compatible with Superlogical's Rex: a
+A terminal for Linux, and Linux only, compatible with Superlogical's Rex: a
 server keeps sessions of windows of terminal blocks, a MyGo GUI shows them,
 and the `rex` CLI drives them. Go; the GUI is the main package, the server
 and protocol are `internal/rex`.
@@ -24,9 +24,9 @@ changing behaviour. In short:
 ## Checks
 
 `mise run check` must pass: gofmt and shfmt, golangci-lint (.golangci.yml),
-shellcheck, actionlint, tests with the race detector, `spec check`, and
-builds for macOS and Windows. In Claude Code, hooks format and lint each
-file as you edit it, and run the check before you finish. `mise install`
+shellcheck, actionlint, tests with the race detector, and `spec check`.
+In Claude Code, hooks format and lint each file as you edit it, and run
+the check before you finish. `mise install`
 installs the tools; `mise run format` formats.
 
 ## Observing it

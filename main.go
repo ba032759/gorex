@@ -70,7 +70,7 @@ func setDir() {
 // invokedAsRex tells that the executable runs by the name rex, as the
 // link the server puts in its terminals' PATH.
 func invokedAsRex() bool {
-	name := strings.TrimSuffix(strings.ToLower(filepath.Base(os.Args[0])), ".exe")
+	name := strings.ToLower(filepath.Base(os.Args[0]))
 	return name == "rex"
 }
 

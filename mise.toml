@@ -1,7 +1,7 @@
 # The tools GoRex is built and checked with, and its tasks. `mise install`
 # installs the tools; `mise run check` is what every change must pass:
 # formatting, linting (Go, shell, CI workflows), the tests with the race
-# detector, the spec's consistency, and builds for the other platforms.
+# detector, and the spec's consistency. GoRex builds for Linux only.
 # The Claude Code hooks in .claude/ and CI run it too. `mise run format`
 # formats everything.
 
@@ -19,7 +19,7 @@ SHFMT_FLAGS = "-i 0 -bn"
 
 [tasks.check]
 description = "Everything a change must pass"
-depends = ["fmt", "lint", "test", "spec", "cross"]
+depends = ["fmt", "lint", "test", "spec"]
 
 [tasks.format]
 description = "Format the Go code and the shell scripts"
@@ -54,10 +54,6 @@ run = "SPEC_UPDATE=1 go test -run TestReference ."
 [tasks.spec-strict]
 description = "Gaps (accepted items no test verifies) fail too"
 run = "go run ./tools/spec check --strict"
-
-[tasks.cross]
-description = "Build for macOS and Windows"
-run = ["GOOS=darwin go build -o /dev/null .", "GOOS=windows go build -o /dev/null ."]
 
 [tasks.query]
 description = "DuckDB over the spec, tests and GoRex's events: mise run query -- 'SQL'"

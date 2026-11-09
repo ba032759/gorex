@@ -1,7 +1,7 @@
 # GoRex
 
 A replica of [Superlogical's Rex](https://www.superlogical.com/updates/public-testing-beginning)
-terminal, for Linux as well as macOS and Windows, written in Go with [MyGo](https://mygo.egoist.dev)'s native UI and its
+terminal, for Linux only, written in Go with [MyGo](https://mygo.egoist.dev)'s native UI and its
 terminal plugin (Ghostty's libghostty-vt). No webview, no cgo: one ~15 MB app.
 
 ![GoRex](docs/screenshot.png)
@@ -10,7 +10,7 @@ terminal plugin (Ghostty's libghostty-vt). No webview, no cgo: one ~15 MB app.
 
 - **Sessions, tabs and split panes**, as Rex has them: a *session* groups
   related work, its *windows* are the tabs, and each *block* is a terminal.
-  The session chip in the title bar (or ⇧⌘S / Ctrl+Shift+S) changes
+  The session chip in the title bar (or Ctrl+Shift+S) changes
   session; its dot tells of a pane needing attention in another one. Every
   pane is a card over the window's gradient, with its program's icon, name
   and directory in its header, and buttons to split right, split down, zoom
@@ -33,8 +33,7 @@ terminal plugin (Ghostty's libghostty-vt). No webview, no cgo: one ~15 MB app.
   palette) teaches Claude Code, Codex, OpenCode and Pi to open panes, run
   commands beside them, wait for them and read terminals' screens.
 - **Program activity.** The server watches each terminal's foreground
-  process (`tcgetpgrp`, `/proc`, `sysctl`, `proc_pidinfo`; on Windows, the
-  shell's newest child): headers and tabs name the program (`Node`, `Git
+  process (`tcgetpgrp`, `/proc`): headers and tabs name the program (`Node`, `Git
   Changes` for lazygit, `Codex`, `SSH host`…) and its working directory, a
   green dot shows a program printing, and an orange dot marks a pane whose
   program finished or rang the bell out of sight. When the window is in the
@@ -52,40 +51,36 @@ terminal plugin (Ghostty's libghostty-vt). No webview, no cgo: one ~15 MB app.
   have a context menu.
 - **Host chip** with the machine's name and model; its popover shows the
   chip, memory, OS and the session server.
-- **Command palette** (⇧⌘P, Ctrl+Shift+P, or the ⌘ button): every command,
+- **Command palette** (Ctrl+Shift+P, or the ⌘ button): every command,
   session and pane to jump to, fuzzy-matched; it asks for names too
   (Rename Pane…, Rename Session…).
 - **A keymap file** with Rex's key syntax and action names, key sequences
   (`ctrl+b>c`) included. See [Keys](#keys).
-- Light and dark appearances (View ▸ Appearance), text size (⌘+ ⌘− ⌘0),
+- Light and dark appearances (View ▸ Appearance), text size (Ctrl+= Ctrl+- Ctrl+0),
   JetBrains Mono embedded.
 
 ## Keys
 
-| macOS | Linux, Windows | |
-|---|---|---|
-| ⌘T | Ctrl+Shift+T | New tab |
-| ⇧⌘N | Ctrl+Shift+N | New session |
-| ⇧⌘S | Ctrl+Shift+S | Change session |
-| ⌘D / ⇧⌘D | Ctrl+Shift+D / Ctrl+Shift+E | Split right / down |
-| ⌘W / ⇧⌘W | Ctrl+Shift+W / — | Close pane / tab |
-| ⇧⌘↩ | Ctrl+Shift+Enter | Zoom the pane |
-| ⌥⌘ arrows | Alt+arrows | Focus the pane in that direction |
-| ⌘] ⌘[ | | Focus the next / previous pane |
-| ⌥⇧⌘ arrows | | Swap the pane with its neighbour |
-| ⌃⌘ arrows | Alt+Shift+arrows | Move the nearest divider |
-| ⌃⌘= | | Equalize panes |
-| ⌘1…⌘9, ⇧⌘[ ⇧⌘], ⌃Tab | Ctrl+Shift+1…9, Ctrl+PageUp/PageDown, Ctrl+Tab | Switch tabs |
-| | Ctrl+Shift+PageUp/PageDown | Move the tab |
-| ⇧⌘R | Ctrl+Shift+R | Rename tab |
-| ⇧⌘P, ⌘P | Ctrl+Shift+P | Command palette |
-| ⌘K | Ctrl+Shift+K | Clear |
-| ⌘+ ⌘− ⌘0 | Ctrl+= Ctrl+- Ctrl+0 | Text size |
-| ⌥⌘Q | | Quit and end all sessions |
+| Keys | |
+|---|---|
+| Ctrl+Shift+T | New tab |
+| Ctrl+Shift+N | New session |
+| Ctrl+Shift+S | Change session |
+| Ctrl+Shift+D / Ctrl+Shift+E | Split right / down |
+| Ctrl+Shift+W | Close pane |
+| Ctrl+Shift+Enter | Zoom the pane |
+| Alt+arrows | Focus the pane in that direction |
+| Alt+Shift+arrows | Move the nearest divider |
+| Ctrl+Shift+1…9, Ctrl+PageUp/PageDown, Ctrl+Tab | Switch tabs |
+| Ctrl+Shift+PageUp/PageDown | Move the tab |
+| Ctrl+Shift+R | Rename tab |
+| Ctrl+Shift+P | Command palette |
+| Ctrl+Shift+K | Clear |
+| Ctrl+= Ctrl+- Ctrl+0 | Text size |
 
-Elsewhere than on macOS, Control and a letter are the terminal's (Ctrl+C,
-Ctrl+D, Ctrl+W…), so GoRex's keys take Shift too, as copying and pasting
-do (Ctrl+Shift+C, Ctrl+Shift+V), and none take Control and Alt, which type
+Control and a letter are the terminal's (Ctrl+C, Ctrl+D, Ctrl+W…), so
+GoRex's keys take Shift too, as copying and pasting do (Ctrl+Shift+C,
+Ctrl+Shift+V), and none take Control and Alt, which type
 characters (AltGr) on many keyboards. With `"macosKeybindings": true` in
 `settings.json`, for a keyboard remapped to work as a Mac's, GoRex takes
 the macOS keys with Control or Super for ⌘ instead (the `macos` preset).
@@ -113,8 +108,7 @@ Keys are written as Rex writes them: modifiers (`ctrl`, `alt`, `shift`,
 then goes to the terminal. Actions have Rex's names (`pane.split.right`,
 `client.tab.goto`, `session.switch`…): `rex actions` lists them, `rex
 keymap` shows the bindings in effect, `rex config check` checks the file
-and `rex config reload` (or *Reload Keymap*) applies it. On macOS the
-menus' shortcuts stay as they are.
+and `rex config reload` (or *Reload Keymap*) applies it.
 
 ## The CLI
 
@@ -155,7 +149,7 @@ GoRex needs [Go](https://go.dev/dl/) 1.27+ and MyGo 0.3.0, whose CLI
 ```sh
 go tool mygo dev     # GoRex Dev, rebuilt and restarted as the code changes
 go test ./...        # the server, and the view without a window
-go tool mygo build   # build/darwin-arm64/GoRex.app and a .dmg
+go tool mygo build   # the app, in build/
 go run ./tools/mkicon  # redraw resources/icon.png
 ```
 
@@ -164,7 +158,7 @@ CLI together.
 
 The app keeps its state in its data directory: the server's socket and
 log, `state.json`, `settings.json` and `keymap.json`, in
-`~/Library/Application Support/GoRex` (`~/.config/gorex` on Linux) for the
+`~/.config/GoRex` for the
 built app and `GoRex Dev` for `mygo dev`'s, so that developing never
 touches the sessions of the app you use (`GOREX_DIR` names another
 directory; a terminal of GoRex sets it, so that its `rex` talks to the
@@ -173,18 +167,6 @@ development build replaces a server that an older build started, ending
 its programs, which then start again as shells in the same directories.
 An app of a new version asks before it restarts a server of an older one;
 the first version's `layout.json` becomes a session.
-
-### Windows
-
-GoRex runs on Windows 10 1809 or later, whose ConPTY runs the shells; its
-data directory is `%AppData%\GoRex`. Panes run `$SHELL` when it names a
-Windows program (`nu`, `C:\Program Files\Git\bin\bash.exe`), else
-PowerShell (`pwsh`, then `powershell`), else `cmd`. PowerShell's `cd`
-leaves its process's directory where it was, so GoRex starts it with a
-prompt that sets it, wrapping the profile's own prompt: the header then
-follows it, and new panes open there. The window is frameless and its
-title bar draws minimize, maximize and close with the other buttons; it
-resizes from its sides and bottom, not its top.
 
 ## Layout
 
