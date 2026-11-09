@@ -28,7 +28,7 @@ case "$file" in
 	out=$(actionlint "$file" 2>&1) || fail "actionlint found problems" "$out"
 	;;
 */spec/*.md)
-	out=$(go run ./tools/spec check -q 2>&1) || fail "spec check found errors" "$out"
+	out=$(go run ./tools/spec check -q "$file" 2>&1) || fail "spec check found problems in $file (the templates and writing rules are in spec/README.md)" "$out"
 	;;
 esac
 exit 0

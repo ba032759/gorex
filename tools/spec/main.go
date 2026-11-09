@@ -461,6 +461,7 @@ func load(root string) ([]*Item, []TestRef, []Problem) {
 	gl, gprobs := parseGlossary(root)
 	probs = append(probs, gprobs...)
 	probs = append(probs, checkWriting(items, gl)...)
+	probs = append(probs, checkShape(items)...)
 	return items, refs, check(items, probs, refs)
 }
 
@@ -472,11 +473,25 @@ func cmdCheck(root string, args []string) int {
 	showStyle := fl.Bool("style", false, "print the style notes too: long sentences and items, filler")
 	fl.Parse(args)
 	items, refs, probs := load(root)
+	// With files, check only their problems, and warnings fail too: an
+	// author, or an agent's edit hook, sees what they just wrote.
+	if files := fl.Args(); len(files) > 0 {
+		only := map[string]bool{}
+		for _, f := range files {
+			if abs, err := filepath.Abs(f); err == nil {
+				if rel, err := filepath.Rel(root, abs); err == nil {
+					f = rel
+				}
+			}
+			only[filepath.ToSlash(f)] = true
+		}
+		probs = slices.DeleteFunc(probs, func(p Problem) bool { return !only[filepath.ToSlash(p.File)] })
+	}
 	fail := 0
 	count := map[string]int{}
 	for _, p := range probs {
 		count[p.Severity]++
-		if p.Severity == "error" || p.Severity == "gap" && *strict {
+		if p.Severity == "error" || p.Severity == "gap" && *strict || p.Severity == "warning" && len(fl.Args()) > 0 {
 			fail = 1
 		}
 	}
@@ -485,7 +500,7 @@ func cmdCheck(root string, args []string) int {
 		return fail
 	}
 	for _, p := range probs {
-		if *quiet && !(p.Severity == "error" || p.Severity == "gap" && *strict) {
+		if *quiet && !(p.Severity == "error" || p.Severity == "gap" && *strict || p.Severity == "warning" && len(fl.Args()) > 0) {
 			continue
 		}
 		if p.Severity == "style" && !*showStyle {
