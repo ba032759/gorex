@@ -712,7 +712,7 @@ func TestNewBlockDirectory(t *testing.T) {
 	}
 }
 
-// spec: F-185, F-186, F-187, F-188
+// spec: F-185, F-188, F-431
 func TestSkillSetup(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
