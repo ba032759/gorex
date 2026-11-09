@@ -31,13 +31,29 @@ stays hand-written beside them, and the faults remain.
 | Defaults in `spec/reference/cli.md` | none | all |
 | The reference's probe: commands it cannot run safely (`noFlags`), timeout | 6, and a timeout | none: the reference reads the declarations |
 | Lines of `cli.go` + `help.go` | 1991 + 178 = 2169 | equal or fewer |
+| Size of the executable, stripped (`go build -ldflags=-s`) | 15.7 MB | not larger (D-12) |
 | Places to edit to add a flag to a command | handler, help, (reference) | one |
 | Behaviour other than the help's layout | — | unchanged: the tests pass; every change in the reference's diff and in any output is explained and in the spec |
 | Rex compatibility (B-5): exit statuses, flags anywhere, `--`, several spellings | as now | as now |
 
-Phase 2, after the change: one sample change (a new flag that takes a
-percentage) made by a fresh agent on each branch; count its edits and
-turns.
+Three branches, from `retro-pilot`: `cli-kong` (kong), `cli-stdlib` (one
+declaration per command, Go's standard library only; added after kong's
+run, 2026-11-09), and `retro-pilot` itself, as it is.
+
+Phase 2, on each branch, by a fresh agent per change, the same prompt:
+
+1. A local change: `rex split` and `rex run` take `-q`, `--quiet`: on
+   success they print nothing.
+2. A change across commands: every flag that takes a percentage
+   (`--ratio` of `split`, `run` and `move`, `--amount` of `resize`) also
+   takes a fraction (`0.3` is 30 %) and a trailing `%`. IF the value is
+   outside the flag's range, THEN `rex` exits with 2, with one message
+   that names the flag and its range. The ranges stay as they are
+   (Finding 1 is the owner's).
+
+Count for each: files and lines changed, the agent's tool calls, the
+places a percentage is parsed afterwards, and whether the spec, the help
+and the reference agree.
 
 ## How
 
