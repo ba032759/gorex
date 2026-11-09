@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -200,8 +199,6 @@ func (a *App) tabMenu(m *ui.Menu, t *Tab) {
 	item := m.Item("New Tab")
 	if seq, ok := keys.firstChord("client.tab.new"); ok {
 		item.Shortcut(seq.mods, seq.key)
-	} else if runtime.GOOS == "darwin" {
-		item.Shortcut(ui.Cmd, ui.KeyT)
 	}
 	if item.Chosen() {
 		a.laterService(func() { a.newTab(a.currentDir()) })

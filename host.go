@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 	"time"
 
@@ -19,16 +18,9 @@ func (a *App) hostChip(c *ui.Context, k *colors) {
 		name, _ = os.Hostname()
 		name = strings.TrimSuffix(name, ".local")
 	}
-	glyph := "mac-studio"
-	switch {
-	case strings.Contains(model, "MacBook"), h.Portable:
+	glyph := "monitor"
+	if h.Portable {
 		glyph = "laptop"
-	case strings.Contains(model, "iMac"), runtime.GOOS == "windows":
-		glyph = "monitor"
-	case runtime.GOOS == "linux" && !h.Portable:
-		glyph = "monitor"
-	case model == "Linux":
-		glyph = "server"
 	}
 	chip := ui.Row(c).Gap(9).Padding(3, 8, 3, 6).Radius(9).AlignItems(ui.Center).Cursor(ui.CursorPointer).
 		Role(ui.RoleButton).Label("Host " + name).MaxWidth(190).Shrink(0)
@@ -62,7 +54,7 @@ func (a *App) hostPanel(c *ui.Context, k *colors, name, glyph string) {
 			ui.Text(c, name).FontSize(14).FontWeight(700).TextColor(k.text).SingleLine().Ellipsis("…")
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Box(c).Size(7, 7).Radius(4).Background(k.busy)
-				ui.Text(c, thisMachine()+" · connected").FontSize(12).TextColor(k.textFaint)
+				ui.Text(c, "This computer · connected").FontSize(12).TextColor(k.textFaint)
 			})
 		})
 	})
@@ -115,15 +107,4 @@ func roundDur(d time.Duration) string {
 		return fmt.Sprintf("%dh %dm", int(d.Hours()), int(d.Minutes())%60)
 	}
 	return fmt.Sprintf("%dd", int(d.Hours()/24))
-}
-
-// thisMachine names the machine the app runs on, as its system does.
-func thisMachine() string {
-	switch runtime.GOOS {
-	case "darwin":
-		return "This Mac"
-	case "windows":
-		return "This PC"
-	}
-	return "This computer"
 }

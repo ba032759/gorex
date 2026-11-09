@@ -1,7 +1,6 @@
 package main
 
 import (
-	"runtime"
 	"strings"
 	"time"
 
@@ -56,10 +55,6 @@ func (a *App) view(c *ui.Context) {
 	}
 }
 
-// ownControls tells that the title bar draws the window's controls: on
-// Windows, whose own would look like none of the rest of it.
-var ownControls = runtime.GOOS == "windows"
-
 // titleBar draws the title bar under the window's controls: the host,
 // the tabs, and the buttons of the command palette and a new tab.
 func (a *App) titleBar(c *ui.Context, k *colors) {
@@ -85,56 +80,8 @@ func (a *App) titleBar(c *ui.Context, k *colors) {
 				a.newTab(a.currentDir())
 			}
 		})
-		a.windowControls(c, k)
 	})
 }
-
-// windowControls draws the buttons that minimize, maximize and close the
-// window, when it has none of its own: they are the title bar's other
-// buttons, and close's face turns red, as Windows has it.
-func (a *App) windowControls(c *ui.Context, k *colors) {
-	win := a.win
-	if !ownControls || win == nil || win.IsFullScreen() {
-		return
-	}
-	maximized := win.IsMaximized()
-	ui.Row(c).Gap(2).AlignItems(ui.Center).Shrink(0).Children(func() {
-		ui.Box(c).Size(1, 16).Margin(0, 6).Background(k.tabSep)
-		if iconButton(c, k, "minus", "Minimize", 30, 16).Tooltip("Minimize").Clicked() {
-			win.Minimize()
-		}
-		glyph, label := "square", "Maximize"
-		if maximized {
-			glyph, label = "copy", "Restore"
-		}
-		if iconButton(c, k, glyph, label, 30, 13).Tooltip(label).Clicked() {
-			if maximized {
-				win.Unmaximize()
-			} else {
-				win.Maximize()
-			}
-		}
-		b := ui.Box(c).Size(30, 30).Center().Radius(30 / 2.6).Cursor(ui.CursorPointer).Role(ui.RoleButton).Label("Close").Tooltip("Close")
-		col := k.iconMuted
-		if b.Pressed() {
-			b.Background(closeRed.Alpha(0.8))
-			col = ui.Hex("#ffffff")
-		} else if b.Hovered() {
-			b.Background(closeRed)
-			col = ui.Hex("#ffffff")
-		}
-		b.Transition(ui.ElementTransition{Colors: true, Duration: 120 * time.Millisecond})
-		b.Children(func() {
-			ui.Icon(c, icon("x")).Size(17, 17).TextColor(col)
-		})
-		if b.Clicked() {
-			win.Close()
-		}
-	})
-}
-
-// closeRed is the face of the close button under the pointer: Windows 11's.
-var closeRed = ui.Hex("#c42b1c")
 
 // tip is the tooltip of a button that runs a command: its label and its
 // keys.
