@@ -207,7 +207,7 @@ func TestServerStopDiscard(t *testing.T) {
 // rex server logs -n prints the newest lines; --follow ends with the
 // server.
 //
-// spec: F-183
+// spec: F-430
 func TestServerLogs(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("GOREX_DIR", dir)
@@ -322,7 +322,7 @@ func TestWindowFocusNextAnyCase(t *testing.T) {
 // The help and the skill say session, window and block; tab and pane
 // only for how the app shows them.
 //
-// spec: F-103, F-185
+// spec: F-103, F-432
 func TestHelpTerms(t *testing.T) {
 	texts := map[string]string{"overview": overview(), "skill": skillGuide}
 	for _, c := range allCommands(rexCommands) {
@@ -345,7 +345,7 @@ func TestHelpTerms(t *testing.T) {
 // The help's prose says what the code does: the skill's hooks, the
 // events printed without -s, the keymap's default preset.
 //
-// spec: F-169, F-178, F-186
+// spec: F-169, F-178, F-185
 func TestHelpProse(t *testing.T) {
 	for _, e := range hookEvents {
 		if !strings.Contains(skillHelp, e) {

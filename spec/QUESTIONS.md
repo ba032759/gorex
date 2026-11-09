@@ -153,3 +153,18 @@ documentation or the repository.
 29. Should `rex client inspect` take `--json` and `-C`, and match a
     client as every other target does (Findings 7, 29)?
     *Answered (2026-11-09):* yes, as Rex's reference says (F-193).
+## F-174 rex do
+
+30. Should `rex do -b BLOCK` act on `BLOCK`, as Rex's does, or should
+    `-s` and `-b` be ignored and say so, as Finding 17's flags (Finding
+    36)?
+
+## F-178, F-179 The keymap's errors
+
+31. Should `rex keymap` exit with 1 when the keymap has an error, as
+    `rex config check` and Rex's `rex keymap` do (Finding 37)?
+
+## F-430 The server's log
+
+32. Should `rex server logs` print the newest 200 lines by default and
+    take `--all`, as Rex does (Finding 38)?

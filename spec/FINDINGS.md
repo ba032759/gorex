@@ -493,3 +493,38 @@ the app's view to 8–92 %. `--ratio 3` gives 5 %, without a word. Found by
 the percentage change of the experiment (`p2-old-pct`).
 
 - Status: resolved (2026-11-09): one limit, 5 to 95 %, kept in one place (`rex.ClampRatio`) and used by the server's split, move, resize and `split.ratio`, and by the app's dragged dividers; `rex` takes 1 to 99 and the server holds it in the limit (F-135, F-145, F-147, T-107).
+
+## Finding 36: rex do -s and -b change nothing
+
+- Kind: accidental behaviour
+- Items: F-174
+- Code: `cli.go:335`, `internal/rex/actions.go:1160`, `state.go:226`
+
+`rex do` declares `-s SESSION` ("the session to act in") and `-b BLOCK`
+("the block to act on"), as Rex does. The server sends the app only the
+action's name, its arguments and the context of `rex`; the app reads
+the name and the arguments, and acts where its own focus is. `rex do -b
+BLOCK pane.split` splits the focused block, with exit status 0. Rex
+applies the action to `BLOCK`, by default the focused block.
+
+## Finding 37: rex keymap exits with 0 on a keymap with errors
+
+- Kind: competing behaviour
+- Items: F-178, F-179
+- Code: `cli.go:1874`, `cli.go:1918`
+
+`rex keymap` and `rex config check` read the same `keymap.json` and find
+the same problems. `rex config check` exits with 1 when one is an error;
+`rex keymap` prints it on standard error and exits with 0. Rex's
+reference says that `rex keymap` exits with 1 when a complaint is an
+error.
+
+## Finding 38: rex server logs prints the whole log
+
+- Kind: difference from Rex
+- Items: F-430
+- Code: `cli.go:374`, `cli.go:2051`
+
+Without `-n`, `rex server logs` prints all of `server.log`. Rex prints
+the newest 200 lines, and the whole log with `--all`, which GoRex does
+not have.
