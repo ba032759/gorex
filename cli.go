@@ -465,25 +465,30 @@ func globalFlags(o *global) *flagSet {
 	}), true)
 	f.str(&o.client, "C,client", "", "the app, `CLIENT`, that rex do asks").defaults("REX_CLIENT")
 	f.duration(&o.timeout, "timeout", 10*time.Second, "wait up to `DURATION` for an answer")
-	o.autostart = true
-	f.add("autostart", "start a server when none runs; --autostart=false does not", (*autostartValue)(&o.autostart), true)
+	f.boolean(&o.autostart, "autostart", true, "start a server when none runs; --autostart=false does not")
 	var color string
 	f.str(&color, "color", "", "Rex's `WHEN`").ignore()
 	f.add("v,verbose,vv", "Rex's", funcValue(func(string) error { return nil }), true).ignore()
 	return f
 }
 
-// autostartValue is on for --autostart and --autostart=true, and off
-// for any other value.
-type autostartValue bool
-
-func (v *autostartValue) Set(s string) error { *v = s == "true"; return nil }
-func (v *autostartValue) String() string     { return strconv.FormatBool(bool(*v)) }
-
-// isCLICommand tells whether a word is a command of rex, which runs the
-// CLI rather than the app when GoRex is started with it.
+// isCLICommand tells whether a word is a command of rex.
 func isCLICommand(s string) bool {
 	return s == "help" || s == "--help" || s == "-h" || rexCommands.find(s) != nil
+}
+
+// isCLI tells whether GoRex's arguments are a command of rex, after
+// rex's global options: then GoRex runs as rex, not as the app. A global
+// option with a bad value runs rex too, which says what is wrong.
+func isCLI(args []string) bool {
+	var g global
+	f := globalFlags(&g)
+	rest, err := f.parseLeading(args)
+	if err != nil {
+		name, _, _ := strings.Cut(strings.TrimLeft(args[0], "-"), "=")
+		return f.names[name] != nil
+	}
+	return len(rest) > 0 && isCLICommand(rest[0])
 }
 
 // runCLI runs rex with its arguments and returns the exit status.

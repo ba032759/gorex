@@ -223,7 +223,7 @@ directory of the app.
 `GoRex ls` runs `rex ls`. `GoRex --timeout 5s ls` starts the app, as
 `--timeout` is not a command. `rex --timeout 5s ls` works.
 
-- Status: decided: the global options also work by the name GoRex, before a command of `rex`.
+- Status: resolved (2026-11-09): the global options also work by the name GoRex, before a command of `rex` (F-100).
 
 ## Finding 17: flags taken and ignored
 
@@ -466,7 +466,7 @@ too, without an error. The flags of a command take `1` as true and
 refuse `yes` with exit status 2 (F-102). D-13 kept the difference: the
 owner decides whether `--autostart` is a boolean as the others.
 
-- Status: decided: `--autostart` is a boolean as every other flag: true, false, 1, 0; anything else exits with 2.
+- Status: resolved (2026-11-09): `--autostart` is a boolean as every other flag: true, false, 1, 0; anything else exits with 2 (F-101).
 
 ## Finding 34: an unknown capture format exits with 1, html with 2
 

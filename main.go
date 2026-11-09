@@ -35,7 +35,7 @@ func main() {
 		return
 	}
 	// Run as rex, or with a command of rex's, it is the CLI.
-	if invokedAsRex() || len(args) > 0 && isCLICommand(args[0]) {
+	if invokedAsRex() || isCLI(args) {
 		setDir()
 		os.Exit(runCLI(args))
 	}

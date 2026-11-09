@@ -6,14 +6,14 @@ The commands themselves are in `cli-layout.md`, `cli-terminals.md` and
 ## Invocation
 
 ### F-100 Run as rex
-status: proposed · traces: B-3, B-7 · source: code
+status: proposed · traces: B-3, B-7 · source: code, owner
 
 The executable SHALL run as `rex` when its file name, without `.exe` and
 in any case, is `rex`.
-WHEN it runs by another name, and its first argument is a command of
-`rex`, THEN it SHALL run as `rex` too.
-WHEN `rex` gets no arguments THEN it SHALL print the overview help and
-exit with 0.
+WHEN it runs by another name with a command of `rex` as its first
+argument after the global options of F-101, it SHALL run as `rex` too.
+WHEN `rex` gets no arguments, it SHALL print the overview help and exit
+with 0.
 
 ### F-101 Global options
 status: proposed · traces: B-3, B-5 · source: code, rex-docs
@@ -29,12 +29,15 @@ Before the command, `rex` SHALL take these options:
 | `-v`, `--verbose`, `-vv` | taken and ignored |
 | `-S`, `--server` | refused, with exit status 2 |
 
-WHEN an option before the command is not in the table THEN `rex` SHALL
-exit with 2. A bad `--timeout` value SHALL exit with 2.
+IF an option before the command is not in the table, THEN `rex` SHALL
+exit with 2.
+IF the value of `--timeout` is not a duration, THEN `rex` SHALL exit
+with 2.
 IF an option that takes a value is the last word, as `rex -C`, THEN
 `rex` SHALL exit with 2.
-WHEN the value of an option is empty, `rex` SHALL use the option's
-default.
+WHEN the value of an option that is not a boolean is empty, `rex` SHALL
+use the option's default.
+`--autostart` SHALL take a value as a boolean flag does (F-102).
 
 ### F-102 Flags of a command
 status: proposed · traces: B-3 · source: code
