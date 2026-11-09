@@ -160,8 +160,10 @@ criteria: each one a sentence a test, an event or a person can check.
 - A rule is what the owner would want to be asked about before it
   changes: what happens, what is refused, what the user would miss or be
   surprised by. A flag that only sets a value (a label, a ratio, a
-  directory) is not a rule, nor is a default; the reference lists them,
-  the tests pin them down. Usually five rules or fewer.
+  directory) is not a rule; the reference lists it, the tests pin it
+  down. A default is a rule only when the owner would be asked about it
+  (the directory a new block starts in), else it is the help's. Usually
+  five rules or fewer.
 - Output formats (the columns of a table, the fields of `--json`, a
   file's layout) are technical items. The functional item says what the
   output tells.
