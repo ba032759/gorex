@@ -533,7 +533,7 @@ Without `-n`, `rex server logs` prints all of `server.log`. Rex prints
 the newest 200 lines, and the whole log with `--all`, which GoRex does
 not have.
 
-- Status: decided: as Rex's: the newest 200 lines; `--all` prints the whole log, `-n` another count.
+- Status: resolved (2026-11-09): as Rex's: the newest 200 lines; `--all` prints the whole log, `-n` another count (F-430).
 
 ## Finding 39: the wide event of a command keeps an argument's words
 

@@ -149,10 +149,13 @@ IF another server runs for the data directory, THEN `rex server run`
 SHALL exit with 1.
 
 ### F-430 Read the server's log
-status: proposed · traces: B-2 · source: code, rex-docs, tests
+status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
 
-`rex server logs` SHALL print the server's log, the whole of it, or with
-`-n N` its newest `N` lines (Finding 38).
+`rex server logs` SHALL print the newest 200 lines of the server's log,
+as Rex's.
+WHEN `--all` is given, `rex server logs` SHALL print the whole log.
+IF `--all` and `-n` are given together, THEN `rex server logs` SHALL
+exit with 2.
 WHEN `--follow` is given, `rex` SHALL go on printing what the server
 adds to its log, until the server stops.
 WHILE `rex` follows the log, WHEN the log is replaced, `rex` SHALL print

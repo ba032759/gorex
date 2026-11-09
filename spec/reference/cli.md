@@ -260,7 +260,8 @@ Flags: none; it reads its arguments itself.
 | Flag | Value | Default | Help |
 |---|---|---|---|
 | `--follow` |  | `false` | print what the server adds to it, until the server stops |
-| `-n`, `--lines` | `N`, from 1 | every line | print the newest N lines |
+| `-n`, `--lines` | `N`, from 1 | 200 | print the newest N lines |
+| `--all` |  | `false` | print the whole log |
 
 ## `rex server run`
 

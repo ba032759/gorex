@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -226,13 +227,27 @@ func TestServerStopDiscard(t *testing.T) {
 	}
 }
 
-// rex server logs -n prints the newest lines; --follow ends with the
-// server.
+// rex server logs prints the newest 200 lines, --all the whole log, -n
+// another count; --follow ends with the server.
 //
 // spec: F-430
 func TestServerLogs(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("GOREX_DIR", dir)
+	var long strings.Builder
+	for i := range 250 {
+		fmt.Fprintf(&long, "line %d\n", i)
+	}
+	os.WriteFile(filepath.Join(dir, "server.log"), []byte(long.String()), 0o600)
+	if out, code := cli(t, nil, "server", "logs"); code != 0 || strings.Count(out, "\n") != 200 || !strings.HasPrefix(out, "line 50\n") {
+		t.Errorf("logs: %d, %d lines from %.8q", code, strings.Count(out, "\n"), out)
+	}
+	if out, code := cli(t, nil, "server", "logs", "--all"); code != 0 || out != long.String() {
+		t.Errorf("logs --all: %d, %d lines", code, strings.Count(out, "\n"))
+	}
+	if _, code := cli(t, nil, "server", "logs", "--all", "-n", "3"); code != exitUsage {
+		t.Errorf("logs --all -n 3: %d", code)
+	}
 	os.WriteFile(filepath.Join(dir, "server.log"), []byte("one\ntwo\nthree\n"), 0o600)
 	if out, code := cli(t, nil, "server", "logs", "-n", "2"); code != 0 || out != "two\nthree\n" {
 		t.Errorf("logs -n 2: %d %q", code, out)

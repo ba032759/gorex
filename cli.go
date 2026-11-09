@@ -371,7 +371,8 @@ func init() {
 			cmd(cliCmd{name: "logs", short: "print the server's log"},
 				func(o *logsOpts, f *flagSet) {
 					f.boolean(&o.follow, "follow", false, "print what the server adds to it, until the server stops")
-					f.position(&o.lines, "n,lines", "print the newest `N` lines").defaults("every line")
+					f.position(&o.lines, "n,lines", "print the newest `N` lines").defaults("200")
+					f.boolean(&o.all, "all", false, "print the whole log")
 				}, cliServerLogs),
 			rawCmd(cliCmd{name: "start", short: "start the server, unless one runs"}, cliServerStart),
 			rawCmd(cliCmd{name: "run", short: "run the server in the foreground"}, cliServerRun)),
@@ -2048,21 +2049,33 @@ func cliServerStart(args []string) error {
 func cliServerRun(args []string) error { return rex.Serve() }
 
 type logsOpts struct {
-	follow bool
-	lines  int
+	follow, all bool
+	lines       int
 }
 
-// cliServerLogs prints server.log, or its last lines; with --follow, it
-// goes on printing what the server adds, until the server stops.
+// logLines is how many of its newest lines rex server logs prints, as
+// Rex's.
+const logLines = 200
+
+// cliServerLogs prints the newest lines of server.log, or all of it;
+// with --follow, it goes on printing what the server adds, until the
+// server stops.
 func cliServerLogs(o *logsOpts, _ *call) error {
+	if o.all && o.lines > 0 {
+		return usagef("--all or -n, not both")
+	}
 	path := filepath.Join(rex.Dir(), "server.log")
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	at := int64(len(b))
-	if o.lines > 0 {
-		b = lastLines(b, o.lines)
+	if !o.all {
+		n := o.lines
+		if n == 0 {
+			n = logLines
+		}
+		b = lastLines(b, n)
 	}
 	os.Stdout.Write(b)
 	if !o.follow {
