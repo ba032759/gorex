@@ -69,14 +69,14 @@ screens or drive their terminals.
 **Fails if.** Another user of the machine, or another machine, reads a
 screen or types into a block without the user's permission.
 
-### B-7 Linux first
-status: proposed · kind: constraint · source: repo, code, owner
+### B-7 Linux only
+status: proposed · kind: constraint · source: owner
 
-**Constraint.** GoRex runs on Linux, and also on macOS and Windows (10
-1809 or later).
-**Why.** The owner works on Linux, where Rex has no app. Why also macOS
-and Windows: unknown.
-**Fails if.** A feature works on macOS or Windows and not on Linux.
+**Constraint.** GoRex runs on Linux, and only on Linux.
+**Why.** The owner works on one Linux laptop, where Rex has no app, and
+can test nothing else.
+**Fails if.** A part of GoRex depends on a system the owner cannot test,
+or a change is checked only on another system.
 
 ### B-8 Observe it without exposing the user
 status: proposed · source: code, rex-docs

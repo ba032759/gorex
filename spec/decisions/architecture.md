@@ -234,3 +234,20 @@ listing commands; split and run already print only the new block's ID.
 **Choice.** (b).
 **Reason.** Rex's reference. A second meaning of `-q` breaks "one flag,
 one meaning", and scripts can send the ID to `/dev/null`.
+
+### D-16 Linux only: no code for macOS and Windows
+status: proposed · traces: B-7 · source: owner
+
+**Context.** GoRex was built for Linux, macOS and Windows; `mise run
+check` built it for macOS and Windows too. The owner has a Linux laptop
+only, so the code for the other systems runs nowhere it is tested
+(Finding 9).
+**Options.** (a) Keep the code for the other systems, built and not run.
+(b) Remove it: GoRex builds for Linux only.
+**Choice.** (b).
+**Reason.** Code that nobody runs drifts without notice; a build that
+compiles tells nothing of what it does. Git keeps what is removed.
+**Consequences.** `mise run check` builds for Linux only. Findings and
+items about macOS and Windows are resolved or superseded. A port is a
+decision of its own, with a system to test it on.
+

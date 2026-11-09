@@ -35,6 +35,8 @@ context block. The comment says this is meant. Rex's documentation says
 "here" is the agent's own block, and "the focused pane" the focused one,
 so both readings exist. The owner decides which a direction starts from.
 
+- Status: decided: a direction starts from the context block, REX_BLOCK when it is live, else the focused block (F-112).
+
 ## Finding 3: a new block's directory depends on the command that makes it
 
 - Kind: competing behaviour
@@ -49,6 +51,8 @@ starts in `rex`'s directory with a command and in the focused block's
 directory without one. A script that opens a session and a window in a
 row gets two different directories.
 
+- Status: decided: beside a block (`split`, `run --split`), its directory; otherwise (`new`, `run`, `window new`), the directory `rex` runs in.
+
 ## Finding 4: --timeout does not limit most requests
 
 - Kind: competing behaviour
@@ -61,6 +65,8 @@ target lookups (`model`, `list`, `clients`, `*.resolve`) use a fixed
 `--autostart=false` dials with `--timeout`. `rex wait` tells its own
 timeout from other errors by the words "timed out" in the message.
 
+- Status: decided: `--timeout` limits every connection and every request that does not stream, as Rex's reference says.
+
 ## Finding 5: "no app" fails in rex do and succeeds in rex config reload
 
 - Kind: competing behaviour
@@ -71,6 +77,8 @@ With no app connected, `rex do` exits with 1 and `rex config reload`
 prints a note and exits with 0. Both ask the app for an action. The
 server's code `no_client` has no exit status of its own.
 
+- Status: decided: an app action with no app connected exits with 1, for `rex do` and `rex config reload`.
+
 ## Finding 6: the server going away gives exit status 4 or 1
 
 - Kind: competing behaviour
@@ -79,6 +87,8 @@ server's code `no_client` has no exit status of its own.
 
 When the server ends, `rex events` exits with 4 ("server unreachable").
 `rex wait`, waiting on the same server, exits with 1.
+
+- Status: decided: the server going away exits with 4 for every command.
 
 ## Finding 7: two ways to match a client
 
@@ -104,6 +114,8 @@ whose ID ends in `1`, and prints the first.
 `rex list --json`, `rex wait --json` and the model print `exit_code`.
 Every other key is in snake case, as Rex's are.
 
+- Status: decided: snake case everywhere: `exit_code`, `last_output`, `last_input`.
+
 ## Finding 9: on Windows, REX_BIN_DIR names a directory without rex
 
 - Kind: competing behaviour
@@ -115,6 +127,8 @@ server makes the `rex` link there on Linux and macOS only. On Windows the
 directory is empty, so Claude Code's hooks (`"$REX_BIN_DIR/rex"`) do
 nothing, and `rex` is not on a block's `PATH` unless installed elsewhere.
 
+- Status: resolved: GoRex is Linux only (D-16).
+
 ## Finding 10: commands with several targets stop half done
 
 - Kind: difference from Rex
@@ -124,6 +138,8 @@ nothing, and `rex` is not on a block's `PATH` unless installed elsewhere.
 Rex's documentation: an ambiguous target changes nothing. `rex kill a b
 c`, `rex close a b c` and `rex window close a b c` act on each target in
 turn. When `b` is ambiguous, `a` is already gone.
+
+- Status: decided: resolve every target first; IF one fails, THEN nothing changes and `rex` exits with 3.
 
 ## Finding 11: rex sets REX_SERVER and does not read it
 
@@ -136,6 +152,8 @@ by `GOREX_DIR` instead, and refuses `-S`, whose default in Rex is
 `REX_SERVER`. A block whose `GOREX_DIR` is removed reaches another
 server than the one `REX_SERVER` names.
 
+- Status: decided: `rex` reads `REX_SERVER` (`unix:PATH`) before `GOREX_DIR`.
+
 ## Finding 12: GOREX_SESSION holds a block's ID
 
 - Kind: inconsistent terms
@@ -145,6 +163,8 @@ server than the one `REX_SERVER` names.
 `GOREX_SESSION` is the block's ID, from the first version, where a
 "session" was one terminal. `rex` still reads it when `REX_BLOCK` is
 empty.
+
+- Status: decided: `GOREX_SESSION` goes; `REX_BLOCK` is the one name.
 
 ## Finding 13: block, pane and terminal; window and tab
 
@@ -160,6 +180,8 @@ The spec takes Rex's words: window (avoid tab), block (avoid pane).
 `rex kill` ends sessions and `rex close` closes blocks; the spec says
 close, and avoids kill.
 
+- Status: decided: the CLI, its help and the skill say session, window and block; the app shows a window as a tab and a block as a pane, as Rex's app does. The glossary says so.
+
 ## Finding 14: the data directory on Linux
 
 - Kind: inconsistent terms
@@ -170,6 +192,8 @@ The README says `~/.config/gorex` on Linux. `AGENTS.md`, `wide.go` and
 the code say `GoRex`: `rex.Dir()` joins the user's configuration
 directory and `GoRex`, and the app sets `GOREX_DIR` from MyGo's data
 directory of the app.
+
+- Status: decided: the code is right (`GoRex`); the README is corrected.
 
 ## Finding 15: help that says less, or other, than the code
 
@@ -198,6 +222,8 @@ directory of the app.
 
 `GoRex ls` runs `rex ls`. `GoRex --timeout 5s ls` starts the app, as
 `--timeout` is not a command. `rex --timeout 5s ls` works.
+
+- Status: decided: the global options also work by the name GoRex, before a command of `rex`.
 
 ## Finding 17: flags taken and ignored
 
@@ -232,6 +258,8 @@ it, as Finding 17's flags. The old reference listed them as "Flags:
 none", which read as "refuses every flag". GoRex's `server stop --forget`
 is Rex's `--discard` under another name.
 
+- Status: decided: take them as Rex: `client ls -q` and `--short`, `server stop --discard` (and `--forget`, GoRex's old name) and `--if-idle`, `config check --json`, `server logs --follow` and `-n`, `config reload --json`.
+
 ## Finding 19: what Rex has and rex does not
 
 - Kind: difference from Rex
@@ -254,6 +282,8 @@ is Rex's `--discard` under another name.
 - Exit status 130 for an interrupted command is not specified: Go's
   default handling of `SIGINT` decides it.
 
+- Status: decided, item by item: remote (`-S`, hosts, home) deferred to the phone feature (D-5); `rex api` and Lua stay out (D-7, D-4); scrollback about 64 MiB and `--unwrap` as Rex; exit 130 on an interrupt; `completion powershell` refused (Linux only), `nu` deferred; the Codex hook deferred; the event fields and `rex actions` stay as they are, as GoRex's.
+
 ## Finding 20: rex status is GoRex's own
 
 - Kind: difference from Rex
@@ -262,6 +292,8 @@ is Rex's `--discard` under another name.
 
 Rex's CLI reference has no `rex status`; Rex's programs print OSC 7501
 themselves. GoRex adds it for hooks that have no terminal.
+
+- Status: decided: kept, as GoRex's own command.
 
 ## Finding 21: what the tests cannot show
 
@@ -273,6 +305,8 @@ Running by the name `rex`, starting a server (it runs `os.Executable`,
 the test binary), the `bin/rex` link, the wide event of a command, and a
 server exiting after 10 idle minutes have no test. F-121 says `verify:
 event`; the others need a test that builds the executable.
+
+- Status: decided: these items say `verify: manual` with how, or `event`; a test that builds the executable may come later.
 
 ## Finding 22: the matrix shows nothing of a retro spec
 
@@ -318,6 +352,8 @@ have 21 to 25 words.
 The glossary compares terms without case, so "Rex" and "rex" are one
 term. The glossary names the command "rex command".
 
+- Status: decided: kept as it is; the glossary's "rex command" reads well.
+
 ## Finding 26: avoided words have one meaning in the spec, more in the code
 
 - Kind: spec rules
@@ -353,6 +389,8 @@ the zoom hides, and the zoom stays on the other one. `rex focus BLOCK`,
 for the same block, ends the zoom. Two ways to focus one block leave the
 window in two states.
 
+- Status: decided: focusing another block ends the window's zoom, by any command; directions and next/prev then move as without zoom.
+
 ## Finding 29: rex client inspect takes no flags
 
 - Kind: difference from Rex
@@ -377,6 +415,8 @@ connected. Rex also prints the actions the client offers.
   bob's home.
 - `rex window focus NEXT` matches `next` in any case, then goes to the
   previous window: only the exact word `next` goes forward.
+
+- Status: decided: `~user` is that user's home; `next` and `prev` match in any case, as other words.
 
 ## Finding 31: what the functional template does not hold
 
@@ -426,6 +466,8 @@ too, without an error. The flags of a command take `1` as true and
 refuse `yes` with exit status 2 (F-102). D-13 kept the difference: the
 owner decides whether `--autostart` is a boolean as the others.
 
+- Status: decided: `--autostart` is a boolean as every other flag: true, false, 1, 0; anything else exits with 2.
+
 ## Finding 34: an unknown capture format exits with 1, html with 2
 
 - Kind: competing behaviour
@@ -439,6 +481,8 @@ server answers. A wrong value is a wrong command line (F-104: 2). D-13
 did not declare the formats as the values `--format` takes, which would
 make both exit with 2 before connecting.
 
+- Status: decided: `--format` declares its values; an unknown one exits with 2 before connecting.
+
 ## Finding 35: the server clamps a ratio in three ways
 
 - Kind: competing behaviour
@@ -450,5 +494,4 @@ holds a split's ratio to 5–95 % in one place and 10–90 % in another, and
 the app's view to 8–92 %. `--ratio 3` gives 5 %, without a word. Found by
 the percentage change of the experiment (`p2-old-pct`).
 
-- Status: deferred: the clamps keep a block from becoming too small to
-  use; one limit, and whether `rex` says so, is a decision of its own.
+- Status: decided: one limit, 5 to 95 %, kept in one place and used by the server and the app; `rex` takes 1 to 99 and the server holds it in the limit.
