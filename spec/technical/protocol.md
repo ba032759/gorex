@@ -160,7 +160,7 @@ It fails it after 30 seconds without an answer, or when the app goes.
 `client.do` would choose for the same `client`, or fails as it would.
 
 ### T-110 A status report
-status: proposed · traces: F-172, F-173 · source: code, rex-docs, tests
+status: proposed · traces: F-172, F-173, F-460 · source: code, rex-docs, tests
 
 `status.report` takes the body of an OSC 7501 report in `data`:
 `key=value` pairs joined by `:`.

@@ -427,7 +427,7 @@ func TestTimeoutLimitsEveryRequest(t *testing.T) {
 	}
 }
 
-// spec: F-104, F-168, T-103
+// spec: F-104, F-166, T-103
 func TestServerGoneExits4(t *testing.T) {
 	c := startTestServer(t)
 	var s map[string]any

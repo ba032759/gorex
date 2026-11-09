@@ -75,7 +75,7 @@ func TestOSCScanner(t *testing.T) {
 	}
 }
 
-// spec: F-172, F-173, T-110
+// spec: F-172, F-173, F-460, F-461, T-110
 func TestProgramStatus(t *testing.T) {
 	c, _ := startServer(t)
 	s := act(t, c, "session.new", Args{Create: &CreateOptions{Dir: "/tmp"}})

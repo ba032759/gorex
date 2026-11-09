@@ -151,7 +151,7 @@ func TestMatch(t *testing.T) {
 	}
 }
 
-// spec: F-162, F-163
+// spec: F-162, T-160
 func TestEncodeKey(t *testing.T) {
 	for _, c := range []struct {
 		key  string
@@ -362,7 +362,7 @@ func TestRatioLimit(t *testing.T) {
 	}
 }
 
-// spec: F-139, F-160, F-161, F-164, F-166, F-167
+// spec: F-139, F-160, F-161, F-164, F-166
 func TestSendCaptureWait(t *testing.T) {
 	c, _ := startServer(t)
 	s := act(t, c, "session.new", Args{Create: &CreateOptions{Dir: "/tmp"}})
