@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"os"
 	"path/filepath"
@@ -72,17 +73,376 @@ func exitCode(err error) int {
 	return exitFailed
 }
 
-// cliCommands are the commands of rex, which run the CLI rather than the
-// app when GoRex is started with one.
-var cliCommands = []string{
-	"ls", "new", "run", "split", "send", "send-key", "capture", "kill", "focus", "zoom", "move", "swap",
-	"resize", "close", "session", "window", "block", "client", "events", "wait", "do", "actions", "keymap",
-	"config", "skill", "server", "version", "completion", "help", "--help", "-h", "status",
-	// GoRex's first commands.
-	"list", "new-tab", "send-keys",
+// The commands.
+
+// cliCmd is a command of rex, declared in one place: its words, its
+// help, its flags and what it does. A group, as "session", has commands
+// of its own.
+type cliCmd struct {
+	name    string    // its word: "split", or "new" in "rex session new"
+	names   []string  // other words for it in the same place: "list" for "ls"
+	use     string    // its arguments in the synopsis: "[LABEL] [-- COMMAND...]"
+	short   string    // what it does, in a line of the overview
+	help    string    // what it does, written by hand; the flags are listed from their declarations
+	section string    // the overview's section that lists it; none: not listed
+	sub     []*cliCmd // a group's commands
+	of      *cliCmd   // the command this one is another name of, elsewhere: "capture" for "block capture"
+	raw     func([]string) error
+	bind    func() (*flagSet, func(*call) error)
+	path    string // "session new", filled in from the tree
 }
 
-func isCLICommand(s string) bool { return slices.Contains(cliCommands, s) }
+// cmd declares a command whose flags define declares in a T, and that
+// run runs with them.
+func cmd[T any](c cliCmd, define func(*T, *flagSet), run func(*T, *call) error) *cliCmd {
+	c.bind = func() (*flagSet, func(*call) error) {
+		o, f := new(T), newFlagSet("flag")
+		if define != nil {
+			define(o, f)
+		}
+		return f, func(cl *call) error { return run(o, cl) }
+	}
+	return &c
+}
+
+// rawCmd declares a command that reads its arguments itself: no flags.
+func rawCmd(c cliCmd, run func([]string) error) *cliCmd {
+	c.raw = run
+	return &c
+}
+
+// group declares a command of commands.
+func group(c cliCmd, sub ...*cliCmd) *cliCmd {
+	c.sub = sub
+	return &c
+}
+
+// alias is a command under another path, as "rex capture".
+func alias(name, section string, of *cliCmd) *cliCmd {
+	c := *of
+	c.name, c.names, c.section, c.of = name, nil, section, of
+	return &c
+}
+
+// flags returns the declarations of a command's flags.
+func (c *cliCmd) flags() []*flagDef {
+	if c.bind == nil {
+		return nil
+	}
+	f, _ := c.bind()
+	return f.flags
+}
+
+func (c *cliCmd) find(word string) *cliCmd {
+	for _, s := range c.sub {
+		if s.name == word || slices.Contains(s.names, word) {
+			return s
+		}
+	}
+	return nil
+}
+
+// The overview's sections, in order.
+const (
+	secCommon     = "Common commands"
+	secLayout     = "Layout"
+	secResources  = "Resources"
+	secAutomation = "Automation"
+	secServer     = "Server"
+)
+
+var sections = []string{secCommon, secLayout, secResources, secAutomation, secServer}
+
+// rexCommands is rex's tree of commands, under a root without a name.
+var rexCommands *cliCmd
+
+func init() {
+	// The commands of groups that are also commands of their own.
+	sessionLs := cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list sessions"}, listFlags, cliSessionLs)
+	sessionNew := cmd(cliCmd{name: "new", use: "[LABEL] [-- COMMAND...]", short: "create a session",
+		help: "Creates a session, after the others, with one window of one block, and prints its ID."},
+		func(o *newOpts, f *flagSet) {
+			createFlags(f, &o.create, "the directory rex runs in")
+			f.str(&o.a.WindowLabel, "window", "", "a `LABEL` for its window")
+			jsonFlag(f, &o.json)
+		}, cliSessionNew)
+	sessionKill := cmd[struct{}](cliCmd{name: "kill", use: "SESSION...", short: "end sessions"}, nil, cliSessionKill)
+	windowNew := cmd(cliCmd{name: "new", use: "[LABEL] [-- COMMAND...]", short: "open a window",
+		help: "Opens a window of one block in the session, and prints its ID. GoRex's first new-tab took the\ncommand without --: two arguments or more are the command."},
+		func(o *newOpts, f *flagSet) {
+			createFlags(f, &o.create, "with a command, the directory rex runs in; else the focused block's")
+			f.str(&o.a.Session, "s,session", "", "the `SESSION` to open it in")
+			f.boolean(&o.focus, "focus", true, "make it the active window; --focus=false leaves the focus where it is")
+			jsonFlag(f, &o.json)
+		}, cliWindowNew)
+	blockSend := cmd(cliCmd{name: "send", use: "[TEXT...]", short: "type text into a terminal (stdin without TEXT)",
+		help: "Types TEXT, its words joined by spaces, into a terminal; without TEXT, what comes on standard input."},
+		func(a *rex.Args, f *flagSet) { targetFlags(f, a, "swb") }, cliSend)
+	blockSendKey := cmd(cliCmd{name: "send-key", use: "KEY...", short: "press keys: enter, ctrl+c, shift+tab, up…", help: sendKeyHelp},
+		func(o *sendKeyOpts, f *flagSet) {
+			targetFlags(f, &o.a, "swb")
+			f.str(&o.action, "action", "", "press, or release, which sends nothing: Rex's key `ACTION`")
+		}, cliSendKey)
+	blockCapture := cmd(cliCmd{name: "capture", short: "print a terminal's screen and scrollback", help: captureHelp},
+		func(o *captureOpts, f *flagSet) {
+			targetFlags(f, &o.a, "swb")
+			f.str(&o.a.Format, "format", "", "the `FORMAT`: text, or vt to keep the escape sequences").defaults("text")
+			f.boolean(&o.a.Trim, "trim", false, "drop trailing blank lines")
+			f.boolean(&o.unwrap, "unwrap", false, "Rex's; GoRex joins wrapped lines always").ignore()
+		}, cliCapture)
+	blockZoom := cmd(cliCmd{name: "zoom", use: "[BLOCK]", short: "zoom a block to fill its window (--on, --off)",
+		help: "Zooms a block to fill its window, or ends its zoom: without --on or --off, it toggles."},
+		func(o *zoomOpts, f *flagSet) {
+			targetFlags(f, &o.a, "swb")
+			f.boolean(&o.on, "on", false, "zoom it")
+			f.boolean(&o.off, "off", false, "end its zoom")
+		}, cliZoom)
+	blockMove := cmd(cliCmd{name: "move", use: "[BLOCK] DIRECTION ANCHOR", short: "move a block next to another",
+		help: "Takes a block out of its window and puts it beside ANCHOR, toward DIRECTION: right, left,\nabove or below."},
+		func(o *moveOpts, f *flagSet) {
+			targetFlags(f, &o.a, "sw")
+			f.percent(&o.ratio, "ratio", 50, pctRange{1, 99, true, "takes a percentage between 1 and 99"},
+				"the block's share of its new split, in percent: `PCT`")
+		}, cliMove)
+	blockSwap := cmd(cliCmd{name: "swap", use: "BLOCK OTHER", short: "swap two blocks"},
+		func(a *rex.Args, f *flagSet) { targetFlags(f, a, "sw") }, cliSwap)
+	blockClose := cmd(cliCmd{name: "close", use: "[BLOCK...]", short: "close blocks",
+		help: "Closes blocks; without BLOCK, the block rex runs in, as GoRex's first close did."},
+		func(a *rex.Args, f *flagSet) { targetFlags(f, a, "sw") }, cliBlockClose)
+	skillFlagsCmd := func(name, use, short string) *cliCmd {
+		return cmd(cliCmd{name: name, use: use, short: short}, skillFlags, func(o *skillCLI, c *call) error { return cliSkill(name, o) })
+	}
+
+	rexCommands = group(cliCmd{},
+		alias("ls", secCommon, sessionLs),
+		alias("new", secCommon, sessionNew),
+		cmd(cliCmd{name: "run", use: "-- COMMAND...", short: "run a command in a new tab, or beside a block (--split)", section: secCommon, help: placeHelp},
+			func(o *placeOpts, f *flagSet) { placeFlags(o, f, false) }, func(o *placeOpts, c *call) error { return cliPlace(o, c, false) }),
+		cmd(cliCmd{name: "split", use: "[-- COMMAND...]", short: "split a block (yours, by default)", section: secCommon, help: placeHelp},
+			func(o *placeOpts, f *flagSet) { placeFlags(o, f, true) }, func(o *placeOpts, c *call) error { return cliPlace(o, c, true) }),
+		alias("send", secCommon, blockSend),
+		alias("send-key", secCommon, blockSendKey),
+		alias("capture", secCommon, blockCapture),
+		alias("kill", secCommon, sessionKill),
+
+		cmd(cliCmd{name: "focus", use: "TARGET|DIRECTION", short: "focus a block or window, or left/right/up/down/next/prev", section: secLayout},
+			func(a *rex.Args, f *flagSet) {
+				targetFlags(f, a, "sw")
+				f.boolean(&a.Wrap, "wrap", false, "from the last, go on to the first")
+			}, cliFocus),
+		alias("zoom", secLayout, blockZoom),
+		alias("move", secLayout, blockMove),
+		alias("swap", secLayout, blockSwap),
+		cmd(cliCmd{name: "resize", use: "[BLOCK] DIRECTION", short: "move a block's divider (--amount PCT)", section: secLayout,
+			help: "Moves the divider nearest the block on DIRECTION's axis toward DIRECTION."},
+			func(o *resizeOpts, f *flagSet) {
+				targetFlags(f, &o.a, "swb")
+				f.percent(&o.amount, "amount", 5, pctRange{0, math.Inf(1), false, "takes a percentage"},
+					"how far to move it, `PCT` percent of the split")
+				f.str(&o.a.Direction, "direction", "", "the `DIRECTION`, when no argument gives it")
+			}, cliResize),
+		alias("close", secLayout, blockClose),
+
+		group(cliCmd{name: "session", short: "sessions", section: secResources},
+			sessionNew, sessionLs,
+			cmd(cliCmd{name: "inspect", use: "[SESSION]", short: "show a session and its windows"},
+				func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliSessionInspect),
+			cmd[struct{}](cliCmd{name: "rename", use: "[SESSION] LABEL", short: "rename a session"}, nil, cliSessionRename),
+			cmd(cliCmd{name: "move", use: "[SESSION]", short: "move a session in the order of sessions"},
+				func(o *orderOpts, f *flagSet) { orderFlags(f, o) }, cliSessionMove),
+			sessionKill),
+		group(cliCmd{name: "window", short: "windows (tabs)", section: secResources},
+			windowNew,
+			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list a session's windows"},
+				func(o *lsOpts, f *flagSet) {
+					targetFlags(f, &o.a, "s")
+					f.boolean(&o.all, "A,all", false, "every session's")
+					listFlags(&o.listOpts, f)
+				}, cliWindowLs),
+			cmd(cliCmd{name: "inspect", use: "[WINDOW]", short: "show a window and its blocks"},
+				func(o *inspectOpts, f *flagSet) { targetFlags(f, &o.a, "s"); jsonFlag(f, &o.json) }, cliWindowInspect),
+			cmd(cliCmd{name: "focus", use: "[WINDOW]", short: "make a window the active one"},
+				func(a *rex.Args, f *flagSet) {
+					targetFlags(f, a, "s")
+					f.boolean(&a.Wrap, "wrap", false, "from the last, go on to the first")
+				}, cliWindowFocus),
+			cmd(cliCmd{name: "move", use: "[WINDOW]", short: "move a window in its session"},
+				func(o *orderOpts, f *flagSet) { targetFlags(f, &o.a, "s"); orderFlags(f, o) }, cliWindowMove),
+			cmd(cliCmd{name: "rename", use: "[WINDOW] LABEL", short: "rename a window"},
+				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "s") }, cliWindowRename),
+			cmd(cliCmd{name: "close", use: "WINDOW...", short: "close windows"},
+				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "s") }, cliWindowClose)),
+		group(cliCmd{name: "block", short: "blocks (terminals)", section: secResources},
+			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list blocks"},
+				func(o *lsOpts, f *flagSet) {
+					targetFlags(f, &o.a, "sw")
+					f.boolean(&o.all, "A,all", false, "every session's")
+					listFlags(&o.listOpts, f)
+				}, cliBlockLs),
+			cmd(cliCmd{name: "inspect", use: "[BLOCK]", short: "show a block"},
+				func(o *inspectOpts, f *flagSet) { targetFlags(f, &o.a, "swb"); jsonFlag(f, &o.json) }, cliBlockInspect),
+			cmd(cliCmd{name: "focus", use: "[BLOCK]", short: "focus a block"},
+				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "swb") }, cliBlockFocus),
+			blockSend, blockSendKey, blockCapture, blockZoom, blockMove, blockSwap,
+			cmd(cliCmd{name: "rename", use: "[BLOCK] LABEL", short: "rename a block"},
+				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "sw") }, cliBlockRename),
+			blockClose,
+			cmd(cliCmd{name: "types", short: "list the kinds of blocks"}, func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliBlockTypes),
+			rawCmd(cliCmd{name: "new", short: "refused: rex run or rex split start a block"}, cliBlockNew)),
+		group(cliCmd{name: "client", short: "the apps and commands connected", section: secResources},
+			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list the clients"},
+				func(o *clientLsOpts, f *flagSet) {
+					jsonFlag(f, &o.json)
+					f.boolean(&o.all, "all", false, "rex's commands too")
+				}, cliClientLs),
+			rawCmd(cliCmd{name: "inspect", use: "[CLIENT]", short: "print a client, the first app without CLIENT"}, cliClientInspect)),
+		cmd(cliCmd{name: "list", short: "the whole tree of sessions, windows and blocks", section: secResources},
+			func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliTree),
+
+		cmd(cliCmd{name: "events", short: "stream what happens", section: secAutomation, help: eventsHelp},
+			func(o *eventsOpts, f *flagSet) {
+				targetFlags(f, &o.a, "s")
+				f.boolean(&o.a.All, "all", false, "every event")
+				jsonFlag(f, &o.json)
+			}, cliEvents),
+		cmd(cliCmd{name: "wait", use: "TARGET", short: "wait for a block's program (exits with its status), a window or a session", section: secAutomation, help: waitHelp},
+			func(o *waitOpts, f *flagSet) {
+				targetFlags(f, &o.a, "sw")
+				f.duration(&o.limit, "for", 0, "give up after `DURATION`, with status 1").defaults("no limit")
+				jsonFlag(f, &o.json)
+			}, cliWait),
+		cmd(cliCmd{name: "status", use: "[STATE]", short: "report a program's status (OSC 7501), or show a block's", section: secAutomation, help: statusHelp},
+			func(o *statusOpts, f *flagSet) {
+				targetFlags(f, &o.a, "swb")
+				f.str(&o.app, "app", "", "the `APP` that reports")
+				f.str(&o.msg, "m,msg", "", "a message: `TEXT`")
+				f.str(&o.kind, "kind", "", "what it waits for, the `KIND`: permission, question or auth")
+				f.str(&o.progress, "progress", "", "how far it is, `PCT` percent")
+				f.str(&o.title, "title", "", "a title: `TEXT`")
+				f.str(&o.id, "id", "", "the `ID` of the record, for a program that reports several")
+				jsonFlag(f, &o.json)
+			}, cliStatus),
+		cmd(cliCmd{name: "do", use: "ACTION [KEY=VALUE...]", short: "perform an action of the app, as its keys do", section: secAutomation, help: doHelp},
+			func(o *doOpts, f *flagSet) {
+				f.str(&o.a.Session, "s,session", "", "the `SESSION` to act in")
+				f.str(&o.a.Block, "b,block", "", "the `BLOCK` to act on")
+				f.str(&o.args, "args", "", "the action's arguments as a `JSON` object; - reads stdin, @FILE a file")
+				f.str(&o.eval, "e,eval", "", "Rex's Lua `CODE`: refused")
+				f.str(&o.action, "a,action", "", "Rex's `ACTION`").ignore()
+				jsonFlag(f, &o.json)
+				var ignored string
+				var ignoredBool bool
+				f.str(&ignored, "origin", "", "Rex's `ORIGIN`").ignore()
+				f.str(&ignored, "for", "", "Rex's `DURATION`").ignore()
+				f.boolean(&ignoredBool, "all", false, "Rex's").ignore()
+				f.boolean(&ignoredBool, "fail-fast", false, "Rex's").ignore()
+			}, cliDo),
+		cmd(cliCmd{name: "actions", short: "list the app's actions", section: secAutomation},
+			func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliActions),
+		cmd(cliCmd{name: "keymap", short: "list the key bindings in effect", section: secAutomation, help: keymapHelp},
+			func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliKeymap),
+		group(cliCmd{name: "config", short: "check, or have the app reload, keymap.json", section: secAutomation},
+			cmd[struct{}](cliCmd{name: "check", use: "[PATH]", short: "check keymap.json, or the file at PATH"}, nil, cliConfigCheck),
+			rawCmd(cliCmd{name: "reload", short: "have the app read keymap.json again"}, cliConfigReload)),
+		group(cliCmd{name: "skill", short: "set up agents (Claude Code, Codex…) to use rex", section: secAutomation, help: skillHelp},
+			skillFlagsCmd("setup", "", "install, or update, the skill and the hooks"),
+			skillFlagsCmd("status", "", "tell what is installed"),
+			skillFlagsCmd("remove", "", "remove what rex installed"),
+			rawCmd(cliCmd{name: "show", short: "print the skill"}, cliSkillShow),
+			rawCmd(cliCmd{name: "hook", use: "[AGENT] [EVENT]", short: "the hook agents run"}, cliSkillHook)),
+
+		group(cliCmd{name: "server", short: "the server that keeps the sessions", section: secServer},
+			cmd(cliCmd{name: "status", short: "tell whether the server runs"}, func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliServerStatus),
+			cmd(cliCmd{name: "stop", short: "stop the server and its programs"},
+				func(o *bool, f *flagSet) { f.boolean(o, "forget", false, "also forget the sessions") }, cliServerStop),
+			rawCmd(cliCmd{name: "logs", short: "print the server's log"}, cliServerLogs),
+			rawCmd(cliCmd{name: "start", short: "start the server, unless one runs"}, cliServerStart),
+			rawCmd(cliCmd{name: "run", short: "run the server in the foreground"}, cliServerRun)),
+		cmd(cliCmd{name: "version", short: "print rex's version, and the server's", section: secServer},
+			func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliVersion),
+		rawCmd(cliCmd{name: "completion", use: "bash|zsh|fish", short: "print a script that completes rex's commands", section: secServer}, cliCompletion),
+
+		// GoRex's first commands.
+		alias("new-tab", "", windowNew),
+		rawCmd(cliCmd{name: "send-keys", use: "[BLOCK] TEXT", short: "GoRex's first send: <CR>, <Esc>, \\n, \\r and \\e are keys"}, cliSendKeysCompat),
+	)
+	setPaths(rexCommands, "")
+}
+
+func setPaths(c *cliCmd, prefix string) {
+	for _, s := range c.sub {
+		s.path = strings.TrimSpace(prefix + " " + s.name)
+		setPaths(s, s.path)
+	}
+}
+
+// The flags commands share.
+
+// targetFlags declares the targets: s for -s, w for -w, b for -b.
+func targetFlags(f *flagSet, a *rex.Args, which string) {
+	for _, t := range which {
+		switch t {
+		case 's':
+			f.str(&a.Session, "s,session", "", "the `SESSION` to act in")
+		case 'w':
+			f.str(&a.Window, "w,window", "", "the `WINDOW` to act in")
+		case 'b':
+			f.str(&a.Block, "b,block", "", "the `BLOCK` to act on").defaults("yours, else the window's focused block")
+		}
+	}
+}
+
+func jsonFlag(f *flagSet, p *bool) { f.boolean(p, "json", false, "print JSON") }
+
+// listOpts are the flags of a listing.
+type listOpts struct{ json, quiet, short bool }
+
+func listFlags(o *listOpts, f *flagSet) {
+	jsonFlag(f, &o.json)
+	f.boolean(&o.quiet, "q,quiet", false, "print the IDs alone, one a line")
+	f.boolean(&o.short, "short", true, "short IDs; --short=false prints full ones")
+}
+
+type lsOpts struct {
+	listOpts
+	a   rex.Args
+	all bool
+}
+
+type inspectOpts struct {
+	a    rex.Args
+	json bool
+}
+
+// createFlags are the flags of commands that start a terminal; dir is
+// where it starts without --cwd.
+func createFlags(f *flagSet, o *rex.CreateOptions, dir string) {
+	f.str(&o.Dir, "c,cwd,d,dir", "", "start in `DIR`; ~ is your home").defaults(dir)
+	f.boolean(&o.KeepOpen, "keep-open", false, "keep the terminal after its command exits")
+	f.str(&o.Shell, "shell", "", "run the command in `SHELL`'s login environment; none: directly").defaults("your login shell")
+	f.boolean(&o.Interactive, "interactive", false, "also read the shell's interactive startup files")
+}
+
+type newOpts struct {
+	create rex.CreateOptions
+	a      rex.Args
+	json   bool
+	focus  bool
+}
+
+// orderOpts are the flags of a command that moves a session or window.
+type orderOpts struct {
+	a     rex.Args
+	index int
+}
+
+func orderFlags(f *flagSet, o *orderOpts) {
+	f.str(&o.a.Before, "before", "", "put it before `TARGET`")
+	f.str(&o.a.After, "after", "", "put it after `TARGET`")
+	f.position(&o.index, "index", "put it at position `N`, from 1")
+}
+
+// The global options, before the command.
 
 // global are the options every command takes.
 type global struct {
@@ -91,48 +451,45 @@ type global struct {
 	client    string
 }
 
-var opts = global{autostart: true, timeout: 10 * time.Second}
+var opts global
+
+func init() { globalFlags(&opts) }
+
+// globalFlags declares the global options into o.
+func globalFlags(o *global) *flagSet {
+	f := newFlagSet("option")
+	f.add("S,server", "Rex's remote server: refused, GoRex's server runs on this machine", funcValue(func(string) error {
+		return usagef("connecting to other servers is not supported: GoRex's server runs on this machine")
+	}), true)
+	f.str(&o.client, "C,client", "", "the app, `CLIENT`, that rex do asks").defaults("REX_CLIENT")
+	f.duration(&o.timeout, "timeout", 10*time.Second, "wait up to `DURATION` for an answer")
+	o.autostart = true
+	f.add("autostart", "start a server when none runs; --autostart=false does not", (*autostartValue)(&o.autostart), true)
+	var color string
+	f.str(&color, "color", "", "Rex's `WHEN`").ignore()
+	f.add("v,verbose,vv", "Rex's", funcValue(func(string) error { return nil }), true).ignore()
+	return f
+}
+
+// autostartValue is on for --autostart and --autostart=true, and off
+// for any other value.
+type autostartValue bool
+
+func (v *autostartValue) Set(s string) error { *v = s == "true"; return nil }
+func (v *autostartValue) String() string     { return strconv.FormatBool(bool(*v)) }
+
+// isCLICommand tells whether a word is a command of rex, which runs the
+// CLI rather than the app when GoRex is started with it.
+func isCLICommand(s string) bool {
+	return s == "help" || s == "--help" || s == "-h" || rexCommands.find(s) != nil
+}
 
 // runCLI runs rex with its arguments and returns the exit status.
 func runCLI(args []string) int {
-	// The global options may come before the command.
-	for len(args) > 0 && strings.HasPrefix(args[0], "-") && args[0] != "--help" && args[0] != "-h" {
-		name, val, hasVal := strings.Cut(args[0], "=")
-		next := func() (string, bool) {
-			if hasVal {
-				return val, true
-			}
-			if len(args) > 1 {
-				args = args[1:]
-				return args[0], true
-			}
-			return "", false
-		}
-		switch name {
-		case "-S", "--server":
-			fatalf("connecting to other servers is not supported: GoRex's server runs on this machine")
-			return exitUsage
-		case "-C", "--client":
-			v, _ := next()
-			opts.client = v
-		case "--timeout":
-			v, _ := next()
-			d, err := time.ParseDuration(v)
-			if err != nil {
-				fatalf("--timeout: %v", err)
-				return exitUsage
-			}
-			opts.timeout = d
-		case "--autostart":
-			opts.autostart = !hasVal || val == "true"
-		case "--color":
-			next()
-		case "-v", "--verbose", "-vv":
-		default:
-			fatalf("unknown option %s", args[0])
-			return exitUsage
-		}
-		args = args[1:]
+	args, err := globalFlags(&opts).parseLeading(args)
+	if err != nil {
+		fatalf("%v", err)
+		return exitUsage
 	}
 	if len(args) == 0 {
 		printHelp("")
@@ -142,7 +499,7 @@ func runCLI(args []string) int {
 		opts.client = c
 	}
 	start := time.Now()
-	err := dispatch(args[0], args[1:])
+	err = dispatch(args[0], args[1:])
 	code := exitOK
 	if err != nil {
 		if !errors.Is(err, errQuiet) {
@@ -209,194 +566,37 @@ func wideCommand(args []string, code int, err error, start time.Time) {
 	rex.WideFlush()
 }
 
-func dispatch(cmd string, args []string) error {
-	switch cmd {
+// dispatch runs the command that word names, with its arguments.
+func dispatch(word string, args []string) error {
+	switch word {
 	case "help", "--help", "-h":
 		printHelp(strings.Join(args, " "))
 		return nil
 	}
-	if g, ok := groups()[cmd]; ok {
-		return sub(cmd, args, g)
+	c := rexCommands.find(word)
+	if c == nil {
+		return usagef("unknown command %q: run \"rex help\"", word)
 	}
-	if f, ok := cliCommandFuncs()[cmd]; ok {
-		return f(args)
-	}
-	return usagef("unknown command %q: run \"rex help\"", cmd)
-}
-
-func cliSplit(args []string) error { return cliRun(args, true) }
-
-// commands are rex's commands without subcommands; groups has the others.
-func cliCommandFuncs() map[string]func([]string) error {
-	return map[string]func([]string) error{
-		"run":        func(args []string) error { return cliRun(args, false) },
-		"split":      cliSplit,
-		"version":    cliVersion,
-		"ls":         cliSessionLs,
-		"new":        cliSessionNew,
-		"send":       cliSend,
-		"send-key":   cliSendKey,
-		"send-keys":  cliSendKeysCompat,
-		"capture":    cliCapture,
-		"kill":       cliSessionKill,
-		"focus":      cliFocus,
-		"zoom":       cliZoom,
-		"move":       cliMove,
-		"swap":       cliSwap,
-		"resize":     cliResize,
-		"close":      cliBlockClose,
-		"list":       cliTree,
-		"new-tab":    cliWindowNew,
-		"status":     cliStatus,
-		"events":     cliEvents,
-		"wait":       cliWait,
-		"do":         cliDo,
-		"actions":    cliActions,
-		"keymap":     cliKeymap,
-		"completion": cliCompletion,
-	}
-}
-
-// groups are the commands that have subcommands, as "rex session new".
-func groups() map[string]map[string]func([]string) error {
-	return map[string]map[string]func([]string) error{
-		"session": {
-			"new": cliSessionNew, "ls": cliSessionLs, "list": cliSessionLs, "inspect": cliSessionInspect,
-			"rename": cliSessionRename, "move": cliSessionMove, "kill": cliSessionKill,
-		},
-		"window": {
-			"new": cliWindowNew, "ls": cliWindowLs, "list": cliWindowLs, "inspect": cliWindowInspect,
-			"focus": cliWindowFocus, "move": cliWindowMove, "rename": cliWindowRename, "close": cliWindowClose,
-		},
-		"block": {
-			"ls": cliBlockLs, "list": cliBlockLs, "inspect": cliBlockInspect, "focus": cliBlockFocus,
-			"send": cliSend, "send-key": cliSendKey, "capture": cliCapture, "zoom": cliZoom, "move": cliMove,
-			"swap": cliSwap, "rename": cliBlockRename, "close": cliBlockClose, "types": cliBlockTypes,
-			"new": cliBlockNew,
-		},
-		"client": {"ls": cliClientLs, "list": cliClientLs, "inspect": cliClientInspect},
-		"config": {"check": cliConfigCheck, "reload": cliConfigReload},
-		"skill": {
-			"setup": cliSkillSetup, "status": cliSkillStatus, "remove": cliSkillRemove, "show": cliSkillShow,
-			"hook": cliSkillHook,
-		},
-		"server": {
-			"status": cliServerStatus, "stop": cliServerStop, "logs": cliServerLogs, "start": cliServerStart,
-			"run": cliServerRun,
-		},
-	}
-}
-
-func sub(group string, args []string, cmds map[string]func([]string) error) error {
-	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
-		printHelp(group)
-		return nil
-	}
-	if f, ok := cmds[args[0]]; ok {
-		return f(args[1:])
-	}
-	return usagef("unknown command \"%s %s\": run \"rex help %s\"", group, args[0], group)
-}
-
-// Flags.
-
-// flags parses a command's flags, which may come before, between and
-// after its arguments, as "--name value", "--name=value" or "-n value";
-// what follows "--" is a command to run.
-type flags struct {
-	order   [][]string // the spellings of each flag, as declared
-	strs    map[string]*string
-	bools   map[string]*bool
-	names   map[string]string // every spelling to the flag's name
-	args    []string
-	command []string
-	dashed  bool
-}
-
-func newFlags() *flags {
-	return &flags{strs: map[string]*string{}, bools: map[string]*bool{}, names: map[string]string{}}
-}
-
-// str declares a flag of a value, by its spellings: "s,session".
-func (f *flags) str(spellings string, p *string) *flags {
-	names := strings.Split(spellings, ",")
-	for _, n := range names {
-		f.names[n] = names[len(names)-1]
-	}
-	f.order = append(f.order, names)
-	f.strs[names[len(names)-1]] = p
-	return f
-}
-
-func (f *flags) boolean(spellings string, p *bool) *flags {
-	names := strings.Split(spellings, ",")
-	for _, n := range names {
-		f.names[n] = names[len(names)-1]
-	}
-	f.order = append(f.order, names)
-	f.bools[names[len(names)-1]] = p
-	return f
-}
-
-// targets declares the flags of the targets: -s, -w, -b.
-func (f *flags) targets(a *rex.Args) *flags {
-	return f.str("s,session", &a.Session).str("w,window", &a.Window).str("b,block", &a.Block)
-}
-
-// flagProbe, when set, gets each command's flags instead of parsing
-// them: the reference test lists them so (spec/reference/cli.md).
-var flagProbe func(*flags)
-
-var errProbed = errors.New("flags probed")
-
-func (f *flags) parse(args []string) error {
-	if flagProbe != nil {
-		flagProbe(f)
-		return errProbed
-	}
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-		if arg == "--" {
-			f.command, f.dashed = args[i+1:], true
+	if c.sub != nil {
+		if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
+			printHelp(c.path)
 			return nil
 		}
-		if len(arg) < 2 || arg[0] != '-' || isNumber(arg) {
-			f.args = append(f.args, arg)
-			continue
+		s := c.find(args[0])
+		if s == nil {
+			return usagef("unknown command \"%s %s\": run \"rex help %s\"", word, args[0], word)
 		}
-		name, val, hasVal := strings.Cut(strings.TrimLeft(arg, "-"), "=")
-		key, ok := f.names[name]
-		if !ok {
-			return usagef("unknown flag %s", arg)
-		}
-		if p, ok := f.bools[key]; ok {
-			switch {
-			case !hasVal:
-				*p = true
-			case val == "true" || val == "1":
-				*p = true
-			case val == "false" || val == "0":
-				*p = false
-			default:
-				return usagef("%s takes true or false", arg)
-			}
-			continue
-		}
-		if !hasVal {
-			if i+1 >= len(args) {
-				return usagef("%s needs a value", arg)
-			}
-			i++
-			val = args[i]
-		}
-		*f.strs[key] = val
+		c, args = s, args[1:]
 	}
-	return nil
-}
-
-func isNumber(s string) bool {
-	_, err := strconv.ParseFloat(s, 64)
-	return err == nil
+	if c.raw != nil {
+		return c.raw(args)
+	}
+	f, run := c.bind()
+	cl, err := f.parse(args)
+	if err != nil {
+		return err
+	}
+	return run(cl)
 }
 
 // The connection.
@@ -489,11 +689,8 @@ func dash(s string) string {
 
 // Commands.
 
-func cliVersion(args []string) error {
-	var jsonOut bool
-	if err := newFlags().boolean("json", &jsonOut).parse(args); err != nil {
-		return err
-	}
+func cliVersion(o *bool, _ *call) error {
+	jsonOut := *o
 	v := map[string]any{"version": rex.Version, "protocol": rex.ProtocolVersion, "name": "GoRex"}
 	if c, err := rex.Dial(); err == nil {
 		if h, err := c.Hello(); err == nil {
@@ -510,12 +707,6 @@ func cliVersion(args []string) error {
 	return nil
 }
 
-// createFlags are the flags of commands that start a terminal.
-func createFlags(f *flags, o *rex.CreateOptions) *flags {
-	return f.str("c,cwd,d,dir", &o.Dir).boolean("keep-open", &o.KeepOpen).str("shell", &o.Shell).
-		boolean("interactive", &o.Interactive)
-}
-
 func absPath(p string) (string, error) { return filepath.Abs(p) }
 
 func fixDir(o *rex.CreateOptions) {
@@ -530,14 +721,8 @@ func fixDir(o *rex.CreateOptions) {
 	}
 }
 
-func cliSessionNew(args []string) error {
-	var o rex.CreateOptions
-	var a rex.Args
-	var jsonOut bool
-	f := createFlags(newFlags(), &o).str("window", &a.WindowLabel).boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliSessionNew(n *newOpts, f *call) error {
+	o, a, jsonOut := &n.create, &n.a, n.json
 	if len(f.args) > 1 {
 		return usagef("usage: rex new [LABEL] [-- COMMAND...]")
 	}
@@ -548,22 +733,18 @@ func cliSessionNew(args []string) error {
 	if o.Dir == "" {
 		o.Dir, _ = os.Getwd()
 	}
-	fixDir(&o)
-	a.Create = &o
+	fixDir(o)
+	a.Create = o
 	var res map[string]any
-	if err := do("session.new", &a, &res); err != nil {
+	if err := do("session.new", a, &res); err != nil {
 		return err
 	}
 	output(jsonOut, res, func() { fmt.Println(res["session_id"]) })
 	return nil
 }
 
-func cliSessionLs(args []string) error {
-	var jsonOut, quiet bool
-	shortIDs := true
-	if err := newFlags().boolean("json", &jsonOut).boolean("q,quiet", &quiet).boolean("short", &shortIDs).parse(args); err != nil {
-		return err
-	}
+func cliSessionLs(o *listOpts, _ *call) error {
+	jsonOut, quiet, shortIDs := o.json, o.quiet, o.short
 	m, err := getModel()
 	if err != nil {
 		return err
@@ -629,13 +810,9 @@ func resolveIDs(op string, a *rex.Args) (map[string]any, error) {
 	return res, err
 }
 
-func cliSessionInspect(args []string) error {
+func cliSessionInspect(o *bool, f *call) error {
 	var a rex.Args
-	var jsonOut bool
-	f := newFlags().boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+	jsonOut := *o
 	if len(f.args) > 0 {
 		a.Session = f.args[0]
 	}
@@ -680,12 +857,8 @@ func findSession(a *rex.Args) (*rex.Model, *rex.Session, error) {
 	return m, ss, nil
 }
 
-func cliSessionRename(args []string) error {
+func cliSessionRename(_ *struct{}, f *call) error {
 	var a rex.Args
-	f := newFlags()
-	if err := f.parse(args); err != nil {
-		return err
-	}
 	switch len(f.args) {
 	case 1:
 		a.Label = f.args[0]
@@ -698,27 +871,16 @@ func cliSessionRename(args []string) error {
 	return err
 }
 
-func cliSessionMove(args []string) error {
-	var a rex.Args
-	var index string
-	f := newFlags().str("before", &a.Before).str("after", &a.After).str("index", &index)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliSessionMove(o *orderOpts, f *call) error {
+	a := &o.a
 	if len(f.args) > 0 {
 		a.Session = f.args[0]
 	}
-	if n := countSet(a.Before != "", a.After != "", index != ""); n != 1 {
+	if n := countSet(a.Before != "", a.After != "", o.index != 0); n != 1 {
 		return usagef("exactly one of --before, --after or --index is needed")
 	}
-	if index != "" {
-		n, err := strconv.Atoi(index)
-		if err != nil || n < 1 {
-			return usagef("--index takes a position from 1")
-		}
-		a.Index = n
-	}
-	_, err := resolveIDs("session.move", &a)
+	a.Index = o.index
+	_, err := resolveIDs("session.move", a)
 	return err
 }
 
@@ -732,11 +894,7 @@ func countSet(bs ...bool) int {
 	return n
 }
 
-func cliSessionKill(args []string) error {
-	f := newFlags()
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliSessionKill(_ *struct{}, f *call) error {
 	if len(f.args) == 0 {
 		return usagef("usage: rex kill SESSION...")
 	}
@@ -748,15 +906,8 @@ func cliSessionKill(args []string) error {
 	return nil
 }
 
-func cliWindowNew(args []string) error {
-	var o rex.CreateOptions
-	var a rex.Args
-	var jsonOut bool
-	focus := true
-	f := createFlags(newFlags(), &o).str("s,session", &a.Session).boolean("focus", &focus).boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliWindowNew(n *newOpts, f *call) error {
+	o, a, jsonOut, focus := &n.create, &n.a, n.json, n.focus
 	if len(f.args) > 1 {
 		// GoRex's first new-tab took the command without "--".
 		f.command = append(f.args, f.command...)
@@ -769,25 +920,18 @@ func cliWindowNew(args []string) error {
 	if o.Dir == "" && len(o.Command) > 0 {
 		o.Dir, _ = os.Getwd()
 	}
-	fixDir(&o)
-	a.Create, a.NoFocus = &o, !focus
+	fixDir(o)
+	a.Create, a.NoFocus = o, !focus
 	var res map[string]any
-	if err := do("window.new", &a, &res); err != nil {
+	if err := do("window.new", a, &res); err != nil {
 		return err
 	}
 	output(jsonOut, res, func() { fmt.Println(res["window_id"]) })
 	return nil
 }
 
-func cliWindowLs(args []string) error {
-	var a rex.Args
-	var jsonOut, quiet, all bool
-	shortIDs := true
-	f := newFlags().str("s,session", &a.Session).boolean("A,all", &all).boolean("json", &jsonOut).
-		boolean("q,quiet", &quiet).boolean("short", &shortIDs)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliWindowLs(o *lsOpts, _ *call) error {
+	a, jsonOut, quiet, all, shortIDs := &o.a, o.json, o.quiet, o.all, o.short
 	var sessions []*rex.Session
 	var m *rex.Model
 	if all {
@@ -799,7 +943,7 @@ func cliWindowLs(args []string) error {
 	} else {
 		var ss *rex.Session
 		var err error
-		if m, ss, err = findSession(&a); err != nil {
+		if m, ss, err = findSession(a); err != nil {
 			return err
 		}
 		sessions = []*rex.Session{ss}
@@ -861,17 +1005,12 @@ func findWindow(a *rex.Args) (*rex.Model, *rex.Session, *rex.Window, error) {
 	return nil, nil, nil, fmt.Errorf("the window went away")
 }
 
-func cliWindowInspect(args []string) error {
-	var a rex.Args
-	var jsonOut bool
-	f := newFlags().str("s,session", &a.Session).boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliWindowInspect(o *inspectOpts, f *call) error {
+	a, jsonOut := &o.a, o.json
 	if len(f.args) > 0 {
 		a.Window = f.args[0]
 	}
-	m, ss, w, err := findWindow(&a)
+	m, ss, w, err := findWindow(a)
 	if err != nil {
 		return err
 	}
@@ -896,49 +1035,28 @@ func cliWindowInspect(args []string) error {
 	return nil
 }
 
-func cliWindowFocus(args []string) error {
-	var a rex.Args
-	f := newFlags().str("s,session", &a.Session).boolean("wrap", &a.Wrap)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliWindowFocus(a *rex.Args, f *call) error {
 	if len(f.args) > 0 {
 		a.Target = f.args[0]
 	}
-	_, err := resolveIDs("window.focus", &a)
+	_, err := resolveIDs("window.focus", a)
 	return err
 }
 
-func cliWindowMove(args []string) error {
-	var a rex.Args
-	var index string
-	f := newFlags().str("s,session", &a.Session).str("before", &a.Before).str("after", &a.After).str("index", &index)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliWindowMove(o *orderOpts, f *call) error {
+	a := &o.a
 	if len(f.args) > 0 {
 		a.Window = f.args[0]
 	}
-	if n := countSet(a.Before != "", a.After != "", index != ""); n != 1 {
+	if n := countSet(a.Before != "", a.After != "", o.index != 0); n != 1 {
 		return usagef("exactly one of --before, --after or --index is needed")
 	}
-	if index != "" {
-		n, err := strconv.Atoi(index)
-		if err != nil || n < 1 {
-			return usagef("--index takes a position from 1")
-		}
-		a.Index = n
-	}
-	_, err := resolveIDs("window.move", &a)
+	a.Index = o.index
+	_, err := resolveIDs("window.move", a)
 	return err
 }
 
-func cliWindowRename(args []string) error {
-	var a rex.Args
-	f := newFlags().str("s,session", &a.Session)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliWindowRename(a *rex.Args, f *call) error {
 	switch len(f.args) {
 	case 1:
 		a.Label = f.args[0]
@@ -947,21 +1065,16 @@ func cliWindowRename(args []string) error {
 	default:
 		return usagef("usage: rex window rename [WINDOW] LABEL")
 	}
-	_, err := resolveIDs("window.rename", &a)
+	_, err := resolveIDs("window.rename", a)
 	return err
 }
 
-func cliWindowClose(args []string) error {
-	var a rex.Args
-	f := newFlags().str("s,session", &a.Session)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliWindowClose(a *rex.Args, f *call) error {
 	if len(f.args) == 0 {
 		return usagef("usage: rex window close WINDOW...")
 	}
 	for _, w := range f.args {
-		a2 := a
+		a2 := *a
 		a2.Window = w
 		if _, err := resolveIDs("window.close", &a2); err != nil {
 			return err
@@ -970,21 +1083,45 @@ func cliWindowClose(args []string) error {
 	return nil
 }
 
-// cliRun is "rex run" and "rex split": a terminal in a new window, or
-// beside a block.
-func cliRun(args []string, split bool) error {
-	var o rex.CreateOptions
-	var a rex.Args
-	var dir, ratio string
-	var jsonOut, wait, down, right bool
-	focus := true
-	f := createFlags(newFlags(), &o).targets(&a).str("split", &dir).str("ratio", &ratio).str("label", &o.Label).
-		boolean("focus", &focus).boolean("json", &jsonOut).boolean("wait", &wait).
-		// GoRex's first split's flags.
-		str("t,target", &a.Block).boolean("v,vertical,down,below", &down).boolean("horizontal,right,beside", &right)
-	if err := f.parse(args); err != nil {
-		return err
+// placeOpts are the flags of rex run and rex split.
+type placeOpts struct {
+	o                       rex.CreateOptions
+	a                       rex.Args
+	dir                     string
+	ratio                   float64
+	json, wait, down, right bool
+	focus                   bool
+}
+
+func placeFlags(p *placeOpts, f *flagSet, split bool) {
+	dir, side := "the directory rex runs in", ""
+	sideUsage := "put the block beside the anchor, toward `DIRECTION`: right, left, above or below"
+	if split {
+		dir, side = "the anchor's", "right"
+		sideUsage = "the `DIRECTION` of the new block: right, left, above or below"
 	}
+	createFlags(f, &p.o, dir)
+	targetFlags(f, &p.a, "swb")
+	d := f.str(&p.dir, "split", side, sideUsage)
+	if !split {
+		d.defaults("a new tab")
+	}
+	f.percent(&p.ratio, "ratio", 50, pctRange{0, 100, false, "takes a percentage between 1 and 99"},
+		"the new block's share of the split, in percent: `PCT`")
+	f.str(&p.o.Label, "label", "", "a `LABEL` to target it by")
+	f.boolean(&p.focus, "focus", true, "focus it; --focus=false leaves the focus where it is")
+	jsonFlag(f, &p.json)
+	f.boolean(&p.wait, "wait", false, "wait for the command, and exit with its status")
+	// GoRex's first split's flags.
+	f.str(&p.a.Block, "t,target", "", "GoRex's first --block `BLOCK`")
+	f.boolean(&p.down, "v,vertical,down,below", false, "GoRex's first --split=below")
+	f.boolean(&p.right, "horizontal,right,beside", false, "GoRex's first --split=right")
+}
+
+// cliPlace is "rex run" and "rex split": a terminal in a new window, or
+// beside a block.
+func cliPlace(p *placeOpts, f *call, split bool) error {
+	o, a, dir, jsonOut, wait, down, right, focus := &p.o, &p.a, p.dir, p.json, p.wait, p.down, p.right, p.focus
 	cmd := f.command
 	if !f.dashed && len(f.args) > 0 {
 		cmd = f.args // GoRex's first split took the command without "--"
@@ -1003,21 +1140,13 @@ func cliRun(args []string, split bool) error {
 	if o.Dir == "" && len(cmd) > 0 && !split {
 		o.Dir, _ = os.Getwd()
 	}
-	fixDir(&o)
-	if ratio != "" {
-		r, err := strconv.ParseFloat(strings.TrimSuffix(ratio, "%"), 64)
-		if err != nil || r <= 0 || r >= 100 {
-			return usagef("--ratio takes a percentage between 1 and 99")
-		}
-		a.Ratio = float32(r / 100)
-	}
-	a.Create, a.NoFocus, a.Direction = &o, !focus, dir
+	fixDir(o)
+	a.Ratio = float32(p.ratio / 100)
+	a.Create, a.NoFocus, a.Direction = o, !focus, dir
 	op := "block.split"
 	if !split && dir == "" {
 		op = "window.new"
 		a.Block = ""
-	} else if split && dir == "" {
-		a.Direction = "right"
 	}
 	c, err := connect()
 	if err != nil {
@@ -1025,7 +1154,7 @@ func cliRun(args []string, split bool) error {
 	}
 	defer c.Close()
 	var res map[string]any
-	if err := c.DoFor(op, withContext(&a), &res, opts.timeout); err != nil {
+	if err := c.DoFor(op, withContext(a), &res, opts.timeout); err != nil {
 		return err
 	}
 	if jsonOut {
@@ -1046,26 +1175,18 @@ func cliRun(args []string, split bool) error {
 	return nil
 }
 
-func cliBlockNew(args []string) error {
+func cliBlockNew([]string) error {
 	return usagef("GoRex's blocks are terminals: rex run or rex split start one")
 }
 
-func cliBlockTypes(args []string) error {
-	var jsonOut bool
-	if err := newFlags().boolean("json", &jsonOut).parse(args); err != nil {
-		return err
-	}
+func cliBlockTypes(o *bool, _ *call) error {
+	jsonOut := *o
 	types := []map[string]string{{"flavor": "com.superlogical.terminal.shell", "title": "Terminal"}}
 	output(jsonOut, map[string]any{"types": types}, func() { fmt.Println("com.superlogical.terminal.shell  Terminal") })
 	return nil
 }
 
-func cliSend(args []string) error {
-	var a rex.Args
-	f := newFlags().targets(&a)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliSend(a *rex.Args, f *call) error {
 	text := strings.Join(append(f.args, f.command...), " ")
 	if len(f.args) == 0 && len(f.command) == 0 {
 		b, err := io.ReadAll(os.Stdin)
@@ -1075,17 +1196,17 @@ func cliSend(args []string) error {
 		text = string(b)
 	}
 	a.Data = text
-	_, err := resolveIDs("send", &a)
+	_, err := resolveIDs("send", a)
 	return err
 }
 
-func cliSendKey(args []string) error {
-	var a rex.Args
-	var action string
-	f := newFlags().targets(&a).str("action", &action)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type sendKeyOpts struct {
+	a      rex.Args
+	action string
+}
+
+func cliSendKey(o *sendKeyOpts, f *call) error {
+	a, action := &o.a, o.action
 	if len(f.args) == 0 {
 		return usagef("usage: rex send-key KEY...")
 	}
@@ -1093,7 +1214,7 @@ func cliSendKey(args []string) error {
 		return nil // a terminal sends nothing as a key is released
 	}
 	a.Keys = f.args
-	_, err := resolveIDs("sendKey", &a)
+	_, err := resolveIDs("sendKey", a)
 	return err
 }
 
@@ -1114,58 +1235,48 @@ func cliSendKeysCompat(args []string) error {
 	return err
 }
 
-func cliCapture(args []string) error {
-	var a rex.Args
-	var unwrap bool
-	f := newFlags().targets(&a).str("format", &a.Format).boolean("trim", &a.Trim).boolean("unwrap", &unwrap)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type captureOpts struct {
+	a      rex.Args
+	unwrap bool
+}
+
+func cliCapture(o *captureOpts, _ *call) error {
+	a := &o.a
 	if a.Format == "html" {
 		return usagef("GoRex captures text or vt, not html")
 	}
 	var res map[string]any
-	if err := do("capture", &a, &res); err != nil {
+	if err := do("capture", a, &res); err != nil {
 		return err
 	}
 	fmt.Print(res["text"])
 	return nil
 }
 
-func cliFocus(args []string) error {
-	var a rex.Args
-	f := newFlags().str("s,session", &a.Session).str("w,window", &a.Window).boolean("wrap", &a.Wrap)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliFocus(a *rex.Args, f *call) error {
 	if len(f.args) != 1 {
 		return usagef("usage: rex focus TARGET|DIRECTION")
 	}
 	a.Target = f.args[0]
-	_, err := resolveIDs("focus", &a)
+	_, err := resolveIDs("focus", a)
 	return err
 }
 
-func cliBlockFocus(args []string) error {
-	var a rex.Args
-	f := newFlags().targets(&a)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliBlockFocus(a *rex.Args, f *call) error {
 	if len(f.args) > 0 {
 		a.Block = f.args[0]
 	}
-	_, err := resolveIDs("block.focus", &a)
+	_, err := resolveIDs("block.focus", a)
 	return err
 }
 
-func cliZoom(args []string) error {
-	var a rex.Args
-	var on, off bool
-	f := newFlags().targets(&a).boolean("on", &on).boolean("off", &off)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type zoomOpts struct {
+	a       rex.Args
+	on, off bool
+}
+
+func cliZoom(o *zoomOpts, f *call) error {
+	a, on, off := &o.a, o.on, o.off
 	if len(f.args) > 0 {
 		a.Block = f.args[0]
 	}
@@ -1177,17 +1288,17 @@ func cliZoom(args []string) error {
 	case off:
 		a.Zoom = "off"
 	}
-	_, err := resolveIDs("block.zoom", &a)
+	_, err := resolveIDs("block.zoom", a)
 	return err
 }
 
-func cliMove(args []string) error {
-	var a rex.Args
-	var ratio string
-	f := newFlags().str("s,session", &a.Session).str("w,window", &a.Window).str("ratio", &ratio)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type moveOpts struct {
+	a     rex.Args
+	ratio float64
+}
+
+func cliMove(o *moveOpts, f *call) error {
+	a := &o.a
 	switch len(f.args) {
 	case 2:
 		a.Direction, a.Target = f.args[0], f.args[1]
@@ -1196,38 +1307,27 @@ func cliMove(args []string) error {
 	default:
 		return usagef("usage: rex move [BLOCK] DIRECTION ANCHOR")
 	}
-	if ratio != "" {
-		r, err := strconv.ParseFloat(strings.TrimSuffix(ratio, "%"), 64)
-		if err != nil || r < 1 || r > 99 {
-			return usagef("--ratio takes a percentage between 1 and 99")
-		}
-		a.Ratio = float32(r / 100)
-	}
-	_, err := resolveIDs("block.move", &a)
+	a.Ratio = float32(o.ratio / 100)
+	_, err := resolveIDs("block.move", a)
 	return err
 }
 
-func cliSwap(args []string) error {
-	var a rex.Args
-	f := newFlags().str("s,session", &a.Session).str("w,window", &a.Window)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliSwap(a *rex.Args, f *call) error {
 	if len(f.args) != 2 {
 		return usagef("usage: rex swap BLOCK OTHER")
 	}
 	a.Block, a.Target = f.args[0], f.args[1]
-	_, err := resolveIDs("block.swap", &a)
+	_, err := resolveIDs("block.swap", a)
 	return err
 }
 
-func cliResize(args []string) error {
-	var a rex.Args
-	var amount string
-	f := newFlags().targets(&a).str("amount", &amount).str("direction", &a.Direction)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type resizeOpts struct {
+	a      rex.Args
+	amount float64
+}
+
+func cliResize(o *resizeOpts, f *call) error {
+	a := &o.a
 	switch len(f.args) {
 	case 1:
 		a.Direction = f.args[0]
@@ -1237,23 +1337,12 @@ func cliResize(args []string) error {
 	if a.Direction == "" {
 		return usagef("usage: rex resize [BLOCK] DIRECTION [--amount PCT]")
 	}
-	if amount != "" {
-		n, err := strconv.ParseFloat(strings.TrimSuffix(amount, "%"), 64)
-		if err != nil || n <= 0 {
-			return usagef("--amount takes a percentage")
-		}
-		a.Amount = float32(n)
-	}
-	_, err := resolveIDs("block.resize", &a)
+	a.Amount = float32(o.amount)
+	_, err := resolveIDs("block.resize", a)
 	return err
 }
 
-func cliBlockRename(args []string) error {
-	var a rex.Args
-	f := newFlags().str("s,session", &a.Session).str("w,window", &a.Window)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliBlockRename(a *rex.Args, f *call) error {
 	switch len(f.args) {
 	case 1:
 		a.Label = f.args[0]
@@ -1262,23 +1351,18 @@ func cliBlockRename(args []string) error {
 	default:
 		return usagef("usage: rex block rename [BLOCK] LABEL")
 	}
-	_, err := resolveIDs("block.rename", &a)
+	_, err := resolveIDs("block.rename", a)
 	return err
 }
 
-func cliBlockClose(args []string) error {
-	var a rex.Args
-	f := newFlags().str("s,session", &a.Session).str("w,window", &a.Window)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliBlockClose(a *rex.Args, f *call) error {
 	if len(f.args) == 0 {
 		// GoRex's first close closed the terminal it ran in.
-		_, err := resolveIDs("block.close", &a)
+		_, err := resolveIDs("block.close", a)
 		return err
 	}
 	for _, b := range f.args {
-		a2 := a
+		a2 := *a
 		a2.Block = b
 		if _, err := resolveIDs("block.close", &a2); err != nil {
 			return err
@@ -1324,15 +1408,8 @@ func blockRows() (*rex.Model, []blockRow, error) {
 	return m, rows, nil
 }
 
-func cliBlockLs(args []string) error {
-	var a rex.Args
-	var jsonOut, quiet, all bool
-	shortIDs := true
-	f := newFlags().str("s,session", &a.Session).str("w,window", &a.Window).boolean("A,all", &all).
-		boolean("json", &jsonOut).boolean("q,quiet", &quiet).boolean("short", &shortIDs)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliBlockLs(o *lsOpts, _ *call) error {
+	a, jsonOut, quiet, all, shortIDs := &o.a, o.json, o.quiet, o.all, o.short
 	_, rows, err := blockRows()
 	if err != nil {
 		return err
@@ -1341,13 +1418,13 @@ func cliBlockLs(args []string) error {
 		// The session, or window, the command acts in.
 		var keep func(r blockRow) bool
 		if a.Window != "" {
-			_, _, w, err := findWindow(&a)
+			_, _, w, err := findWindow(a)
 			if err != nil {
 				return err
 			}
 			keep = func(r blockRow) bool { return r.Window == w.ID }
 		} else {
-			_, ss, err := findSession(&a)
+			_, ss, err := findSession(a)
 			if err != nil {
 				return err
 			}
@@ -1392,18 +1469,13 @@ func cliBlockLs(args []string) error {
 	return w.Flush()
 }
 
-func cliBlockInspect(args []string) error {
-	var a rex.Args
-	var jsonOut bool
-	f := newFlags().targets(&a).boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliBlockInspect(o *inspectOpts, f *call) error {
+	a, jsonOut := &o.a, o.json
 	if len(f.args) > 0 {
 		a.Block = f.args[0]
 	}
 	var res map[string]any
-	if err := do("block.resolve", &a, &res); err != nil {
+	if err := do("block.resolve", a, &res); err != nil {
 		return err
 	}
 	_, rows, err := blockRows()
@@ -1445,11 +1517,8 @@ func cliBlockInspect(args []string) error {
 }
 
 // cliTree is GoRex's first list: the sessions, their windows and blocks.
-func cliTree(args []string) error {
-	var jsonOut bool
-	if err := newFlags().boolean("json", &jsonOut).parse(args); err != nil {
-		return err
-	}
+func cliTree(o *bool, _ *call) error {
+	jsonOut := *o
 	m, rows, err := blockRows()
 	if err != nil {
 		return err
@@ -1483,11 +1552,10 @@ func cliTree(args []string) error {
 	return nil
 }
 
-func cliClientLs(args []string) error {
-	var jsonOut, all bool
-	if err := newFlags().boolean("json", &jsonOut).boolean("all", &all).parse(args); err != nil {
-		return err
-	}
+type clientLsOpts struct{ json, all bool }
+
+func cliClientLs(o *clientLsOpts, _ *call) error {
+	jsonOut, all := o.json, o.all
 	c, err := connect()
 	if err != nil {
 		return err
@@ -1531,13 +1599,13 @@ func cliClientInspect(args []string) error {
 	return &cliError{exitTarget, errors.New("client not found")}
 }
 
-func cliEvents(args []string) error {
-	var a rex.Args
-	var jsonOut bool
-	f := newFlags().str("s,session", &a.Session).boolean("all", &a.All).boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type eventsOpts struct {
+	a    rex.Args
+	json bool
+}
+
+func cliEvents(o *eventsOpts, _ *call) error {
+	a, jsonOut := o.a, o.json
 	c, err := connect()
 	if err != nil {
 		return err
@@ -1603,32 +1671,25 @@ func eventLine(e rex.Event) string {
 	return fmt.Sprintf("%s  %-22s %-8s %s", e.Time.Local().Format("15:04:05"), typ, subject, strings.TrimSpace(rest))
 }
 
-func cliWait(args []string) error {
-	var a rex.Args
-	var forDur string
-	var jsonOut bool
-	f := newFlags().str("s,session", &a.Session).str("w,window", &a.Window).str("for", &forDur).boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type waitOpts struct {
+	a     rex.Args
+	limit time.Duration
+	json  bool
+}
+
+func cliWait(o *waitOpts, f *call) error {
+	a, d, jsonOut := &o.a, o.limit, o.json
 	if len(f.args) != 1 {
 		return usagef("usage: rex wait TARGET")
 	}
 	a.Target = f.args[0]
-	var d time.Duration
-	if forDur != "" {
-		var err error
-		if d, err = time.ParseDuration(forDur); err != nil {
-			return usagef("--for: %v", err)
-		}
-	}
 	c, err := connect()
 	if err != nil {
 		return err
 	}
 	defer c.Close()
 	var res map[string]any
-	if err := c.DoFor("wait", withContext(&a), &res, d); err != nil {
+	if err := c.DoFor("wait", withContext(a), &res, d); err != nil {
 		if strings.Contains(err.Error(), "timed out") {
 			return &cliError{exitFailed, fmt.Errorf("gave up after %s", d)}
 		}
@@ -1644,19 +1705,14 @@ func cliWait(args []string) error {
 	return nil
 }
 
-func cliDo(args []string) error {
-	var a rex.Args
-	var argsJSON, eval, action string
-	var jsonOut bool
-	f := newFlags().str("s,session", &a.Session).str("b,block", &a.Block).str("args", &argsJSON).
-		str("e,eval", &eval).str("a,action", &action).boolean("json", &jsonOut)
-	var ignored string
-	f.str("origin", &ignored).str("for", &ignored)
-	var all, failFast bool
-	f.boolean("all", &all).boolean("fail-fast", &failFast)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type doOpts struct {
+	a                  rex.Args
+	args, eval, action string
+	json               bool
+}
+
+func cliDo(o *doOpts, f *call) error {
+	a, argsJSON, eval, jsonOut := &o.a, o.args, o.eval, o.json
 	if eval != "" || len(f.args) > 0 && (strings.HasSuffix(f.args[0], ".lua") || strings.ContainsAny(f.args[0], `/\`) || f.args[0] == "-") {
 		return usagef("GoRex runs no Lua: rex do performs the app's actions (rex actions lists them)")
 	}
@@ -1699,7 +1755,7 @@ func cliDo(args []string) error {
 	a.Params, _ = json.Marshal(params)
 	a.Client = opts.client
 	var res json.RawMessage
-	if err := do("client.do", &a, &res); err != nil {
+	if err := do("client.do", a, &res); err != nil {
 		return err
 	}
 	if jsonOut && len(res) > 0 {
@@ -1710,11 +1766,8 @@ func cliDo(args []string) error {
 	return nil
 }
 
-func cliActions(args []string) error {
-	var jsonOut bool
-	if err := newFlags().boolean("json", &jsonOut).parse(args); err != nil {
-		return err
-	}
+func cliActions(o *bool, _ *call) error {
+	jsonOut := *o
 	list := actionList()
 	output(jsonOut, map[string]any{"actions": list}, func() {
 		w := table()
@@ -1727,11 +1780,8 @@ func cliActions(args []string) error {
 	return nil
 }
 
-func cliKeymap(args []string) error {
-	var jsonOut bool
-	if err := newFlags().boolean("json", &jsonOut).parse(args); err != nil {
-		return err
-	}
+func cliKeymap(o *bool, _ *call) error {
+	jsonOut := *o
 	loadSettingsQuiet()
 	km := loadKeymap(keymapPath())
 	type row struct {
@@ -1764,11 +1814,7 @@ func cliKeymap(args []string) error {
 	return nil
 }
 
-func cliConfigCheck(args []string) error {
-	f := newFlags()
-	if err := f.parse(args); err != nil {
-		return err
-	}
+func cliConfigCheck(_ *struct{}, f *call) error {
 	path := keymapPath()
 	if len(f.args) > 0 {
 		path = f.args[0]
@@ -1818,14 +1864,11 @@ func cliConfigReload(args []string) error {
 		}
 		return err
 	}
-	return cliConfigCheck(nil)
+	return cliConfigCheck(nil, &call{})
 }
 
-func cliServerStatus(args []string) error {
-	var jsonOut bool
-	if err := newFlags().boolean("json", &jsonOut).parse(args); err != nil {
-		return err
-	}
+func cliServerStatus(o *bool, _ *call) error {
+	jsonOut := *o
 	c, err := rex.Dial()
 	if err != nil {
 		output(jsonOut, map[string]any{"running": false, "socket": rex.SocketPath()}, func() {
@@ -1852,11 +1895,8 @@ func cliServerStatus(args []string) error {
 	return nil
 }
 
-func cliServerStop(args []string) error {
-	var forget bool
-	if err := newFlags().boolean("forget", &forget).parse(args); err != nil {
-		return err
-	}
+func cliServerStop(o *bool, _ *call) error {
+	forget := *o
 	c, err := rex.Dial()
 	if err != nil {
 		return &cliError{exitNoServer, errors.New("the server is not running")}
@@ -1888,41 +1928,22 @@ func cliServerLogs(args []string) error {
 	return nil
 }
 
-func cliCompletion(args []string) error {
-	if len(args) != 1 {
-		return usagef("usage: rex completion bash|zsh|fish")
-	}
-	words := strings.Join(slices.DeleteFunc(slices.Clone(cliCommands), func(s string) bool { return strings.HasPrefix(s, "-") }), " ")
-	switch args[0] {
-	case "bash":
-		fmt.Printf("complete -W %q rex\n", words)
-	case "zsh":
-		fmt.Printf("#compdef rex\n_arguments '1: :(%s)'\n", words)
-	case "fish":
-		fmt.Printf("complete -c rex -f -n '__fish_use_subcommand' -a %q\n", words)
-	default:
-		return usagef("rex completion bash|zsh|fish")
-	}
-	return nil
-}
-
 // cliStatus reports a program's status for a block, as OSC 7501 would
 // from its terminal, or, with no state, prints the block's records.
-func cliStatus(args []string) error {
-	var a rex.Args
-	var app, msg, kind, progress, title, id string
-	var jsonOut bool
-	f := newFlags().targets(&a).str("app", &app).str("m,msg", &msg).str("kind", &kind).
-		str("progress", &progress).str("title", &title).str("id", &id).boolean("json", &jsonOut)
-	if err := f.parse(args); err != nil {
-		return err
-	}
+type statusOpts struct {
+	a                                   rex.Args
+	app, msg, kind, progress, title, id string
+	json                                bool
+}
+
+func cliStatus(o *statusOpts, f *call) error {
+	a, jsonOut := &o.a, o.json
 	if len(f.args) == 0 {
 		var res struct {
 			Block   string             `json:"block_id"`
 			Records []rex.StatusRecord `json:"records"`
 		}
-		if err := do("status.list", &a, &res); err != nil {
+		if err := do("status.list", a, &res); err != nil {
 			return err
 		}
 		output(jsonOut, res, func() {
@@ -1938,8 +1959,8 @@ func cliStatus(args []string) error {
 	if len(f.args) != 1 {
 		return usagef("usage: rex status [STATE] [--app APP] [--msg TEXT] [--kind KIND] [--progress PCT] [--title TEXT] [--id ID]")
 	}
-	a.Data = statusReport(f.args[0], id, kind, progress, app, title, msg)
-	_, err := resolveIDs("status.report", &a)
+	a.Data = statusReport(f.args[0], o.id, o.kind, o.progress, o.app, o.title, o.msg)
+	_, err := resolveIDs("status.report", a)
 	return err
 }
 

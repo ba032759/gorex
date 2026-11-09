@@ -1,153 +1,165 @@
 # rex: the reference
 
 Made from the code by `mise run spec-ref`; do not edit it. Every command
-of `rex`, the flags it takes, and what its help leaves out. What the
+of `rex`, the flags it takes, the values they take and their defaults,
+as the commands declare them; `rex help COMMAND` prints the same. What the
 commands are for is in `spec/functional/`; `spec check` reports a command
 that no functional item names.
 
+## Options before the command
+
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-S`, `--server` |  | none | Rex's remote server: refused, GoRex's server runs on this machine |
+| `-C`, `--client` | `CLIENT` | REX_CLIENT | the app, CLIENT, that rex do asks |
+| `--timeout` | `DURATION`, a duration, as 300ms, 10s, 2h45m | `10s` | wait up to DURATION for an answer |
+| `--autostart` |  | `true` | start a server when none runs; --autostart=false does not |
+| `--color` | `WHEN` | none | Rex's WHEN; taken, and ignored |
+| `-v`, `--verbose`, `--vv` |  | none | Rex's; taken, and ignored |
+
 ## `rex actions`
 
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex block capture`
 
 Also: `rex capture`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--format` | `--format` |
-| `--trim` | `--trim` |
-| `--unwrap` | `--unwrap` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--format` | `FORMAT` | text | the FORMAT: text, or vt to keep the escape sequences |
+| `--trim` |  | `false` | drop trailing blank lines |
+| `--unwrap` |  | `false` | Rex's; GoRex joins wrapped lines always; taken, and ignored |
 
 ## `rex block close`
 
 Also: `rex close`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 
 ## `rex block focus`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
 
 ## `rex block inspect`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--json` |  | `false` | print JSON |
 
-## `rex block list`
+## `rex block ls`
 
-Also: `rex block ls`.
+Also: `rex block list`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--all` | `-A`, `--all` |
-| `--json` | `--json` |
-| `--quiet` | `-q`, `--quiet` |
-| `--short` | `--short` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-A`, `--all` |  | `false` | every session's |
+| `--json` |  | `false` | print JSON |
+| `-q`, `--quiet` |  | `false` | print the IDs alone, one a line |
+| `--short` |  | `true` | short IDs; --short=false prints full ones |
 
 ## `rex block move`
 
 Also: `rex move`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--ratio` | `--ratio` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `--ratio` | `PCT`, 1 to 99 | `50` | the block's share of its new split, in percent: PCT |
 
 ## `rex block new`
 
-Flags: it reads its arguments itself.
+Flags: none; it reads its arguments itself.
 
 ## `rex block rename`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 
 ## `rex block send`
 
 Also: `rex send`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
 
 ## `rex block send-key`
 
 Also: `rex send-key`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--action` | `--action` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--action` | `ACTION` | none | press, or release, which sends nothing: Rex's key ACTION |
 
 ## `rex block swap`
 
 Also: `rex swap`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 
 ## `rex block types`
 
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex block zoom`
 
 Also: `rex zoom`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--on` | `--on` |
-| `--off` | `--off` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--on` |  | `false` | zoom it |
+| `--off` |  | `false` | end its zoom |
 
 ## `rex client inspect`
 
-Flags: it reads its arguments itself.
+Flags: none; it reads its arguments itself.
 
-## `rex client list`
+## `rex client ls`
 
-Also: `rex client ls`.
+Also: `rex client list`.
 
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
-| `--all` | `--all` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
+| `--all` |  | `false` | rex's commands too |
 
 ## `rex completion`
 
-Flags: none.
+Flags: none; it reads its arguments itself.
 
 ## `rex config check`
 
@@ -155,174 +167,152 @@ Flags: none.
 
 ## `rex config reload`
 
-Flags: it reads its arguments itself.
+Flags: none; it reads its arguments itself.
 
 ## `rex do`
 
-Help: `rex help do`.
-
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--block` | `-b`, `--block` |
-| `--args` | `--args` |
-| `--eval` | `-e`, `--eval` |
-| `--action` | `-a`, `--action` |
-| `--json` | `--json` |
-| `--origin` | `--origin` |
-| `--for` | `--for` |
-| `--all` | `--all` |
-| `--fail-fast` | `--fail-fast` |
-
-Not in its help: `--session`, `--block`, `--eval`, `--action`, `--origin`, `--for`, `--all`, `--fail-fast`.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-b`, `--block` | `BLOCK` | none | the BLOCK to act on |
+| `--args` | `JSON` | none | the action's arguments as a JSON object; - reads stdin, @FILE a file |
+| `-e`, `--eval` | `CODE` | none | Rex's Lua CODE: refused |
+| `-a`, `--action` | `ACTION` | none | Rex's ACTION; taken, and ignored |
+| `--json` |  | `false` | print JSON |
+| `--origin` | `ORIGIN` | none | Rex's ORIGIN; taken, and ignored |
+| `--for` | `DURATION` | none | Rex's DURATION; taken, and ignored |
+| `--all` |  | `false` | Rex's; taken, and ignored |
+| `--fail-fast` |  | `false` | Rex's; taken, and ignored |
 
 ## `rex events`
 
-Help: `rex help events`.
-
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--all` | `--all` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `--all` |  | `false` | every event |
+| `--json` |  | `false` | print JSON |
 
 ## `rex focus`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--wrap` | `--wrap` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `--wrap` |  | `false` | from the last, go on to the first |
 
 ## `rex keymap`
 
-Help: `rex help keymap`.
-
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
-
-## `rex kill`
-
-Also: `rex session kill`.
-
-Flags: none.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex list`
 
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
-
-## `rex ls`
-
-Also: `rex session list`, `rex session ls`.
-
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
-| `--quiet` | `-q`, `--quiet` |
-| `--short` | `--short` |
-
-## `rex new`
-
-Also: `rex session new`.
-
-| Flag | Spellings |
-|---|---|
-| `--dir` | `-c`, `--cwd`, `-d`, `--dir` |
-| `--keep-open` | `--keep-open` |
-| `--shell` | `--shell` |
-| `--interactive` | `--interactive` |
-| `--window` | `--window` |
-| `--json` | `--json` |
-
-## `rex new-tab`
-
-Also: `rex window new`.
-
-| Flag | Spellings |
-|---|---|
-| `--dir` | `-c`, `--cwd`, `-d`, `--dir` |
-| `--keep-open` | `--keep-open` |
-| `--shell` | `--shell` |
-| `--interactive` | `--interactive` |
-| `--session` | `-s`, `--session` |
-| `--focus` | `--focus` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex resize`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--amount` | `--amount` |
-| `--direction` | `--direction` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--amount` | `PCT`, above 0 | `5` | how far to move it, PCT percent of the split |
+| `--direction` | `DIRECTION` | none | the DIRECTION, when no argument gives it |
 
 ## `rex run`
 
-| Flag | Spellings |
-|---|---|
-| `--dir` | `-c`, `--cwd`, `-d`, `--dir` |
-| `--keep-open` | `--keep-open` |
-| `--shell` | `--shell` |
-| `--interactive` | `--interactive` |
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--split` | `--split` |
-| `--ratio` | `--ratio` |
-| `--label` | `--label` |
-| `--focus` | `--focus` |
-| `--json` | `--json` |
-| `--wait` | `--wait` |
-| `--target` | `-t`, `--target` |
-| `--below` | `-v`, `--vertical`, `--down`, `--below` |
-| `--beside` | `--horizontal`, `--right`, `--beside` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home |
+| `--keep-open` |  | `false` | keep the terminal after its command exits |
+| `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
+| `--interactive` |  | `false` | also read the shell's interactive startup files |
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--split` | `DIRECTION` | a new tab | put the block beside the anchor, toward DIRECTION: right, left, above or below |
+| `--ratio` | `PCT`, above 0 and below 100 | `50` | the new block's share of the split, in percent: PCT |
+| `--label` | `LABEL` | none | a LABEL to target it by |
+| `--focus` |  | `true` | focus it; --focus=false leaves the focus where it is |
+| `--json` |  | `false` | print JSON |
+| `--wait` |  | `false` | wait for the command, and exit with its status |
+| `-t`, `--target` | `BLOCK` | none | GoRex's first --block BLOCK |
+| `-v`, `--vertical`, `--down`, `--below` |  | `false` | GoRex's first --split=below |
+| `--horizontal`, `--right`, `--beside` |  | `false` | GoRex's first --split=right |
 
 ## `rex send-keys`
 
-Flags: it reads its arguments itself.
+Flags: none; it reads its arguments itself.
 
 ## `rex server logs`
 
-Flags: none.
+Flags: none; it reads its arguments itself.
 
 ## `rex server run`
 
-Flags: none.
+Flags: none; it reads its arguments itself.
 
 ## `rex server start`
 
-Flags: none.
+Flags: none; it reads its arguments itself.
 
 ## `rex server status`
 
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex server stop`
 
-| Flag | Spellings |
-|---|---|
-| `--forget` | `--forget` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--forget` |  | `false` | also forget the sessions |
 
 ## `rex session inspect`
 
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
+
+## `rex session kill`
+
+Also: `rex kill`.
+
+Flags: none.
+
+## `rex session ls`
+
+Also: `rex session list`, `rex ls`.
+
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
+| `-q`, `--quiet` |  | `false` | print the IDs alone, one a line |
+| `--short` |  | `true` | short IDs; --short=false prints full ones |
 
 ## `rex session move`
 
-| Flag | Spellings |
-|---|---|
-| `--before` | `--before` |
-| `--after` | `--after` |
-| `--index` | `--index` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--before` | `TARGET` | none | put it before TARGET |
+| `--after` | `TARGET` | none | put it after TARGET |
+| `--index` | `N`, from 1 | none | put it at position N, from 1 |
+
+## `rex session new`
+
+Also: `rex new`.
+
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home |
+| `--keep-open` |  | `false` | keep the terminal after its command exits |
+| `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
+| `--interactive` |  | `false` | also read the shell's interactive startup files |
+| `--window` | `LABEL` | none | a LABEL for its window |
+| `--json` |  | `false` | print JSON |
 
 ## `rex session rename`
 
@@ -330,156 +320,153 @@ Flags: none.
 
 ## `rex skill hook`
 
-Help: `rex help skill`.
-
-Flags: none.
+Flags: none; it reads its arguments itself.
 
 ## `rex skill remove`
 
-Help: `rex help skill`.
-
-| Flag | Spellings |
-|---|---|
-| `--project` | `--project` |
-| `--dry-run` | `--dry-run` |
-| `--force` | `--force` |
-| `--session-naming` | `--session-naming` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--agent` | `AGENT`, again for more | every agent found | only this AGENT |
+| `--project` |  | `false` | in this project, not in your home |
+| `--dry-run` |  | `false` | tell what it would do, and do nothing |
+| `--force` |  | `false` | replace a skill of the same name that rex did not install |
+| `--session-naming` |  | `false` | also have the agent name its session after its task |
+| `--json` |  | `false` | print JSON |
 
 ## `rex skill setup`
 
-Help: `rex help skill`.
-
-| Flag | Spellings |
-|---|---|
-| `--project` | `--project` |
-| `--dry-run` | `--dry-run` |
-| `--force` | `--force` |
-| `--session-naming` | `--session-naming` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--agent` | `AGENT`, again for more | every agent found | only this AGENT |
+| `--project` |  | `false` | in this project, not in your home |
+| `--dry-run` |  | `false` | tell what it would do, and do nothing |
+| `--force` |  | `false` | replace a skill of the same name that rex did not install |
+| `--session-naming` |  | `false` | also have the agent name its session after its task |
+| `--json` |  | `false` | print JSON |
 
 ## `rex skill show`
 
-Help: `rex help skill`.
-
-Flags: none.
+Flags: none; it reads its arguments itself.
 
 ## `rex skill status`
 
-Help: `rex help skill`.
-
-| Flag | Spellings |
-|---|---|
-| `--project` | `--project` |
-| `--dry-run` | `--dry-run` |
-| `--force` | `--force` |
-| `--session-naming` | `--session-naming` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--agent` | `AGENT`, again for more | every agent found | only this AGENT |
+| `--project` |  | `false` | in this project, not in your home |
+| `--dry-run` |  | `false` | tell what it would do, and do nothing |
+| `--force` |  | `false` | replace a skill of the same name that rex did not install |
+| `--session-naming` |  | `false` | also have the agent name its session after its task |
+| `--json` |  | `false` | print JSON |
 
 ## `rex split`
 
-Help: `rex help split`.
-
-| Flag | Spellings |
-|---|---|
-| `--dir` | `-c`, `--cwd`, `-d`, `--dir` |
-| `--keep-open` | `--keep-open` |
-| `--shell` | `--shell` |
-| `--interactive` | `--interactive` |
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--split` | `--split` |
-| `--ratio` | `--ratio` |
-| `--label` | `--label` |
-| `--focus` | `--focus` |
-| `--json` | `--json` |
-| `--wait` | `--wait` |
-| `--target` | `-t`, `--target` |
-| `--below` | `-v`, `--vertical`, `--down`, `--below` |
-| `--beside` | `--horizontal`, `--right`, `--beside` |
-
-Not in its help: `--target`, `--below`, `--beside`.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the anchor's | start in DIR; ~ is your home |
+| `--keep-open` |  | `false` | keep the terminal after its command exits |
+| `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
+| `--interactive` |  | `false` | also read the shell's interactive startup files |
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--split` | `DIRECTION` | `right` | the DIRECTION of the new block: right, left, above or below |
+| `--ratio` | `PCT`, above 0 and below 100 | `50` | the new block's share of the split, in percent: PCT |
+| `--label` | `LABEL` | none | a LABEL to target it by |
+| `--focus` |  | `true` | focus it; --focus=false leaves the focus where it is |
+| `--json` |  | `false` | print JSON |
+| `--wait` |  | `false` | wait for the command, and exit with its status |
+| `-t`, `--target` | `BLOCK` | none | GoRex's first --block BLOCK |
+| `-v`, `--vertical`, `--down`, `--below` |  | `false` | GoRex's first --split=below |
+| `--horizontal`, `--right`, `--beside` |  | `false` | GoRex's first --split=right |
 
 ## `rex status`
 
-Help: `rex help status`.
-
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--block` | `-b`, `--block` |
-| `--app` | `--app` |
-| `--msg` | `-m`, `--msg` |
-| `--kind` | `--kind` |
-| `--progress` | `--progress` |
-| `--title` | `--title` |
-| `--id` | `--id` |
-| `--json` | `--json` |
-
-Not in its help: `--session`, `--window`.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
+| `--app` | `APP` | none | the APP that reports |
+| `-m`, `--msg` | `TEXT` | none | a message: TEXT |
+| `--kind` | `KIND` | none | what it waits for, the KIND: permission, question or auth |
+| `--progress` | `PCT` | none | how far it is, PCT percent |
+| `--title` | `TEXT` | none | a title: TEXT |
+| `--id` | `ID` | none | the ID of the record, for a program that reports several |
+| `--json` |  | `false` | print JSON |
 
 ## `rex version`
 
-| Flag | Spellings |
-|---|---|
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex wait`
 
-Help: `rex help wait`.
-
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--window` | `-w`, `--window` |
-| `--for` | `--for` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `--for` | `DURATION`, a duration, as 300ms, 10s, 2h45m | no limit | give up after DURATION, with status 1 |
+| `--json` |  | `false` | print JSON |
 
 ## `rex window close`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
 
 ## `rex window focus`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--wrap` | `--wrap` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `--wrap` |  | `false` | from the last, go on to the first |
 
 ## `rex window inspect`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--json` | `--json` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `--json` |  | `false` | print JSON |
 
-## `rex window list`
+## `rex window ls`
 
-Also: `rex window ls`.
+Also: `rex window list`.
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--all` | `-A`, `--all` |
-| `--json` | `--json` |
-| `--quiet` | `-q`, `--quiet` |
-| `--short` | `--short` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `-A`, `--all` |  | `false` | every session's |
+| `--json` |  | `false` | print JSON |
+| `-q`, `--quiet` |  | `false` | print the IDs alone, one a line |
+| `--short` |  | `true` | short IDs; --short=false prints full ones |
 
 ## `rex window move`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
-| `--before` | `--before` |
-| `--after` | `--after` |
-| `--index` | `--index` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
+| `--before` | `TARGET` | none | put it before TARGET |
+| `--after` | `TARGET` | none | put it after TARGET |
+| `--index` | `N`, from 1 | none | put it at position N, from 1 |
+
+## `rex window new`
+
+Also: `rex new-tab`.
+
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | with a command, the directory rex runs in; else the focused block's | start in DIR; ~ is your home |
+| `--keep-open` |  | `false` | keep the terminal after its command exits |
+| `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
+| `--interactive` |  | `false` | also read the shell's interactive startup files |
+| `-s`, `--session` | `SESSION` | none | the SESSION to open it in |
+| `--focus` |  | `true` | make it the active window; --focus=false leaves the focus where it is |
+| `--json` |  | `false` | print JSON |
 
 ## `rex window rename`
 
-| Flag | Spellings |
-|---|---|
-| `--session` | `-s`, `--session` |
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `-s`, `--session` | `SESSION` | none | the SESSION to act in |
