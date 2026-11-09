@@ -650,6 +650,18 @@ func TestWideCommandNames(t *testing.T) {
 	if !strings.Contains(string(b), `"command":"send"`) || strings.Contains(string(b), "secret") {
 		t.Errorf("the events of rex send ls secret: %s", b)
 	}
+	// A word that looks like a flag, and a usage error's text, stay out.
+	cli(t, nil, "--autostart=false", "send", "-b", "x", "-rf-secret")
+	cli(t, nil, "--autostart=false", "split", "--secret-flag")
+	b = b[:0]
+	for _, f := range files {
+		x, _ := os.ReadFile(f)
+		b = append(b, x...)
+	}
+	if strings.Contains(string(b), "secret") || !strings.Contains(string(b), `"flags":"--block"`) ||
+		!strings.Contains(string(b), `"n_unknown_flags":1`) || !strings.Contains(string(b), `"error":"usage"`) {
+		t.Errorf("flag-like words or a usage error's text in the events: %s", b)
+	}
 }
 
 // --help or -h after a command prints its help, as rex help COMMAND does,

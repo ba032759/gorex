@@ -566,14 +566,26 @@ func wideCommand(args []string, code int, err error, start time.Time) {
 	case "help", "--help", "-h", "completion", "__complete":
 		return
 	}
+	// Of the flags, only the names a command declares: a word that only
+	// looks like a flag may be text the user typed (B-8).
+	declared := globalFlags(&global{}).names
+	if c := commandNode(args); c != nil && c.bind != nil {
+		fs, _ := c.bind()
+		declared = fs.names
+	}
 	var flags []string
+	unknown := 0
 	for _, a := range args {
 		if a == "--" {
 			break // the command it runs
 		}
-		if strings.HasPrefix(a, "-") {
-			name, _, _ := strings.Cut(a, "=")
-			flags = append(flags, name)
+		if strings.HasPrefix(a, "-") && len(a) > 1 {
+			name, _, _ := strings.Cut(strings.TrimLeft(a, "-"), "=")
+			if d := declared[name]; d != nil {
+				flags = append(flags, d.name())
+			} else {
+				unknown++
+			}
 		}
 	}
 	w := rex.W{
@@ -587,7 +599,15 @@ func wideCommand(args []string, code int, err error, start time.Time) {
 	if len(flags) > 0 {
 		w["flags"] = strings.Join(flags, ",")
 	}
-	if err != nil && !errors.Is(err, errQuiet) {
+	if unknown > 0 {
+		w["n_unknown_flags"] = unknown
+	}
+	// A usage error quotes the command line; its text stays out (B-8).
+	switch {
+	case err == nil || errors.Is(err, errQuiet):
+	case code == exitUsage:
+		w["error"] = "usage"
+	default:
 		w["error"] = err.Error()
 	}
 	for k, env := range map[string]string{
@@ -625,16 +645,24 @@ func asksHelp(args []string) bool {
 // dispatch finds it: "session new", or "session" for a group and a word
 // it does not have; empty for a word that is not a command.
 func commandPath(args []string) string {
+	if c := commandNode(args); c != nil {
+		return c.path
+	}
+	return ""
+}
+
+// commandNode is the declared command the words name, or nil.
+func commandNode(args []string) *cliCmd {
 	c := rexCommands.find(args[0])
 	if c == nil {
-		return ""
+		return nil
 	}
 	if c.sub != nil && len(args) > 1 {
 		if s := c.find(args[1]); s != nil {
-			return s.path
+			return s
 		}
 	}
-	return c.path
+	return c
 }
 
 // dispatch runs the command that word names, with its arguments.

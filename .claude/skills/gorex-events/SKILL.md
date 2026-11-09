@@ -50,8 +50,10 @@ messages and titles left out).
 
 **kind = 'cli'**, a `rex` command: `command` (the command's names, as
 the tree declares them, never its arguments: "split", "server stop",
-"session ls" for `rex session list`, "skill hook"), `flags` (their
-names only), `exit_code`, `ok`, `error`, `duration_ms`, `n_args`,
+"session ls" for `rex session list`, "skill hook"), `flags` (the
+declared flags given, by name; a word that only looks like a flag is
+counted in `n_unknown_flags`), `exit_code`, `ok`, `error` (`usage` for a
+bad command line), `duration_ms`, `n_args`,
 `in_rex`, `rex_session`, `rex_block`, `client`, `agent` (claude-code,
 codex). Its `pid` is the `client_pid` of the requests it made.
 

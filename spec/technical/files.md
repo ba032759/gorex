@@ -24,9 +24,11 @@ The server and every `rex` append to the same file.
 Files older than 30 days are removed.
 Every line has `ts` (UTC, microseconds, `Z`), `kind`, `version`,
 `protocol`, `pid`, `os` and `arch`; `dropped_before` counts lines lost.
-A line of kind `cli` adds `command`, `flags`, `n_args`, `exit_code`,
-`ok`, `duration_ms`, `in_rex`, `error`, `rex_session`, `rex_block`,
-`client` and `agent`.
+A line of kind `cli` adds `command` (the declared command's names),
+`flags` (the declared flags given, by their names), `n_unknown_flags`,
+`n_args`, `exit_code`, `ok`, `duration_ms`, `in_rex`, `error` (`usage`
+for a usage error, whose message quotes the command line), `rex_session`,
+`rex_block`, `client` and `agent`.
 The `gorex-events` skill describes the other kinds.
 
 ### T-122 keymap.json

@@ -297,7 +297,10 @@ WHEN a command ends, `rex` SHALL append one wide event of kind `cli`,
 except for `rex help` and `rex completion`.
 The event SHALL hold the command's words, the names of its flags, its
 exit status, its duration and its context.
-The event SHALL NOT hold the values of flags or the text of arguments.
+The event SHALL NOT hold the values of flags, the text of arguments, or
+a word that is not a declared command or flag.
+IF the command line is not valid, THEN the event SHALL say `usage`, not
+the message, which quotes the command line.
 The command's words SHALL be the names of the command, as the tree of
 commands declares them (`session new`), and never its arguments.
 WHEN `CLAUDECODE` or `CODEX_SANDBOX` or `CODEX_HOME` is set, the event
