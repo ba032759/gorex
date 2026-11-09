@@ -6,8 +6,7 @@ Protocol version 2.
 ### T-100 The socket
 status: proposed · traces: F-106, F-107 · source: code
 
-The server listens on a Unix socket (F-106), mode `0600`; Windows 10 has
-`AF_UNIX` too.
+The server listens on a Unix socket (F-106), mode `0600`.
 A connection's first line decides what it is.
 A line `{"op":"attach","sid":BLOCK,"cols":N,"rows":N}` makes it a
 terminal stream, which the app uses and `rex` does not.

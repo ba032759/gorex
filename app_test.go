@@ -519,6 +519,11 @@ func TestKeymap(t *testing.T) {
 	if k := km.keysOf("pane.zoom"); k == "" {
 		t.Error("no keys shown for pane.zoom")
 	}
+	// The macOS preset of the menus' shortcuts went with macOS.
+	os.WriteFile(path, []byte(`{"preset": "darwin"}`), 0o644)
+	if km := loadKeymap(path); len(km.problems) != 1 || !strings.Contains(km.problems[0], `unknown preset "darwin"`) {
+		t.Errorf("darwin preset: problems %q", km.problems)
+	}
 }
 
 func TestKeySequence(t *testing.T) {
