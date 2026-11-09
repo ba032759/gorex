@@ -7,7 +7,10 @@ description: Draft a change to GoRex's spec (spec/) for the owner to approve - f
 
 The spec is the owner's statement of intent. Your job is to draft, not to
 decide: what you write is `proposed` until the owner accepts it. Read
-`spec/README.md` first if you have not in this session.
+`spec/README.md` first if you have not in this session, and its
+Templates section always: every item you write copies the template of its
+layer, slot for slot. Do not invent a shape of your own; two agents must
+write the same need the same way.
 
 ## 1. Find what changed
 
@@ -35,18 +38,30 @@ and `rationale: unknown - ask the owner`.
 - Edit the spec files in place, in the area the behaviour belongs to; a new
   area gets a new file. Take the next free number of the prefix:
   `go run ./tools/spec query "select max(cast(split_part(id,'-',2) as int)) from items where id like 'F-%'"`.
-- Functional: what an observer outside sees. A use case for interaction,
-  `SHALL` / `WHEN … THEN` rules for exact behaviour, a table for cases.
-  Say how it is verified (`verify: test | event | manual`).
+- Business, a need: `**Who.**`, `**Needs.**`, `**Why.**`, `**Fails if.**`.
+  A limit the owner sets (systems, law, budget): `kind: constraint` with
+  `**Constraint.**`, `**Why.**`, `**Fails if.**`. No format, protocol,
+  size or technology in a business item: that is a decision. The Why is
+  the owner's: `**Why.** Unknown.` and a question, never your guess.
+- Decision: `**Context.**`, `**Options.**`, `**Choice.**`, `**Reason.**`,
+  and `**Consequences.**` when something follows from it.
+- Functional, one of three forms: a rule (`SHALL`, `WHEN … THEN`, one per
+  item); a use case (`**Actor.**`, `**Goal.**`, numbered steps,
+  `**Extensions.**`); a table of cases with a sentence that says what it
+  holds. What an observer outside sees. Say how it is verified
+  (`verify: test | event | manual`).
+- Technical items for what a reimplementation must keep (a protocol, a file
+  format, an invariant), not for how the code happens to be organised.
 - Changed behaviour: edit the item, keep its ID; the diff shows the change.
   Behaviour that went: `status: superseded` with `superseded-by:`, or
   rejected with a rationale. Never delete an item, never renumber.
 - An option considered and dropped: a `D-` item, `status: rejected`, with
   the reason.
-- Technical items for what a reimplementation must keep (a protocol, a file
-  format, an invariant), not for how the code happens to be organised.
 - Write as little as says it. If an item says how, it is in the wrong
   layer.
+- `go run ./tools/spec check FILE` after each file (the edit hook runs it
+  too): it reports a missing slot, a vague requirement or an avoided term
+  in what you just wrote.
 
 ## 4. Link the tests
 

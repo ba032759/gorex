@@ -25,3 +25,9 @@ The block SHALL typically be shown, etc. The user can close the pane with a key,
 status: proposed · traces: B-1 · source: code
 
 The tab bar SHALL show every window. The user can close one.
+
+### F-6 Split a block
+status: proposed · traces: B-1 · source: code
+
+**Actor.** A script.
+**Goal.** A new block beside the old one.

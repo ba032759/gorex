@@ -16,9 +16,10 @@ Do not change code, and do not write tests. This pass describes what is.
 ## What to write
 
 1. `spec/business/`: who GoRex is for, what they need, why, and the
-   constraints it lives under. Few items, 5 to 10: needs, not features.
+   constraints it lives under. Few items, 5 to 10: needs, not features,
+   each in the template of `spec/README.md` (Who, Needs, Why, Fails if).
    Mark each with its `source:`. Where a reason is in neither source,
-   write `rationale: unknown` and add the question to `spec/QUESTIONS.md`.
+   write `**Why.** Unknown.` and add the question to `spec/QUESTIONS.md`.
 2. `spec/decisions/`: the decisions the code and its history show (for
    example: the server owns the layout; no Lua; compatibility with Rex),
    with the options rejected and why, as far as the sources tell.

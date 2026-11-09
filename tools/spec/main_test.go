@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,8 +31,8 @@ func fixture(t *testing.T) string {
 func TestCheck(t *testing.T) {
 	root := fixture(t)
 	items, refs, probs := load(root)
-	if len(items) != 7 {
-		t.Fatalf("items = %d, want 7 (code blocks, the glossary and findings hold none)", len(items))
+	if len(items) != 11 {
+		t.Fatalf("items = %d, want 11 (code blocks, the glossary and findings hold none)", len(items))
 	}
 	var got []string
 	for _, p := range probs {
@@ -50,12 +51,17 @@ func TestCheck(t *testing.T) {
 		"warning F-4 avoided term: pane (use block)",
 		`warning F-4 source "guess" is not one of`,
 		"warning F-1 no source",
+		"error B-3 a constraint without **Fails if.**",
+		"error B-4 kind wish is not one of need, constraint",
+		"error D-1 a decision without **Options.**",
+		"error F-3 neither a rule",
+		"error F-6 a use case without numbered steps",
 	} {
 		if !strings.Contains(all, want) {
 			t.Errorf("no %q in:\n%s", want, all)
 		}
 	}
-	for _, bad := range []string{"F-4 vague in a requirement: can", "F-4 vague in a requirement: typically, etc, can", "F-5 avoided term", "F-5 vague"} {
+	for _, bad := range []string{"B-1 a need", "B-2 a need", "F-1 neither", "F-5 neither", "F-6 a use case without **", "F-4 vague in a requirement: can", "F-4 vague in a requirement: typically, etc, can", "F-5 avoided term", "F-5 vague"} {
 		if strings.Contains(all, bad) {
 			t.Errorf("%q in:\n%s", bad, all)
 		}
@@ -73,5 +79,21 @@ func TestCheck(t *testing.T) {
 		if it.ID == "F-1" && (it.Status != "accepted" || len(it.Traces) != 1 || it.Verify != "test") {
 			t.Errorf("F-1 = %+v", it)
 		}
+	}
+}
+
+func TestCheckFiles(t *testing.T) {
+	root := fixture(t)
+	t.Chdir(root)
+	r, w, _ := os.Pipe()
+	stdout := os.Stdout
+	os.Stdout = w
+	code := cmdCheck(root, []string{"-q", "spec/functional/cli.md"})
+	os.Stdout = stdout
+	w.Close()
+	b, _ := io.ReadAll(r)
+	out := string(b)
+	if code != 1 || !strings.Contains(out, "F-4: vague") || strings.Contains(out, "B-3") {
+		t.Errorf("code %d, out:\n%s", code, out)
 	}
 }

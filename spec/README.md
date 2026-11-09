@@ -62,6 +62,7 @@ THEN the phone SHALL show it within 5 seconds, with the prompt's text.
   `tests`; several joined by `,`. An item
   only the code shows is a description of what is, not yet of what is
   wanted.
+- **kind** (business): `need` (the default) or `constraint`.
 - Fields go one per line or on one line joined by `·`. Any other field
   (`rationale:`, `actor:`, `priority:`) is kept.
 
@@ -69,30 +70,117 @@ Items specified after the fact (the retro spec) are accepted area by area
 as a baseline: the owner skims an area and accepts it whole, and corrects
 what matters when it matters.
 
-## How to write each layer
+## Templates
+
+Every item of a layer has the same shape, whoever writes it, person or
+agent, so that the spec reads as one document and the tools can check it.
+A slot is a paragraph that starts with its label in bold. `spec check`
+reports an item without its slots as an error; rejected and superseded
+items keep the shape they had.
 
 Write intent, not implementation, and as little as says it. An item a
 reader can misread is too short; one that says how is in the wrong layer.
 
-**Business.** Prose. Who has the need, what they want to get done, why it
-matters, what would make it fail. Constraints (a one-person project, runs
-on Linux and Android) are business items too.
+### Business: needs and constraints (after Volere)
 
-**Decisions.** In the shape of an architecture decision record: the
-context, the options considered, the choice, the reason, the consequences.
-A rejected idea is a decision with `status: rejected`.
+A need says who needs what, and why, and how you know that it is not met.
+Prose, no `SHALL`: the functional items that trace to it make it exact.
 
-**Functional.** Pick the form that fits what is described:
+```markdown
+### B-3 Scripts drive terminals
+status: proposed · source: rex-docs, code
 
-- *Use cases* for interaction (Cockburn's form): actor, goal, the main
-  success scenario as numbered steps, then extensions (`3a. The phone is
-  offline: …`). Extensions are where most tests come from.
-- *Rules* for exact behaviour: one requirement per item, `SHALL` for what
-  must hold, `WHEN … THEN …` for a scenario (EARS style).
-- *Tables* for exhaustive cases (exit codes, key names).
+**Who.** A user who automates the work of the terminal.
+**Needs.** To create sessions and terminals from a shell script, type into
+them, read their screens, wait for their programs and react to events.
+**Why.** Repeated work then runs without the user at the keyboard.
+**Fails if.** A script must read text made for people, or cannot tell a
+missing target from a failed command.
+```
+
+- **Who**: a role (a user who…, an agent, the owner), not a person.
+- **Needs**: what they want to get done, in their words, not the feature
+  that does it.
+- **Why**: the reason. When no source gives it: `**Why.** Unknown.`, and
+  a question in `QUESTIONS.md`. Never a guess.
+- **Fails if**: what the owner would see if the need is not met: the fit
+  criterion. Concrete enough to check by hand.
+
+A constraint is a limit the owner sets, not a need of a user: the systems
+it runs on, the law, the budget. It says `kind: constraint`:
+
+```markdown
+### B-7 Linux first
+status: proposed · kind: constraint · source: repo
+
+**Constraint.** GoRex runs on Linux, and also on macOS and Windows.
+**Why.** The owner works on Linux, where Rex has no app.
+**Fails if.** A feature works on macOS and not on Linux.
+```
+
+A business item names no format, protocol, size, library or technology:
+JSON, sockets, 15 MB, no web view. Those are choices: decisions or
+technical items. Background on the project (who builds it, how) is not an
+item; it goes at the top of the business file, as plain text.
+
+### Decisions (an architecture decision record)
+
+```markdown
+### D-5 A local server only
+status: proposed · traces: B-6 · source: code
+
+**Context.** What forces a choice.
+**Options.** (a) … (b) …, each in a sentence.
+**Choice.** (b).
+**Reason.** Why (b), and why not (a). `Unknown.` when no source says.
+**Consequences.** What follows from it, and when to look at it again.
+```
+
+`Consequences` is optional. An idea rejected outright is a decision with
+`status: rejected` and a `rationale:`.
+
+### Functional: one of three forms
+
+- A *rule*, for exact behaviour: one requirement per item, `SHALL` for
+  what must hold, `WHEN … THEN …` for a scenario (EARS style).
+
+  ```markdown
+  ### F-12 Answer a blocked session from the phone
+  status: proposed · traces: B-3 · verify: test
+
+  WHEN a session in any window is blocked on a permission prompt
+  THEN the phone SHALL show it within 5 seconds, with the prompt's text.
+  ```
+
+- A *use case*, for interaction (Cockburn's form): the actor, the goal,
+  the main success scenario as numbered steps, then the extensions, where
+  most tests come from.
+
+  ```markdown
+  ### F-310 Change session from the keyboard
+  status: proposed · traces: B-1 · verify: manual
+
+  **Actor.** The user, in the app.
+  **Goal.** Work in another session.
+
+  1. The user presses `Ctrl+Shift+S`.
+  2. The app shows the sessions, the current one marked.
+  3. The user picks one; the app shows its windows.
+
+  **Extensions.** 3a. The user presses `Escape`: nothing changes.
+  ```
+
+- A *table*, for exhaustive cases (exit statuses, key names), with a
+  sentence that says what the table holds.
 
 Say what an observer outside the system sees: the CLI's output and exit
 status, what is on screen, the protocol's messages, what the events say.
+
+### Technical
+
+Free form, kept short: components, protocols, file formats, the event
+schema, the invariants a reimplementation must keep. Written by agents for
+agents.
 
 ## Writing
 
@@ -126,10 +214,6 @@ The glossary's entries are headings, with an optional `avoid:` line:
 A terminal in a window, with its program: the leaf of a layout.
 avoid: pane
 ```
-
-**Technical.** Free form, kept short: components, protocols, file formats,
-the event schema, the invariants a reimplementation must keep. Written by
-agents for agents.
 
 ## Verification: tests name what they verify
 
@@ -174,6 +258,7 @@ an idea.
 
 ```
 go run ./tools/spec check          errors, gaps (an accepted item with no test), warnings
+go run ./tools/spec check FILE     only FILE's problems; warnings fail too (the edit hook runs this)
 go run ./tools/spec ls -l F -s proposed
 go run ./tools/spec show F-12      an item, its traces both ways, its tests
 go run ./tools/spec for FILE       the items the tests of FILE's package verify
