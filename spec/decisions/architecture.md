@@ -43,92 +43,102 @@ differences.
 ### D-3 Keep GoRex's first commands working
 status: proposed · traces: B-3 · source: code
 
-**Choice.** `rex list`, `rex new-tab`, `rex send-keys`, `split -t`,
-`split -v`, `split --horizontal`, a command without `--`, and `rex close`
-without arguments still work as they did.
-
-**Rejected.** Removing them when Rex's commands came. The code gives the
-reason only as "GoRex's first …": scripts written for them keep working.
+**Context.** GoRex had commands of its own before it took Rex's (D-2):
+`rex list`, `rex new-tab`, `rex send-keys`, `split -t`, `split -v`,
+`split --horizontal`, a command without `--`, `rex close` without
+arguments.
+**Options.** (a) Remove them when Rex's commands came. (b) Keep them
+working as they did, beside Rex's.
+**Choice.** (b).
+**Reason.** Scripts written for them keep working. The code says only
+"GoRex's first …".
 
 ### D-4 No Lua
-status: proposed · traces: B-5, B-7 · source: code, rex-docs
-rationale: unknown
+status: proposed · traces: B-5 · source: code, rex-docs
 
 **Context.** Rex is configured in Lua (`init.lua`) and runs Lua scripts
 and handlers with `rex do`.
-
-**Choice.** GoRex has no Lua. Configuration is `settings.json` and
-`keymap.json`; scripts are shell scripts; `rex do` runs only the app's
-actions.
-
-**Rejected.** An embedded Lua runtime. The sources give no reason.
+**Options.** (a) An embedded Lua runtime, as Rex has. (b) No Lua:
+configuration in `settings.json` and `keymap.json`, scripts in the shell,
+and `rex do` runs only the app's actions.
+**Choice.** (b).
+**Reason.** Unknown.
 
 ### D-5 A local server only
 status: proposed · traces: B-6 · source: code, rex-docs, repo
 
-**Choice.** The server listens on one Unix socket in the data directory,
-readable by the user alone. `rex` refuses `-S`.
-
-**Rejected.** Rex's remote hosts, home servers, Tailscale, shared and
-login servers. README: "GoRex's server listens on a local socket only".
-Why remote access is out is not stated.
+**Context.** Rex's server can listen for other machines: remote hosts,
+home servers, Tailscale, shared and login servers, and `rex -S`.
+**Options.** (a) Listen for other machines, as Rex does. (b) Listen on
+one Unix socket in the data directory, readable by the user alone, and
+refuse `-S`.
+**Choice.** (b). README: "GoRex's server listens on a local socket only".
+**Reason.** Unknown. Access from a phone needs (a) or a part of it.
 
 ### D-6 One executable, which starts its own server
-status: proposed · traces: B-2, B-7 · source: code, rex-docs
+status: proposed · traces: B-2 · source: code, rex-docs
 
-**Choice.** The server is the app's executable run with `-server`. Any
-client starts it in the background when none answers. The server links
-`bin/rex` in the data directory to its own executable. Each block has
-that directory first in its `PATH`.
-
-**Reason.** The `rex` in a block is always the one that matches its
-server. One file to install (B-7).
-
-**Rejected.** A separate `rex` program: a shell profile puts another
-version of it first in `PATH`, as Rex's documentation warns.
+**Context.** The app, the server and `rex` must be the same version: a
+`rex` of another version may not speak the server's protocol.
+**Options.** (a) A separate `rex` program. (b) One executable: the server
+is the app's executable run with `-server`, and `rex` is that executable
+by another name.
+**Choice.** (b). Any client starts the server in the background when none
+answers. The server links `bin/rex` in the data directory to its own
+executable, and each block has that directory first in its `PATH`.
+**Reason.** The `rex` in a block is always the one of its server. With
+(a), a shell profile can put another version first in `PATH`, as Rex's
+documentation warns. One file to install.
 
 ### D-7 A protocol of GoRex's own
 status: proposed · traces: B-6 · source: code, rex-docs, owner
 
-**Choice.** Clients speak JSON lines over the Unix socket, with GoRex's
-own requests (`technical/protocol.md`).
-
-**Rejected, by omission.** Rex's server API (`rex api`, its dotted
-methods and JSON schemas). D-11 gives the reason.
-
+**Context.** Rex's server has an API (`rex api`, its dotted methods and
+JSON schemas).
+**Options.** (a) Rex's API. (b) JSON lines over the Unix socket, with
+GoRex's own requests (`technical/protocol.md`).
+**Choice.** (b).
+**Reason.** GoRex keeps its own server (D-11), and the code took no
+part of Rex's API.
 **Consequences.** Rex's own `rex` cannot drive a GoRex server, and the
 reverse.
 
 ### D-8 The server keeps each block's screen
 status: proposed · traces: B-2 · source: code
 
-**Choice.** The server feeds each block's output to a terminal emulator
-without a view (libghostty-vt). An app that attaches gets a snapshot of
-the screen and scrollback at its size; `rex capture` reads the same.
-
-**Rejected.** Replaying the bytes a program printed, as the first server
-did, which full-screen programs do not survive.
+**Context.** An app that attaches, and `rex capture`, need the screen of
+a block whose program printed while no app showed it.
+**Options.** (a) Replay the bytes the program printed, as the first
+server did. (b) Feed each block's output to a terminal emulator without
+a view (libghostty-vt), and send a snapshot of the screen and scrollback
+at the app's size.
+**Choice.** (b). `rex capture` reads the same.
+**Reason.** Full-screen programs do not survive (a).
 
 ### D-9 Restore shells, not commands
 status: proposed · traces: B-2 · source: code
 
-**Choice.** When a new server starts after one that ended, it starts a
-shell in each saved block, in the directory the block had. IDs, labels
-and the layout stay.
-
+**Context.** When the server ends, as at a reboot, its blocks' programs
+end. A new server finds the saved layout.
+**Options.** (a) Run each block's command again. (b) Start a shell in
+each saved block, in the directory the block had, with the same IDs,
+labels and layout.
+**Choice.** (b).
 **Reason.** From the code: a command "could do what it did once more, as
 a deploy".
 
 ### D-10 Wide events for observation
 status: proposed · traces: B-8 · source: code
 
-**Choice.** The server and `rex` append one flat JSON line per request,
-event and command to `events/` in the data directory, for DuckDB.
-They keep the names of flags, not their values, and lengths of text,
-not the text.
-
-**Rejected.** Free-form logs, and telemetry sent anywhere. Rex sends no
-telemetry either.
+**Context.** The owner and agents need a record of real use (B-8) that
+holds no secrets.
+**Options.** (a) Free-form logs. (b) Telemetry sent to a service. (c)
+One flat JSON line per request, event and command, appended to `events/`
+in the data directory, for DuckDB.
+**Choice.** (c). The lines keep the names of flags, not their values, and
+lengths of text, not the text.
+**Reason.** An agent queries (c) with SQL; (a) must be parsed. (b) sends
+data off the machine. Rex sends no telemetry either.
 
 ### D-11 GoRex keeps its own server, not Rex's Linux server
 status: accepted · traces: B-1 · source: owner, rex-docs
@@ -150,3 +160,14 @@ GoRex is also a place to try how a spec drives work on a server.
 **Consequences.** When Rex's Linux server has a stable release and a
 documented API, examine (a) again. GoRex then gives a value only as the
 app, and its own server is a cost.
+
+### D-12 A native app, without a web view
+status: proposed · traces: B-1 · source: repo, code
+
+**Context.** A terminal app needs a window, text and input on Linux,
+macOS and Windows (B-7).
+**Options.** (a) A web view, as Electron apps have. (b) A native
+interface (MyGo) and a terminal emulator in the same executable
+(libghostty-vt), without cgo.
+**Choice.** (b). The executable is about 15 MB.
+**Reason.** Unknown. The README names it as a feature.

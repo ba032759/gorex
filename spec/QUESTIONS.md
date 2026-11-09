@@ -27,6 +27,8 @@ documentation or the repository.
 
 6. Is this a constraint of GoRex, or of the spec experiment only? Should
    it stay a business item?
+   *Answered (2026-11-09):* background, not a need; B-9 is rejected and
+   its text is at the top of `business/needs.md`.
 
 ## D-4 No Lua
 
@@ -108,3 +110,9 @@ documentation or the repository.
 
 26. Do scripts still use `list`, `new-tab`, `send-keys` and the old
     `split` flags, or can they go?
+
+## D-12 A native app, without a web view
+
+27. Why native and without a web view: size, speed, feel, or the wish to
+    try MyGo? Is a web view ruled out for a later client, such as a
+    phone?
