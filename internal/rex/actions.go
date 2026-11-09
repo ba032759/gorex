@@ -441,7 +441,7 @@ func (s *Server) act(name string, a *Args) (any, error) {
 				return nil, err
 			}
 			d := 1
-			if a.Target != "next" {
+			if !strings.EqualFold(a.Target, "next") {
 				d = -1
 			}
 			i, n := ss.windowIndex(w.ID)+d, len(ss.Windows)

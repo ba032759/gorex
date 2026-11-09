@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -432,7 +433,7 @@ type inspectOpts struct {
 // createFlags are the flags of commands that start a terminal; dir is
 // where it starts without --cwd.
 func createFlags(f *flagSet, o *rex.CreateOptions, dir string) {
-	f.str(&o.Dir, "c,cwd,d,dir", "", "start in `DIR`; ~ is your home").defaults(dir)
+	f.str(&o.Dir, "c,cwd,d,dir", "", "start in `DIR`; ~ is your home, ~NAME that user's").defaults(dir)
 	f.boolean(&o.KeepOpen, "keep-open", false, "keep the terminal after its command exits")
 	f.str(&o.Shell, "shell", "", "run the command in `SHELL`'s login environment; none: directly").defaults("your login shell")
 	f.boolean(&o.Interactive, "interactive", false, "also read the shell's interactive startup files")
@@ -752,16 +753,36 @@ func cliVersion(o *bool, _ *call) error {
 
 func absPath(p string) (string, error) { return filepath.Abs(p) }
 
+// fixDir makes --cwd absolute: ~ is the user's home, ~NAME that user's,
+// and a relative path starts from the directory rex runs in.
 func fixDir(o *rex.CreateOptions) {
 	if o.Dir != "" {
-		if strings.HasPrefix(o.Dir, "~") {
-			home, _ := os.UserHomeDir()
-			o.Dir = home + o.Dir[1:]
+		if home, rest, ok := homeOf(o.Dir); ok {
+			o.Dir = filepath.Join(home, rest)
 		}
 		if abs, err := absPath(o.Dir); err == nil {
 			o.Dir = abs
 		}
 	}
+}
+
+// homeOf splits a path that starts with ~ or ~NAME into the home it
+// names and the rest; ok is false for another path, or a user that does
+// not exist, which stays as it is, as a shell leaves it.
+func homeOf(p string) (home, rest string, ok bool) {
+	if !strings.HasPrefix(p, "~") {
+		return "", "", false
+	}
+	name, rest, _ := strings.Cut(p[1:], "/")
+	if name == "" {
+		home, err := os.UserHomeDir()
+		return home, rest, err == nil
+	}
+	u, err := user.Lookup(name)
+	if err != nil {
+		return "", "", false
+	}
+	return u.HomeDir, rest, true
 }
 
 func cliSessionNew(n *newOpts, f *call) error {

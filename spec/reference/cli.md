@@ -234,7 +234,7 @@ Flags: none; it reads its arguments itself.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |
@@ -319,7 +319,7 @@ Also: `rex new`.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |
@@ -375,7 +375,7 @@ Flags: none; it reads its arguments itself.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the anchor's | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the anchor's | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |
@@ -469,7 +469,7 @@ Also: `rex new-tab`.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | with a command, the directory rex runs in; else the focused block's | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | with a command, the directory rex runs in; else the focused block's | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |

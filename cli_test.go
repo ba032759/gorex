@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -253,5 +255,63 @@ func TestInterruptExits130(t *testing.T) {
 func TestCompletionPowerShell(t *testing.T) {
 	if out, code := cli(t, nil, "completion", "powershell"); code != exitUsage || !strings.Contains(out, "Linux") {
 		t.Errorf("completion powershell: %d %s", code, out)
+	}
+}
+
+// ~NAME in --cwd is that user's home.
+//
+// spec: F-132
+func TestHomeOfUser(t *testing.T) {
+	u, err := user.Current()
+	if err != nil {
+		t.Skip(err)
+	}
+	t.Setenv("HOME", t.TempDir())
+	for p, want := range map[string]string{
+		"~":                       os.Getenv("HOME"),
+		"~/src":                   filepath.Join(os.Getenv("HOME"), "src"),
+		"~" + u.Username + "/src": filepath.Join(u.HomeDir, "src"),
+		"~" + u.Username:          u.HomeDir,
+		"~no-such-user-gorex/src": filepath.Join(must(os.Getwd()), "~no-such-user-gorex/src"),
+		"src":                     filepath.Join(must(os.Getwd()), "src"),
+	} {
+		o := rex.CreateOptions{Dir: p}
+		if fixDir(&o); o.Dir != want {
+			t.Errorf("--cwd %s: %s, want %s", p, o.Dir, want)
+		}
+	}
+}
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// rex window focus takes next and prev in any case.
+//
+// spec: F-142
+func TestWindowFocusNextAnyCase(t *testing.T) {
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Create: &rex.CreateOptions{Dir: "/tmp"}}, &s); err != nil {
+		t.Fatal(err)
+	}
+	here := map[string]string{"REX_SESSION": s["session_id"].(string)}
+	cli(t, here, "window", "new")
+	cli(t, here, "window", "new")
+	for _, step := range []struct {
+		word string
+		want int
+	}{{"1", 0}, {"NEXT", 1}, {"Next", 2}, {"PREV", 1}, {"Prev", 0}, {"next", 1}} {
+		if out, code := cli(t, here, "window", "focus", step.word); code != 0 {
+			t.Fatalf("window focus %s: %d %s", step.word, code, out)
+		}
+		m, _ := c.Model()
+		ss := m.Sessions[0]
+		if got := slices.IndexFunc(ss.Windows, func(w *rex.Window) bool { return w.ID == ss.Active }); got != step.want {
+			t.Errorf("window focus %s: window %d, want %d", step.word, got, step.want)
+		}
 	}
 }

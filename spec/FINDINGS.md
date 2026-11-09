@@ -416,7 +416,7 @@ connected. Rex also prints the actions the client offers.
 - `rex window focus NEXT` matches `next` in any case, then goes to the
   previous window: only the exact word `next` goes forward.
 
-- Status: decided: `~user` is that user's home; `next` and `prev` match in any case, as other words.
+- Status: resolved (2026-11-09): `~user` is that user's home (F-132); `next` and `prev` match in any case, as other words (F-142).
 
 ## Finding 31: what the functional template does not hold
 

@@ -41,7 +41,7 @@ options for the block they create:
 
 | Option | Effect |
 |---|---|
-| `-c`, `--cwd`, `-d`, `--dir DIR` | the block's directory; `~` is the home directory; a relative path starts from the directory `rex` runs in |
+| `-c`, `--cwd`, `-d`, `--dir DIR` | the block's directory; `~` is the user's home directory, `~NAME` that user's; a relative path starts from the directory `rex` runs in |
 | `--keep-open` | the block stays when its command exits (F-139) |
 | `--shell SHELL` | the shell whose environment runs the command; `none` starts it directly (F-133) |
 | `--interactive` | the shell also reads its interactive startup files (F-133) |
@@ -200,7 +200,7 @@ window of F-111, and make that window active.
 nearest block on that side.
 `next` and `prev` SHALL move it to the next or previous block in layout
 order.
-`rex window focus next` and `prev` SHALL make the window after or before
+`rex window focus next` and `prev`, in any case, SHALL make the window after or before
 the window of F-111 active.
 WHEN the focus or the window is at the edge or the end, it SHALL stay,
 unless `--wrap` is given.
