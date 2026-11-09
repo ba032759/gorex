@@ -53,7 +53,7 @@ func startTestServer(t *testing.T) *rex.Client {
 	t.Setenv("GOREX_DIR", dir)
 	t.Setenv("SHELL", testShell.path)
 	t.Setenv("ENV", "")
-	for _, k := range []string{"REX_SERVER", "REX_SESSION", "REX_BLOCK", "GOREX_SESSION", "REX_CLIENT"} {
+	for _, k := range []string{"REX_SERVER", "REX_SESSION", "REX_BLOCK", "REX_CLIENT"} {
 		t.Setenv(k, "")
 	}
 	done := make(chan struct{})

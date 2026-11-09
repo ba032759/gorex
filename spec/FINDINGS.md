@@ -164,7 +164,7 @@ server than the one `REX_SERVER` names.
 "session" was one terminal. `rex` still reads it when `REX_BLOCK` is
 empty.
 
-- Status: decided: `GOREX_SESSION` goes; `REX_BLOCK` is the one name.
+- Status: resolved (2026-11-09): `GOREX_SESSION` goes: blocks do not get it and `rex` does not read it; `REX_BLOCK` is the one name (F-109, F-118, F-120).
 
 ## Finding 13: block, pane and terminal; window and tab
 

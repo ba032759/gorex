@@ -178,3 +178,38 @@ func TestRexServerBeforeGorexDir(t *testing.T) {
 		t.Errorf("REX_SERVER of a remote server: exit %d, not 2", code)
 	}
 }
+
+// spec: F-109, F-118, F-120
+func TestNoGorexSession(t *testing.T) {
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Create: &rex.CreateOptions{Command: []string{"env"}, KeepOpen: true}}, &s); err != nil {
+		t.Fatal(err)
+	}
+	first := s["block_id"].(string)
+	var text string
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline) && !strings.Contains(text, "REX_BLOCK="); time.Sleep(30 * time.Millisecond) {
+		var out map[string]any
+		if c.Do("capture", &rex.Args{Block: first}, &out) == nil {
+			text, _ = out["text"].(string)
+		}
+	}
+	if !strings.Contains(text, "REX_BLOCK="+first) || !strings.Contains(text, "REX_SERVER=unix:") {
+		t.Fatalf("the block's environment: %q", text)
+	}
+	if strings.Contains(text, "GOREX_SESSION") {
+		t.Errorf("the block has GOREX_SESSION: %q", text)
+	}
+	// rex takes no context from GOREX_SESSION: zoom acts on the focused
+	// block, not on the one GOREX_SESSION names.
+	var sp map[string]any
+	if err := c.Do("block.split", &rex.Args{Block: first, NoFocus: true}, &sp); err != nil {
+		t.Fatal(err)
+	}
+	if _, code := cli(t, map[string]string{"GOREX_SESSION": sp["block_id"].(string)}, "zoom"); code != 0 {
+		t.Fatalf("zoom: exit %d", code)
+	}
+	if m, _ := c.Model(); m.Sessions[0].Windows[0].Zoom != first {
+		t.Errorf("zoom acted on %q, not the focused block %s", m.Sessions[0].Windows[0].Zoom, first)
+	}
+}

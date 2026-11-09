@@ -138,11 +138,10 @@ which restarts the server.
 ## Context and targets
 
 ### F-109 Where rex runs
-status: proposed · traces: B-3, B-4 · source: code, rex-docs
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, owner
 
 `rex` SHALL take its context from `REX_SESSION` and `REX_BLOCK`.
-WHEN `REX_BLOCK` is empty THEN `rex` SHALL take the block from
-`GOREX_SESSION`.
+`rex` SHALL NOT take its context from `GOREX_SESSION`.
 A command that names no target SHALL act in its context (F-110, F-111,
 F-112).
 
@@ -235,7 +234,7 @@ status: proposed · traces: B-4 · source: code, tests
 ## Environment
 
 ### F-118 The environment of a block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, owner
 
 The server SHALL start each block's program with the server's
 environment, without the variables of other terminals, and with:
@@ -247,7 +246,6 @@ environment, without the variables of other terminals, and with:
 | `REX_SERVER` | `unix:` and the socket's path |
 | `REX_BIN_DIR` | `bin` in the data directory |
 | `GOREX_DIR` | the data directory |
-| `GOREX_SESSION` | the block's ID |
 | `PATH` | `REX_BIN_DIR`, then the server's `PATH` |
 | `TERM`, `COLORTERM` | `xterm-256color`, `truecolor` |
 | `TERM_PROGRAM`, `TERM_PROGRAM_VERSION` | `GoRex`, its version |
@@ -261,11 +259,11 @@ executable, on Linux and macOS.
 A block that runs `rex` SHALL then run the `rex` of its own server.
 
 ### F-120 What rex reads from the environment
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
-`rex` SHALL read `REX_SESSION`, `REX_BLOCK` and `GOREX_SESSION` (F-109),
-`REX_CLIENT` (F-101), `REX_SERVER` and `GOREX_DIR` (F-106), and
-`GOREX_EVENTS` (F-121).
+`rex` SHALL read `REX_SESSION` and `REX_BLOCK` (F-109), `REX_CLIENT`
+(F-101), `REX_SERVER` and `GOREX_DIR` (F-106), and `GOREX_EVENTS`
+(F-121).
 
 ### F-121 A wide event per command
 status: proposed · traces: B-8 · verify: event · source: code

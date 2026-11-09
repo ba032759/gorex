@@ -636,9 +636,6 @@ func connect() (*rex.Client, error) {
 // withContext fills in where the command runs, from the environment.
 func withContext(a *rex.Args) *rex.Args {
 	a.CtxSession, a.CtxBlock = os.Getenv("REX_SESSION"), os.Getenv("REX_BLOCK")
-	if a.CtxBlock == "" {
-		a.CtxBlock = os.Getenv("GOREX_SESSION")
-	}
 	return a
 }
 
