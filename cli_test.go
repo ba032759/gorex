@@ -416,8 +416,9 @@ func TestDataDirectory(t *testing.T) {
 }
 
 // silentServer listens on the server's socket of a directory of its own
-// and answers nothing, or only hello when hello is set.
-func silentServer(t *testing.T, hello bool) {
+// and answers nothing, or only hello, with the protocol version hello,
+// when hello is not 0.
+func silentServer(t *testing.T, hello int) {
 	t.Helper()
 	dir := testDir(t)
 	t.Cleanup(func() { os.RemoveAll(dir) })
@@ -439,8 +440,8 @@ func silentServer(t *testing.T, hello bool) {
 				sc := bufio.NewScanner(conn)
 				for sc.Scan() {
 					var req rex.Request
-					if json.Unmarshal(sc.Bytes(), &req) == nil && hello && req.Op == "hello" {
-						data, _ := json.Marshal(rex.Hello{Version: rex.ProtocolVersion})
+					if json.Unmarshal(sc.Bytes(), &req) == nil && hello != 0 && req.Op == "hello" {
+						data, _ := json.Marshal(rex.Hello{Version: hello})
 						b, _ := json.Marshal(rex.Response{ID: req.ID, Data: data})
 						conn.Write(append(b, '\n'))
 					}
@@ -452,13 +453,13 @@ func silentServer(t *testing.T, hello bool) {
 
 // spec: F-101
 func TestTimeoutLimitsEveryRequest(t *testing.T) {
-	for _, hello := range []bool{false, true} {
+	for _, hello := range []int{0, rex.ProtocolVersion} {
 		silentServer(t, hello)
 		for _, args := range [][]string{{"session", "ls"}, {"block", "ls"}, {"split"}, {"version"}} {
 			start := time.Now()
 			_, code := cli(t, nil, append([]string{"--timeout", "200ms"}, args...)...)
 			if took := time.Since(start); code == 0 && args[0] != "version" || took > 2*time.Second {
-				t.Errorf("hello %v, %v: exit %d after %s", hello, args, code, took)
+				t.Errorf("hello %d, %v: exit %d after %s", hello, args, code, took)
 			}
 		}
 	}
@@ -681,5 +682,656 @@ func TestHelpAfterCommand(t *testing.T) {
 	}
 	if _, code := cli(t, nil, "--autostart=false", "split", "--", "grep", "-h"); code != exitNoServer {
 		t.Errorf("rex split -- grep -h: %d, want the split tried", code)
+	}
+}
+
+// noServer sets GOREX_DIR to a directory of its own, where no server
+// runs, and returns the path of the log a server started there writes.
+func noServer(t *testing.T) string {
+	t.Helper()
+	dir := testDir(t)
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	t.Setenv("GOREX_DIR", dir)
+	t.Setenv("REX_SERVER", "")
+	return filepath.Join(dir, "server.log")
+}
+
+// started tells whether rex started a server for the data directory: the
+// server it starts writes its log there.
+func started(log string) bool {
+	_, err := os.Stat(log)
+	return err == nil
+}
+
+// The tests' executable is not a server: a server rex starts here never
+// answers. That a real one does is checked by hand (F-107).
+//
+// spec: F-107
+func TestAutostart(t *testing.T) {
+	log := noServer(t)
+	for _, tc := range []struct {
+		args []string
+		code int
+	}{
+		{[]string{"--autostart=false", "ls"}, exitNoServer},
+		{[]string{"--autostart=false", "split"}, exitNoServer},
+		{[]string{"version"}, exitOK},
+		{[]string{"server", "status"}, exitNoServer},
+		{[]string{"server", "stop"}, exitNoServer},
+	} {
+		if out, code := cli(t, nil, tc.args...); code != tc.code {
+			t.Errorf("%v: %d, want %d: %s", tc.args, code, tc.code, out)
+		}
+		if started(log) {
+			t.Fatalf("%v started a server", tc.args)
+		}
+	}
+	start := time.Now()
+	if out, code := cli(t, nil, "--timeout", "500ms", "ls"); code != exitNoServer {
+		t.Errorf("ls, the server started not answering: %d %s", code, out)
+	}
+	if took := time.Since(start); took < 500*time.Millisecond || took > 5*time.Second {
+		t.Errorf("rex waited %s for the server, with --timeout 500ms", took)
+	}
+	// rex started its own executable as a server: it tells so in the log.
+	var b []byte
+	for deadline := time.Now().Add(3 * time.Second); !strings.Contains(string(b), "-server") && time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		b, _ = os.ReadFile(log)
+	}
+	if !strings.Contains(string(b), "-server") {
+		t.Errorf("rex started no server: the log has %q", b)
+	}
+}
+
+// spec: F-108
+func TestServerOfAnotherVersion(t *testing.T) {
+	silentServer(t, rex.ProtocolVersion+1)
+	out, code := cli(t, nil, "ls")
+	if code != exitFailed || !strings.Contains(out, fmt.Sprint(rex.ProtocolVersion)) ||
+		!strings.Contains(out, fmt.Sprint(rex.ProtocolVersion+1)) || !strings.Contains(out, "open GoRex") {
+		t.Errorf("ls with a server of protocol %d: %d %s", rex.ProtocolVersion+1, code, out)
+	}
+}
+
+// spec: F-110
+func TestSessionOfACommand(t *testing.T) {
+	c := startTestServer(t)
+	ids, blocks := map[string]string{}, map[string]string{}
+	for _, l := range []string{"a", "b", "c", "d"} {
+		var s map[string]any
+		if err := c.Do("session.new", &rex.Args{Label: l}, &s); err != nil {
+			t.Fatal(err)
+		}
+		ids[s["session_id"].(string)], blocks[l] = l, s["block_id"].(string)
+	}
+	// in is the session rex block ls lists the blocks of.
+	in := func(env map[string]string, args ...string) string {
+		t.Helper()
+		out, code := cli(t, env, append([]string{"block", "ls", "--json"}, args...)...)
+		var r struct {
+			Blocks []rex.BlockInfo `json:"blocks"`
+		}
+		if code != 0 || json.Unmarshal([]byte(out), &r) != nil || len(r.Blocks) == 0 {
+			t.Fatalf("block ls %v: %d %s", args, code, out)
+		}
+		return ids[r.Blocks[0].Session]
+	}
+	m, _ := c.Model()
+	sid := func(l string) string {
+		return m.Sessions[slices.IndexFunc(m.Sessions, func(s *rex.Session) bool { return s.Label == l })].ID
+	}
+	ctx := map[string]string{"REX_SESSION": sid("b"), "REX_BLOCK": blocks["c"]}
+	if got := in(ctx, "-s", "a"); got != "a" {
+		t.Errorf("-s a: %s", got)
+	}
+	if got := in(ctx); got != "b" {
+		t.Errorf("the context session b, the context block in c: %s", got)
+	}
+	if got := in(map[string]string{"REX_SESSION": "", "REX_BLOCK": blocks["c"]}); got != "c" {
+		t.Errorf("the context block in c: %s", got)
+	}
+	none := map[string]string{"REX_SESSION": "", "REX_BLOCK": ""}
+	if got := in(none); got != "a" {
+		t.Errorf("no context, no app: %s, not the first", got)
+	}
+	view := func(l string) {
+		v, err := rex.Connect()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { v.Close() })
+		if err := v.View(sid(l)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	view("d")
+	if got := in(none); got != "d" {
+		t.Errorf("an app shows d: %s", got)
+	}
+	view("c")
+	if got := in(none); got != "c" {
+		t.Errorf("an app showed c last: %s", got)
+	}
+	for _, s := range m.Sessions {
+		c.Do("session.kill", &rex.Args{Session: s.ID}, nil)
+	}
+	if out, code := cli(t, none, "block", "ls"); code != exitTarget {
+		t.Errorf("block ls with no session: %d %s", code, out)
+	}
+}
+
+// windowIn is the window rex window inspect shows.
+func windowIn(t *testing.T, env map[string]string, args ...string) string {
+	t.Helper()
+	out, code := cli(t, env, append([]string{"window", "inspect", "--json"}, args...)...)
+	var r struct {
+		ID string `json:"window_id"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &r) != nil {
+		t.Fatalf("window inspect %v: %d %s", args, code, out)
+	}
+	return r.ID
+}
+
+// spec: F-111
+func TestWindowOfACommand(t *testing.T) {
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Label: "w"}, &s); err != nil {
+		t.Fatal(err)
+	}
+	var w2, w3 map[string]any
+	c.Do("window.new", &rex.Args{Session: "w"}, &w2)
+	c.Do("window.new", &rex.Args{Session: "w"}, &w3) // the active window
+	m, _ := c.Model()
+	w1 := m.Sessions[0].Windows[0].ID
+	env := map[string]string{"REX_SESSION": "", "REX_BLOCK": w2["block_id"].(string)}
+	if got := windowIn(t, env); got != w2["window_id"] {
+		t.Errorf("no -s, no -w: window %s, not the context block's %s", got, w2["window_id"])
+	}
+	if got := windowIn(t, env, "-s", "w"); got != w3["window_id"] {
+		t.Errorf("-s: window %s, not the active %s", got, w3["window_id"])
+	}
+	out, code := cli(t, env, "block", "ls", "--json", "-w", w1)
+	var r struct {
+		Blocks []rex.BlockInfo `json:"blocks"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &r) != nil || len(r.Blocks) != 1 || r.Blocks[0].Window != w1 {
+		t.Errorf("block ls -w %s: %d %s", w1, code, out)
+	}
+}
+
+// spec: F-115
+func TestWhereAWindowMatches(t *testing.T) {
+	c := startTestServer(t)
+	for _, l := range []string{"a", "b"} {
+		if err := c.Do("session.new", &rex.Args{Label: l, WindowLabel: "build"}, nil); err != nil {
+			t.Fatal(err)
+		}
+		c.Do("window.new", &rex.Args{Session: l, WindowLabel: "only-" + l}, nil)
+	}
+	m, _ := c.Model()
+	a, b := m.Sessions[0], m.Sessions[1]
+	env := map[string]string{"REX_SESSION": a.ID, "REX_BLOCK": ""}
+	if got := windowIn(t, env, "build"); got != a.Windows[0].ID {
+		t.Errorf("build: %s, not a's", got)
+	}
+	if out, code := cli(t, env, "window", "inspect", "only-b"); code != exitTarget {
+		t.Errorf("a window of another session by label: %d %s", code, out)
+	}
+	if got := windowIn(t, env, "-s", "b", "build"); got != b.Windows[0].ID {
+		t.Errorf("-s b build: %s, not b's", got)
+	}
+	for _, args := range [][]string{{b.Windows[1].ID}, {"-s", "a", b.Windows[1].ID}} {
+		if got := windowIn(t, env, args...); got != b.Windows[1].ID {
+			t.Errorf("%v, the full ID of a window of b: %s", args, got)
+		}
+	}
+}
+
+// sideOf tells where block id is beside anchor in a layout: right, left,
+// above or below; "" when they share no split.
+func sideOf(l *rex.Layout, anchor, id string) string {
+	if l == nil || l.IsLeaf() {
+		return ""
+	}
+	switch {
+	case l.A.Block == anchor && l.B.Block == id && l.Vertical:
+		return "below"
+	case l.A.Block == anchor && l.B.Block == id:
+		return "right"
+	case l.B.Block == anchor && l.A.Block == id && l.Vertical:
+		return "above"
+	case l.B.Block == anchor && l.A.Block == id:
+		return "left"
+	}
+	return sideOf(l.A, anchor, id) + sideOf(l.B, anchor, id)
+}
+
+// spec: F-122
+func TestFirstCommands(t *testing.T) {
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Label: "first", Create: &rex.CreateOptions{Dir: "/tmp"}}, &s); err != nil {
+		t.Fatal(err)
+	}
+	b1 := s["block_id"].(string)
+	here := map[string]string{"REX_SESSION": s["session_id"].(string), "REX_BLOCK": b1}
+	if out, code := cli(t, here, "list"); code != 0 || !strings.Contains(out, "first") || !strings.Contains(out, "[1]") || !strings.Contains(out, b1) {
+		t.Errorf("list: %d %s", code, out)
+	}
+
+	// new-tab is window new; two words or more are the command.
+	window := func(args ...string) (*rex.Window, []string) {
+		t.Helper()
+		out, code := cli(t, here, append(args, "--focus=false")...)
+		if code != 0 {
+			t.Fatalf("%v: %d %s", args, code, out)
+		}
+		m, _ := c.Model()
+		for _, w := range m.Sessions[0].Windows {
+			if w.ID == strings.TrimSpace(out) {
+				return w, m.Blocks[w.Layout.Block].Command
+			}
+		}
+		t.Fatalf("%v printed %q, no window", args, out)
+		return nil, nil
+	}
+	if w, cmd := window("new-tab", "logs"); w.Label != "logs" || cmd != nil {
+		t.Errorf("new-tab logs: label %q, command %q", w.Label, cmd)
+	}
+	for _, args := range [][]string{{"new-tab", "sleep", "30"}, {"window", "new", "sleep", "30"}} {
+		if w, cmd := window(args...); w.Label != "" || !slices.Equal(cmd, []string{"sleep", "30"}) {
+			t.Errorf("%v: label %q, command %q", args, w.Label, cmd)
+		}
+	}
+
+	// send-keys types text, its <CR>, <Esc>, \n, \r and \e as keys.
+	for _, args := range [][]string{{"send-keys", b1, `echo one-$((1+1))<CR>`}, {"send-keys", `echo two-$((1+2))\n`}, {"send-keys", `echo three-$((1+3))\r`}} {
+		if out, code := cli(t, here, args...); code != 0 {
+			t.Errorf("%v: %d %s", args, code, out)
+		}
+	}
+	waitScreen(t, c, b1, "one-2")
+	waitScreen(t, c, b1, "two-3")
+	waitScreen(t, c, b1, "three-4")
+	var cat map[string]any
+	c.Do("block.split", &rex.Args{Block: b1, NoFocus: true, Create: &rex.CreateOptions{Command: []string{"cat", "-v"}}}, &cat)
+	if out, code := cli(t, here, "send-keys", cat["block_id"].(string), `a<Esc>b\ec<CR>`); code != 0 {
+		t.Errorf("send-keys with escapes: %d %s", code, out)
+	}
+	waitScreen(t, c, cat["block_id"].(string), "a^[b^[c")
+	c.Do("block.close", &rex.Args{Block: cat["block_id"].(string)}, nil)
+
+	// split's first flags, and a command without --.
+	for _, tc := range []struct {
+		args []string
+		side string
+	}{
+		{[]string{"-t", b1}, "right"},
+		{[]string{"--target", b1}, "right"},
+		{[]string{"-b", b1, "-v"}, "below"},
+		{[]string{"-b", b1, "--vertical"}, "below"},
+		{[]string{"-b", b1, "--down"}, "below"},
+		{[]string{"-b", b1, "--below"}, "below"},
+		{[]string{"-b", b1, "--horizontal"}, "right"},
+		{[]string{"-b", b1, "--right"}, "right"},
+		{[]string{"-b", b1, "--beside"}, "right"},
+		{[]string{"-b", b1, "sleep", "30"}, "right"},
+	} {
+		out, code := cli(t, here, append([]string{"split", "--focus=false"}, tc.args...)...)
+		id := strings.TrimSpace(out)
+		m, _ := c.Model()
+		_, w := m.BlockPlace(b1)
+		if code != 0 || w == nil || sideOf(w.Layout, b1, id) != tc.side {
+			t.Errorf("split %v: %d %q, want %s of %s", tc.args, code, out, tc.side, b1)
+		}
+		if tc.args[len(tc.args)-1] == "30" && (m.Blocks[id] == nil || !slices.Equal(m.Blocks[id].Command, []string{"sleep", "30"})) {
+			t.Errorf("split %v: not the command", tc.args)
+		}
+		c.Do("block.close", &rex.Args{Block: id}, nil)
+	}
+}
+
+// waitScreen waits for a block's screen to show want, and returns it.
+func waitScreen(t *testing.T, c *rex.Client, block, want string) string {
+	t.Helper()
+	var text string
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(30 * time.Millisecond) {
+		var out map[string]any
+		if c.Do("capture", &rex.Args{Block: block, Trim: true}, &out) == nil {
+			if text, _ = out["text"].(string); strings.Contains(text, want) {
+				return text
+			}
+		}
+	}
+	t.Fatalf("block %s never showed %q; it shows %q", block, want, text)
+	return ""
+}
+
+// spec: F-123
+func TestVersion(t *testing.T) {
+	noServer(t)
+	want := fmt.Sprintf("rex %s (GoRex, protocol %d)", rex.Version, rex.ProtocolVersion)
+	if out, code := cli(t, nil, "version"); code != 0 || !strings.Contains(out, want) || strings.Contains(out, "server") {
+		t.Errorf("version without a server: %d %s", code, out)
+	}
+	startTestServer(t)
+	server := fmt.Sprintf("server pid %d, protocol %d", os.Getpid(), rex.ProtocolVersion)
+	if out, code := cli(t, nil, "version"); code != 0 || !strings.Contains(out, want) || !strings.Contains(out, server) {
+		t.Errorf("version with a server: %d %s", code, out)
+	}
+}
+
+// spec: F-133
+func TestBlockCommandStarts(t *testing.T) {
+	home := t.TempDir()
+	bin := filepath.Join(home, "bin")
+	os.Mkdir(bin, 0o755)
+	os.WriteFile(filepath.Join(bin, "gorex-on-profile"), []byte("#!/bin/sh\necho on-the-profile-path\n"), 0o755)
+	os.WriteFile(filepath.Join(home, ".profile"), []byte(`PATH="`+bin+`:$PATH"
+export GOREX_PROFILE=read
+alias gorex-alias='echo aliased'
+`), 0o644)
+	nosh := filepath.Join(home, "nosh") // a shell T-125 does not name
+	os.Symlink(testShell.path, nosh)
+	t.Setenv("HOME", home)
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Create: &rex.CreateOptions{Dir: "/tmp"}}, &s); err != nil {
+		t.Fatal(err)
+	}
+	b := s["block_id"].(string)
+	waitScreen(t, c, b, testShell.prompt)
+	c.Do("send", &rex.Args{Block: b, Data: "echo zero=$0 profile=$GOREX_PROFILE\r"}, nil)
+	waitScreen(t, c, b, "zero=-sh profile=read")
+
+	run := func(args ...string) string {
+		t.Helper()
+		out, code := cli(t, nil, append([]string{"run", "--keep-open", "--focus=false"}, args...)...)
+		if code != 0 {
+			t.Fatalf("run %v: %d %s", args, code, out)
+		}
+		return strings.TrimSpace(out)
+	}
+	waitScreen(t, c, run("--", "gorex-on-profile"), "on-the-profile-path")
+	if text := waitScreen(t, c, run("--", "gorex-alias"), "exited with code 127"); strings.Contains(text, "aliased") {
+		t.Errorf("a command ran as the profile's alias: %q", text)
+	}
+	waitScreen(t, c, run("--", "printf", "[%s]", "a b", "$HOME", "*", "'"), "[a b][$HOME][*][']")
+
+	blocks := func() int {
+		m, _ := c.Model()
+		return len(m.Blocks)
+	}
+	for _, sh := range []string{"none", nosh} {
+		waitScreen(t, c, run("--shell", sh, "--", "sh", "-c", "echo direct=[$GOREX_PROFILE]"), "direct=[]")
+		n := blocks()
+		if out, code := cli(t, nil, "run", "--shell", sh, "--", "gorex-on-profile"); code != exitFailed {
+			t.Errorf("--shell %s, a command off the PATH: %d %s", sh, code, out)
+		}
+		if blocks() != n {
+			t.Errorf("--shell %s, a command not found: a block was created", sh)
+		}
+	}
+}
+
+// spec: F-148
+func TestDirectionWords(t *testing.T) {
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Label: "d"}, &s); err != nil {
+		t.Fatal(err)
+	}
+	b1 := s["block_id"].(string)
+	here := map[string]string{"REX_SESSION": s["session_id"].(string), "REX_BLOCK": b1}
+	words := map[string][]string{
+		"right": {"right", "r", "beside", "horizontal"},
+		"left":  {"left", "l"},
+		"above": {"above", "up", "top", "u"},
+		"below": {"below", "down", "bottom", "d", "vertical"},
+	}
+	cases := func(yield func(side, word string) bool) {
+		for side, ws := range words {
+			for _, w := range ws {
+				for _, word := range []string{w, strings.ToUpper(w), strings.ToUpper(w[:1]) + w[1:]} {
+					if !yield(side, word) {
+						return
+					}
+				}
+			}
+		}
+	}
+	layout := func() *rex.Layout {
+		m, _ := c.Model()
+		_, w := m.BlockPlace(b1)
+		return w.Layout
+	}
+	for side, word := range cases {
+		for _, args := range [][]string{{"split", "--split=" + word}, {"run", "--split", word, "--", "sh"}} {
+			out, code := cli(t, here, append(args, "--focus=false")...)
+			id := strings.TrimSpace(out)
+			if got := sideOf(layout(), b1, id); code != 0 || got != side {
+				t.Errorf("%v: %d %q, %q of the block, want %s", args, code, out, got, side)
+			}
+			c.Do("block.close", &rex.Args{Block: id}, nil)
+		}
+	}
+	// b1 | b2 over b3.
+	var sp map[string]any
+	c.Do("block.split", &rex.Args{Block: b1, Direction: "right"}, &sp)
+	b2 := sp["block_id"].(string)
+	c.Do("block.split", &rex.Args{Block: b2, Direction: "below"}, &sp)
+	b3 := sp["block_id"].(string)
+	for side, word := range cases {
+		if out, code := cli(t, here, "move", b3, word, b1); code != 0 || sideOf(layout(), b1, b3) != side {
+			t.Errorf("move %s: %d %s, %q of the block", word, code, out, sideOf(layout(), b1, b3))
+		}
+		cli(t, here, "move", b3, "below", b2)
+		l := layout()
+		before := map[bool]float32{false: l.Ratio, true: l.B.Ratio}
+		if out, code := cli(t, here, "resize", b3, word, "--amount", "1"); code != 0 {
+			t.Errorf("resize %s: %d %s", word, code, out)
+			continue
+		}
+		l = layout()
+		vertical := side == "above" || side == "below"
+		after := map[bool]float32{false: l.Ratio, true: l.B.Ratio}[vertical]
+		if grew := after > before[vertical]; grew != (side == "right" || side == "below") || after == before[vertical] {
+			t.Errorf("resize %s: ratio %v to %v", word, before[vertical], after)
+		}
+	}
+	for _, args := range [][]string{
+		{"split", "--split=diagonal"}, {"run", "--split=diagonal", "--", "sh"},
+		{"move", b3, "diagonal", b1}, {"resize", b3, "diagonal"}, {"split", "--split=rightward"},
+	} {
+		if out, code := cli(t, here, args...); code != exitUsage {
+			t.Errorf("%v: %d %s", args, code, out)
+		}
+	}
+}
+
+// spec: F-155
+func TestBlockTypes(t *testing.T) {
+	noServer(t)
+	if out, code := cli(t, nil, "--autostart=false", "block", "types"); code != 0 || strings.Fields(out)[0] != "com.superlogical.terminal.shell" || strings.Count(out, "\n") != 1 {
+		t.Errorf("block types: %d %q", code, out)
+	}
+	if out, code := cli(t, nil, "--autostart=false", "block", "new"); code != exitUsage || !strings.Contains(out, "rex run") {
+		t.Errorf("block new: %d %s", code, out)
+	}
+}
+
+// spec: F-176
+func TestDoRunsNoLua(t *testing.T) {
+	startTestServer(t)
+	for _, args := range [][]string{
+		{"-e", "print(1)"}, {"--eval=print(1)"}, {"init.lua"}, {"./tool"}, {"dir/tool"}, {`dir\tool`}, {"-"},
+	} {
+		if out, code := cli(t, nil, append([]string{"do"}, args...)...); code != exitUsage || !strings.Contains(out, "no Lua") {
+			t.Errorf("do %v: %d %s", args, code, out)
+		}
+	}
+	// Rex's flags are taken and ignored: the action goes to the app, of
+	// which there is none.
+	out, code := cli(t, nil, "do", "--origin", "x", "--for", "1s", "--all", "--fail-fast", "-a", "pane.split", "client.tab.new")
+	if code != exitFailed || !strings.Contains(out, "no app is connected") {
+		t.Errorf("do with Rex's flags: %d %s", code, out)
+	}
+}
+
+// spec: F-177
+func TestActionsList(t *testing.T) {
+	log := noServer(t)
+	out, code := cli(t, nil, "actions", "--json")
+	var r struct {
+		Actions []actionInfo `json:"actions"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &r) != nil || len(r.Actions) < 10 {
+		t.Fatalf("actions --json: %d %s", code, out)
+	}
+	if started(log) {
+		t.Error("rex actions started a server")
+	}
+	if !slices.IsSortedFunc(r.Actions, func(x, y actionInfo) int { return strings.Compare(x.Name, y.Name) }) {
+		t.Error("the actions are not sorted by name")
+	}
+	for _, a := range r.Actions {
+		if a.Title == "" {
+			t.Errorf("%s has no title", a.Name)
+		}
+	}
+	if i := slices.IndexFunc(r.Actions, func(a actionInfo) bool { return a.Name == "pane.resize" }); i < 0 || !strings.Contains(r.Actions[i].Args, "direction") {
+		t.Errorf("pane.resize does not say its arguments: %+v", r.Actions)
+	}
+	if out, code := cli(t, nil, "actions"); code != 0 || !strings.HasPrefix(out, "NAME") || !strings.Contains(out, "Split Pane") {
+		t.Errorf("actions: %d %s", code, out)
+	}
+}
+
+// spec: F-181
+func TestServerStatus(t *testing.T) {
+	log := noServer(t)
+	if out, code := cli(t, nil, "server", "status"); code != exitNoServer || !strings.HasPrefix(out, "not running") {
+		t.Errorf("status without a server: %d %s", code, out)
+	}
+	if started(log) {
+		t.Error("rex server status started a server")
+	}
+	c := startTestServer(t)
+	c.Do("session.new", &rex.Args{}, nil)
+	exe, _ := rex.Executable()
+	out, code := cli(t, nil, "server", "status")
+	for _, want := range []string{fmt.Sprintf("running, pid %d, up ", os.Getpid()), rex.SocketPath(), rex.Dir(), "sessions 1", exe} {
+		if code != 0 || !strings.Contains(out, want) {
+			t.Errorf("status: %d %s, without %q", code, out, want)
+		}
+	}
+}
+
+// That rex server start starts a real server is checked by hand (F-183):
+// the tests' executable is none.
+//
+// spec: F-183, F-107
+func TestServerStart(t *testing.T) {
+	log := noServer(t)
+	if out, code := cli(t, nil, "--autostart=false", "--timeout", "500ms", "server", "start"); code != exitNoServer {
+		t.Errorf("start, the server started not answering: %d %s", code, out)
+	}
+	if !started(log) {
+		t.Error("rex --autostart=false server start started no server")
+	}
+
+	c := startTestServer(t)
+	c.Do("session.new", &rex.Args{Label: "kept"}, nil)
+	h, _ := c.Hello()
+	if out, code := cli(t, nil, "server", "start"); code != 0 {
+		t.Errorf("start with a server: %d %s", code, out)
+	}
+	if h2, err := c.Hello(); err != nil || h2.PID != h.PID || !h2.Started.Equal(h.Started) {
+		t.Errorf("start with a server: %+v %v, was %+v", h2, err, h)
+	}
+	if m, _ := c.Model(); len(m.Sessions) != 1 {
+		t.Errorf("start with a server: %d sessions", len(m.Sessions))
+	}
+	if out, code := cli(t, nil, "server", "run"); code != exitFailed {
+		t.Errorf("run with a server: %d %s", code, out)
+	}
+}
+
+// spec: F-183
+func TestServerRunsInForeground(t *testing.T) {
+	noServer(t)
+	t.Setenv("SHELL", testShell.path)
+	opts = global{autostart: false, timeout: 10 * time.Second}
+	done := make(chan int)
+	go func() { done <- runCLI([]string{"server", "run"}) }()
+	var c *rex.Client
+	var err error
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		if c, err = rex.DialFor(time.Second); err == nil {
+			break
+		}
+	}
+	if err != nil {
+		t.Fatalf("rex server run: no server answers: %v", err)
+	}
+	select {
+	case code := <-done:
+		t.Fatalf("rex server run ended with %d while its server ran", code)
+	case <-time.After(300 * time.Millisecond):
+	}
+	c.ShutdownForget()
+	c.Close()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Errorf("rex server run ended with %d", code)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("rex server run goes on after its server stopped")
+	}
+}
+
+// spec: F-190
+func TestInspect(t *testing.T) {
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Label: "work", WindowLabel: "main", Create: &rex.CreateOptions{Dir: "/tmp"}}, &s); err != nil {
+		t.Fatal(err)
+	}
+	b1 := s["block_id"].(string)
+	var sp map[string]any
+	c.Do("block.split", &rex.Args{Block: b1, NoFocus: true, Create: &rex.CreateOptions{Label: "ended", Command: []string{"sh", "-c", "exit 3"}, KeepOpen: true}}, &sp)
+	b2 := sp["block_id"].(string)
+	here := map[string]string{"REX_SESSION": s["session_id"].(string), "REX_BLOCK": b1}
+	m, _ := c.Model()
+	w := m.Sessions[0].Windows[0]
+	contains := func(args []string, wants ...string) {
+		t.Helper()
+		out, code := cli(t, here, args...)
+		for _, want := range wants {
+			if code != 0 || !strings.Contains(out, want) {
+				t.Errorf("%v: %d %s, without %q", args, code, out, want)
+			}
+		}
+	}
+	contains([]string{"session", "inspect", "work"}, "session  "+s["session_id"].(string), "label    work", "created  ", "windows  1",
+		"* 1 "+rex.ShortID(w.ID)+"  main  2 blocks")
+	contains([]string{"window", "inspect", "main"}, "window   "+w.ID, "label    main", "session  "+s["session_id"].(string)+" (work)",
+		"index    1", "focused  "+b1, "blocks", b1, b2+"  ended")
+
+	if out, code := cli(t, here, "status", "-b", b1, "done", "--app", "tests", "-m", "built"); code != 0 {
+		t.Fatalf("status: %d %s", code, out)
+	}
+	if _, code := cli(t, here, "wait", b2); code != 3 {
+		t.Fatalf("wait: %d", code)
+	}
+	ls, _ := cli(t, here, "block", "ls")
+	contains([]string{"block", "inspect", b1}, "block", b1, "session", "(work)", "window", w.ID+" (1)", "focused", "true", "pid", "shell", "program",
+		"idle", "dir", "/tmp", "size", "output", "attached", "status", "done  tests: built")
+	contains([]string{"block", "inspect", "ended"}, "label", "ended", "exited", "status 3")
+	if !strings.Contains(ls, "exited (3)") || !strings.Contains(ls, "done") {
+		t.Errorf("block ls: %s", ls)
 	}
 }

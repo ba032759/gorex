@@ -155,6 +155,11 @@ stops.
 IF another server runs for the data directory, THEN `rex server run`
 SHALL exit with 1.
 
+The owner checks by hand that `rex server start` starts a server, which
+the tests' executable is not: with `REX_SERVER=` and a new, empty
+`GOREX_DIR`, it exits with 0, and `rex server status` then tells that a
+server runs.
+
 ### F-430 Read the server's log
 status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
 

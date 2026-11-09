@@ -573,3 +573,81 @@ func TestSessionDestroyedReachesItsSession(t *testing.T) {
 		}
 	}
 }
+
+// A block's program and directory changes are events only while a
+// client follows them.
+//
+// spec: F-171
+func TestProgramAndDirectoryEvents(t *testing.T) {
+	c, dir := startServer(t)
+	s := act(t, c, "session.new", Args{Label: "pd", Create: &CreateOptions{Dir: "/tmp"}})
+	b := s["block_id"].(string)
+	waitText(t, c, b, "$")
+	changes := func() int {
+		WideFlush()
+		n := 0
+		for _, l := range readWide(t, dir) {
+			if l["block_event"] == "pwd_changed" || l["block_event"] == "process_changed" {
+				n++
+			}
+		}
+		return n
+	}
+	// Nobody follows: the server sends neither.
+	act(t, c, "send", Args{Block: b, Data: "cd /usr\r"})
+	time.Sleep(2500 * time.Millisecond)
+	if n := changes(); n != 0 {
+		t.Errorf("%d program or directory events while no client follows", n)
+	}
+
+	// One client follows the session, another every event.
+	type change struct{ name, value string }
+	follow := func(a Args) chan change {
+		ev, err := Connect()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { ev.Close() })
+		got := make(chan change, 64)
+		ev.OnEvent = func(e Event) {
+			inner, _ := e.Payload["event"].(map[string]any)
+			if inner["type"] != "block_event" {
+				return
+			}
+			p, _ := inner["payload"].(map[string]any)
+			pp, _ := p["payload"].(map[string]any)
+			v, _ := pp["pwd"].(string)
+			if f, ok := pp["foreground"].(string); ok {
+				v = f
+			}
+			got <- change{p["name"].(string), v}
+		}
+		if err := ev.Subscribe(a); err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	followers := []chan change{follow(Args{Session: "pd"}), follow(Args{All: true})}
+	time.Sleep(1200 * time.Millisecond) // the server notes the blocks as they are
+	expect := func(want change) {
+		t.Helper()
+		start := time.Now()
+		for i, got := range followers {
+			for seen := false; !seen; {
+				select {
+				case e := <-got:
+					seen = e == want
+				case <-time.After(2500*time.Millisecond - time.Since(start)):
+					t.Fatalf("follower %d: no %v within about a second", i, want)
+				}
+			}
+		}
+	}
+	act(t, c, "send", Args{Block: b, Data: "cd /var\r"})
+	expect(change{"pwd_changed", "/var"})
+	act(t, c, "send", Args{Block: b, Data: "sleep 5\r"})
+	expect(change{"process_changed", "sleep"})
+	if changes() == 0 {
+		t.Error("the wide events have no program or directory event: they cannot show that none was sent")
+	}
+}
