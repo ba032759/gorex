@@ -124,10 +124,15 @@ reference agrees (its test).
   change request is the weakest part of the chain: it should come as a
   proposed spec item, with its open questions, before an agent builds it.
 
-### Open for the owner
+### Decided (2026-11-09)
 
-- D-13: which branch, if any, becomes rex's command line.
-- The 0.5 question (D-14 on the stdlib branch), `-q --json` (question 32
-  on the kong branch), `-q` meaning "IDs only" in listings.
-- Findings 1, 17, 29, and the ratio clamps in the server (`actions.go`,
-  `view.go`), found by the old branch's percentage run.
+The owner chose the standard library: `exp/cli-stdlib` is merged into
+`retro-pilot` (D-13, accepted). The rest was decided by Rex's reference
+(`docs/reference/cli.md`) and B-5: one `--ratio` range, 1 to 99; no
+fractions (D-14, rejected); no `--quiet` for split and run, since Rex's
+`-q` means IDs only (D-15, rejected); `rex client inspect` as Rex's, with
+the server's matching (Findings 7, 29); flags taken for Rex stay, marked
+ignored (Finding 17); the server's ratio clamps are Finding 35, deferred.
+
+The branches are kept as tags: `exp/cli-kong`, `exp/cli-stdlib`, and
+`exp/p2-{old,kong,stdlib}-{quiet,pct}`. `cli-urfave` had no commits.
