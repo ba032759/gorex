@@ -10,7 +10,7 @@ status: proposed · traces: F-106, F-119, F-183 · source: code
 | `server.log` | the server's standard output and error, appended |
 | `state.json` | the saved model, and each block's directory, size, command and label |
 | `settings.json`, `keymap.json` | the app's settings and keys (T-122) |
-| `bin/rex` | a link to the server's executable, not on Windows |
+| `bin/rex` | a link to the server's executable |
 | `events/YYYY-MM-DD.jsonl` | the wide events (T-121) |
 
 The directory and its files are for the user alone: `0700` and `0600`.
@@ -37,8 +37,9 @@ A binding is `{"key": KEYS, "action": NAME, "args": {...}}`.
 `KEYS` is a key in the syntax of F-162, or several joined by `>` as a
 sequence.
 The action `none` unbinds the key.
-Without `preset`, it is `darwin` on macOS, `macos` when `settings.json`
-has `"macosKeybindings": true`, else `linux`.
+Without `preset`, it is `macos` when `settings.json` has
+`"macosKeybindings": true`, else `linux`.
+A preset other than `linux`, `macos` or `none` is an error.
 
 ### T-123 Starting the server
 status: proposed · traces: F-107, F-183 · source: code

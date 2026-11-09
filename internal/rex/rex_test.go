@@ -1,12 +1,9 @@
-//go:build darwin || linux || windows
-
 package rex
 
 import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -14,15 +11,11 @@ import (
 
 // spec: T-100, T-101, T-102, T-108
 func TestServer(t *testing.T) {
-	// A short path, for the socket: macOS's temporary directory is long.
+	// A short path, for the socket.
 	base, shell, work := "/tmp", "/bin/sh", "/tmp"
 	// The command prints "hello" without the line typed showing it, and
 	// runs a program for a while.
 	typed, sleeper := "echo he''llo; sleep 1\n", "sleep"
-	if runtime.GOOS == "windows" {
-		base, shell, work = "", "cmd.exe", os.TempDir()
-		typed, sleeper = "echo he^llo & ping -n 3 127.0.0.1 >nul\r", "ping"
-	}
 	dir, err := os.MkdirTemp(base, "rex")
 	if err != nil {
 		t.Fatal(err)

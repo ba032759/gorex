@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -59,7 +58,7 @@ type keymap struct {
 // keymapFile is keymap.json.
 type keymapFile struct {
 	// Preset picks the defaults: "linux" (Control and Shift, as other
-	// terminals of Linux and Windows), "macos" (the macOS shortcuts with
+	// terminals of Linux), "macos" (the macOS shortcuts with
 	// Control or Super for Command, for keyboards remapped as a Mac's), or
 	// "none". It follows settings.json's macosKeybindings when empty.
 	Preset   string `json:"preset,omitempty"`
@@ -92,7 +91,7 @@ func loadKeymap(path string) *keymap {
 	for _, d := range presetBindings(preset) {
 		_ = km.bind(d[0], d[1], nil, "default") // the presets' keys are tested
 	}
-	if preset != "linux" && preset != "macos" && preset != "none" && preset != "darwin" {
+	if preset != "linux" && preset != "macos" && preset != "none" {
 		km.problems = append(km.problems, fmt.Sprintf("error %s: unknown preset %q: linux, macos or none", filepath.Base(path), preset))
 	}
 	for i, b := range f.Bindings {
@@ -205,8 +204,7 @@ var keyNames = map[string]ui.Key{
 	"\\": ui.KeyBackslash, "`": ui.KeyBackquote,
 }
 
-// showKeys writes a sequence as the palette shows it: macOS's symbols on
-// macOS, "Ctrl+Shift+T" elsewhere.
+// showKeys writes a sequence as the palette shows it: "Ctrl+Shift+T".
 func showKeys(seq []chord) string {
 	var parts []string
 	for _, c := range seq {
@@ -216,27 +214,21 @@ func showKeys(seq []chord) string {
 }
 
 func (c chord) String() string {
-	mac := runtime.GOOS == "darwin"
 	var b strings.Builder
-	type mod struct {
-		m          ui.Modifiers
-		mac, other string
-	}
-	order := []mod{{ui.Ctrl, "⌃", "Ctrl+"}, {ui.Alt, "⌥", "Alt+"}, {ui.Shift, "⇧", "Shift+"}, {ui.Super, "⌘", "Super+"}}
+	order := []struct {
+		m    ui.Modifiers
+		name string
+	}{{ui.Ctrl, "Ctrl+"}, {ui.Alt, "Alt+"}, {ui.Shift, "Shift+"}, {ui.Super, "Super+"}}
 	for _, m := range order {
 		if c.mods&m.m != 0 {
-			if mac {
-				b.WriteString(m.mac)
-			} else {
-				b.WriteString(m.other)
-			}
+			b.WriteString(m.name)
 		}
 	}
-	b.WriteString(keyLabel(c.key, mac))
+	b.WriteString(keyLabel(c.key))
 	return b.String()
 }
 
-func keyLabel(k ui.Key, mac bool) string {
+func keyLabel(k ui.Key) string {
 	switch {
 	case k >= ui.KeyA && k <= ui.KeyZ:
 		return string(rune('A' + k - ui.KeyA))
@@ -244,12 +236,6 @@ func keyLabel(k ui.Key, mac bool) string {
 		return string(rune('0' + k - ui.Key0))
 	case k >= ui.KeyF1 && k <= ui.KeyF12:
 		return fmt.Sprintf("F%d", k-ui.KeyF1+1)
-	}
-	if mac {
-		if s, ok := map[ui.Key]string{ui.KeyEnter: "↩", ui.KeyLeft: "←", ui.KeyRight: "→", ui.KeyUp: "↑",
-			ui.KeyDown: "↓", ui.KeyTab: "⇥", ui.KeyBackspace: "⌫", ui.KeyEscape: "⎋"}[k]; ok {
-			return s
-		}
 	}
 	for name, v := range keyNames {
 		if v == k {
@@ -264,17 +250,13 @@ func keyLabel(k ui.Key, mac bool) string {
 
 // defaultPreset is the keymap's defaults when the file names none.
 func defaultPreset() string {
-	switch {
-	case runtime.GOOS == "darwin":
-		return "darwin"
-	case prefs.macosKeybindings():
+	if prefs.macosKeybindings() {
 		return "macos"
 	}
 	return "linux"
 }
 
 // presetBindings are the default bindings of a preset, as key and action.
-// On macOS the menus' shortcuts do the rest.
 func presetBindings(preset string) [][2]string {
 	common := [][2]string{
 		{"ctrl+tab", "client.tab.next"},
@@ -359,8 +341,6 @@ func presetBindings(preset string) [][2]string {
 				[2]string{fmt.Sprintf("super+%d", i), a})
 		}
 		return b
-	case "darwin":
-		return common
 	}
 	return nil
 }
@@ -471,21 +451,10 @@ func (a *App) runBinding(b keyBinding) {
 	}
 }
 
-// reloadKeymap reads keymap.json again. The menus' shortcuts, macOS's
-// alone, do not follow it.
+// reloadKeymap reads keymap.json again.
 func (a *App) reloadKeymap() []string {
 	keys = loadKeymap(keymapPath())
 	return keys.problems
-}
-
-// userKeysOf is keysOf for the bindings of keymap.json alone.
-func (km *keymap) userKeysOf(action string) string {
-	for _, b := range km.bindings {
-		if b.action == action && len(b.args) == 0 && b.source != "default" {
-			return showKeys(b.seq)
-		}
-	}
-	return ""
 }
 
 // firstChord returns the key of an action bound to one key alone.

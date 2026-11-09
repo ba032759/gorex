@@ -164,8 +164,8 @@ app, and its own server is a cost.
 ### D-12 A native app, without a web view
 status: proposed · traces: B-1 · source: repo, code
 
-**Context.** A terminal app needs a window, text and input on Linux,
-macOS and Windows (B-7).
+**Context.** A terminal app needs a window, text and input on Linux
+(B-7).
 **Options.** (a) A web view, as Electron apps have. (b) A native
 interface (MyGo) and a terminal emulator in the same executable
 (libghostty-vt), without cgo.

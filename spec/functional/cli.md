@@ -239,7 +239,7 @@ environment, without the variables of other terminals, and with:
 status: proposed · traces: B-4, B-5 · source: code, rex-docs
 
 The server SHALL keep `rex` in `REX_BIN_DIR` as a link to its own
-executable, on Linux and macOS.
+executable.
 A block that runs `rex` SHALL then run the `rex` of its own server.
 
 ### F-120 What rex reads from the environment

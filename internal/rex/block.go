@@ -1,5 +1,3 @@
-//go:build darwin || linux || windows
-
 package rex
 
 import (
@@ -8,7 +6,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -227,7 +224,7 @@ func blockEnvironment(where blockEnv, extra []string) []string {
 			strings.HasPrefix(k, "VSCODE_"), strings.HasPrefix(k, "WEZTERM_"), strings.HasPrefix(k, "ALACRITTY_"),
 			strings.HasPrefix(k, "GOREX_"), strings.HasPrefix(k, "MYGO_"), strings.HasPrefix(k, "REX_"):
 			continue
-		case k == "PATH" || runtime.GOOS == "windows" && strings.EqualFold(k, "PATH"):
+		case k == "PATH":
 			path = v
 			continue
 		case k == "LANG" || k == "LC_ALL" || k == "LC_CTYPE":

@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -22,23 +21,14 @@ import (
 // testShell is the shell of the tests: its prompt ends with prompt, and
 // typing run runs program for a while in dir.
 var testShell = func() (s struct{ path, prompt, run, program, dir string }) {
-	if runtime.GOOS == "windows" {
-		s.path, s.prompt, s.program, s.dir = "cmd.exe", ">", "PING", os.Getenv("SystemRoot")
-		s.run = `cd /d ` + s.dir + ` && ping -n 4 127.0.0.1 >nul`
-		return
-	}
 	s.path, s.prompt, s.run, s.program, s.dir = "/bin/sh", "$", "cd /usr/bin && sleep 3", "sleep", "/usr/bin"
 	return
 }()
 
 // testDir is a directory of the tests' own: in /tmp, whose path is short
-// enough for the socket, on macOS.
+// enough for the socket.
 func testDir(t *testing.T) string {
-	base := "/tmp"
-	if runtime.GOOS == "windows" {
-		base = ""
-	}
-	dir, err := os.MkdirTemp(base, "gorex")
+	dir, err := os.MkdirTemp("/tmp", "gorex")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +181,7 @@ func TestPanesAndTabs(t *testing.T) {
 	waitFor(t, tt, testShell.program+" in the header", func() bool {
 		refresh(a)
 		name, detail := p.label()
-		return strings.EqualFold(name, testShell.program) && samePath(detail, shortDir(testShell.dir))
+		return strings.EqualFold(name, testShell.program) && detail == shortDir(testShell.dir)
 	})
 
 	// A second tab, renamed, then closed with its pane.
@@ -341,11 +331,6 @@ func TestLabels(t *testing.T) {
 	p.info, p.title = rex.BlockInfo{Shell: "zsh", Program: "ssh", Args: []string{"ssh", "-p", "22", "box.local"}}, ""
 	if n, d := p.label(); n != "SSH" || d != "box.local" {
 		t.Errorf("ssh label %q %q", n, d)
-	}
-	// Windows's consoles name the shell in their title as a program runs.
-	p.info, p.title = rex.BlockInfo{Shell: "cmd", Program: "node", Dir: site}, `C:\WINDOWS\system32\cmd.exe - node app.js`
-	if n, d := p.label(); n != "Node" || d != short {
-		t.Errorf("node label %q %q", n, d)
 	}
 	// A label comes first, with the program beside it.
 	p.info, p.title, p.meta.Label = rex.BlockInfo{Shell: "zsh", Program: "node", Dir: site}, "", "api"
@@ -533,6 +518,11 @@ func TestKeymap(t *testing.T) {
 	}
 	if k := km.keysOf("pane.zoom"); k == "" {
 		t.Error("no keys shown for pane.zoom")
+	}
+	// The macOS preset of the menus' shortcuts went with macOS.
+	os.WriteFile(path, []byte(`{"preset": "darwin"}`), 0o644)
+	if km := loadKeymap(path); len(km.problems) != 1 || !strings.Contains(km.problems[0], `unknown preset "darwin"`) {
+		t.Errorf("darwin preset: problems %q", km.problems)
 	}
 }
 

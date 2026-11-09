@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -889,9 +888,7 @@ func (p *Pane) programLabel() (name, detail string) {
 func titleOfShell(title string, in rex.BlockInfo) bool {
 	l := strings.ToLower(title)
 	for _, w := range []string{strings.ToLower(in.Program), strings.ToLower(in.Shell)} {
-		// Windows's consoles title themselves with the shell's file:
-		// "C:\WINDOWS\system32\cmd.exe - ping".
-		if w != "" && (strings.HasPrefix(l, w) || strings.Contains(l, `\`+w+".exe")) {
+		if w != "" && strings.HasPrefix(l, w) {
 			return true
 		}
 	}
@@ -923,10 +920,10 @@ func shortDir(d string) string {
 	}
 	sep := string(filepath.Separator)
 	if home, _ := os.UserHomeDir(); home != "" {
-		if samePath(d, home) {
+		if d == home {
 			return "~"
 		}
-		if len(d) > len(home) && samePath(d[:len(home)], home) && d[len(home)] == filepath.Separator {
+		if len(d) > len(home) && d[:len(home)] == home && d[len(home)] == filepath.Separator {
 			d = "~" + d[len(home):]
 		}
 	}
@@ -935,15 +932,6 @@ func shortDir(d string) string {
 		return "…" + sep + strings.Join(parts[len(parts)-2:], sep)
 	}
 	return d
-}
-
-// samePath reports whether two paths are the same, without case on
-// Windows.
-func samePath(a, b string) bool {
-	if runtime.GOOS == "windows" {
-		return strings.EqualFold(a, b)
-	}
-	return a == b
 }
 
 // label names a tab: its name, or its focused pane's; and what a pane

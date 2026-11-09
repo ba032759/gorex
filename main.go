@@ -15,7 +15,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/egoist/mygo"
@@ -50,11 +49,6 @@ func main() {
 			a.open()
 		}
 	})
-	mygo.App.OnWindowAllClosed(func() {
-		if runtime.GOOS != "darwin" {
-			mygo.App.Quit()
-		}
-	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +70,7 @@ func setDir() {
 // invokedAsRex tells that the executable runs by the name rex, as the
 // link the server puts in its terminals' PATH.
 func invokedAsRex() bool {
-	name := strings.TrimSuffix(strings.ToLower(filepath.Base(os.Args[0])), ".exe")
+	name := strings.ToLower(filepath.Base(os.Args[0]))
 	return name == "rex"
 }
 
@@ -133,20 +127,15 @@ func (a *App) open() {
 		go client.View(a.session)
 	}
 	opts := mygo.WindowOptions{
-		Title:                "GoRex",
-		Width:                1000,
-		Height:               620,
-		MinWidth:             560,
-		MinHeight:            340,
-		StateKey:             "main",
-		TitleBarStyle:        mygo.TitleBarHidden,
-		TrafficLightPosition: &mygo.Point{X: 16, Y: 15},
-		BackgroundColor:      "light-dark(#efe1e6, #231e27)",
-		Content:              ui.View(a.view),
-	}
-	if ownControls {
-		// The title bar draws the window's controls (windowControls).
-		opts.TitleBarStyle, opts.Frameless = mygo.TitleBarDefault, true
+		Title:           "GoRex",
+		Width:           1000,
+		Height:          620,
+		MinWidth:        560,
+		MinHeight:       340,
+		StateKey:        "main",
+		TitleBarStyle:   mygo.TitleBarHidden,
+		BackgroundColor: "light-dark(#efe1e6, #231e27)",
+		Content:         ui.View(a.view),
 	}
 	win := mygo.NewWindow(opts)
 	a.win = win

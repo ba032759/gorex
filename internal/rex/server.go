@@ -1,5 +1,3 @@
-//go:build darwin || linux || windows
-
 package rex
 
 import (
@@ -14,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"sync"
 	"time"
@@ -216,7 +213,7 @@ func (s *Server) stop() {
 // linkBin makes Dir/bin/rex the server's executable, for the PATH of its
 // terminals: the rex command that matches the server comes first.
 func linkBin(exe string) {
-	if runtime.GOOS == "windows" || exe == "" {
+	if exe == "" {
 		return
 	}
 	bin := BinDir()

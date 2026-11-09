@@ -199,7 +199,7 @@ directory of the app.
 
 - Kind: other
 - Items: F-103, F-169, F-178, F-186
-- Code: `help.go:83`, `help.go:40`, `help.go:46`, `keymap.go:269`
+- Code: `help.go:83`, `help.go:40`, `help.go:46`
 - Status: in part resolved by D-13 (proposed): the help lists every flag
   from its declaration, and a group prints its own help. The prose
   below is still written by hand, and still says less.
@@ -209,7 +209,7 @@ directory of the app.
   events.
 - `rex help skill`: "a SessionStart hook". Setup adds seven hooks.
 - `rex help keymap`: presets `linux`, `macos`, `none`. On macOS the
-  default is `darwin`.
+  default was `darwin`. Resolved by D-16: the `darwin` preset is gone.
 - `rex session` without a subcommand prints `help["session"]`, which
   does not exist, so the overview prints. Resolved: it prints the
   group's help.

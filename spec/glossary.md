@@ -151,7 +151,7 @@ A named operation of the app, as a key binding runs it: `pane.split`,
 The key bindings in effect: a preset's, then those of `keymap.json`.
 
 ### preset
-A set of default key bindings: `linux`, `macos`, `darwin` or `none`.
+A set of default key bindings: `linux`, `macos` or `none`.
 
 ### agent
 A coding agent that runs in a block, such as Claude Code, Codex,
