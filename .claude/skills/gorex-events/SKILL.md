@@ -6,7 +6,7 @@ description: Query GoRex's wide events, its spec and its test results with DuckD
 # GoRex's wide events
 
 The server and the `rex` CLI write one flat JSON line per unit of work to
-`$GOREX_DIR/events/YYYY-MM-DD.jsonl` (`~/.config/GoRex/events/` by
+`$GOREX_DIR/events/YYYY-MM-DD.jsonl` (`~/.config/gorex/events/` by
 default, kept 30 days). Many columns, few of them set on each line: ask
 questions nobody planned by grouping and filtering on any of them.
 
@@ -15,7 +15,7 @@ go run ./tools/spec query "SQL"     # from the repo; tables: events, items, link
 go run ./tools/spec query           # an interactive duckdb
 ```
 
-Without the repo: `duckdb -c "select … from read_json_auto('~/.config/GoRex/events/*.jsonl', union_by_name=true, sample_size=-1)"`.
+Without the repo: `duckdb -c "select … from read_json_auto('~/.config/gorex/events/*.jsonl', union_by_name=true, sample_size=-1)"`.
 
 ## Columns
 

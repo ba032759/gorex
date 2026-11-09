@@ -397,20 +397,21 @@ func TestHelpProse(t *testing.T) {
 	}
 }
 
-// Without GOREX_DIR, the data directory is GoRex in the user's
-// configuration directory, as the README says.
+// Without GOREX_DIR, the data directory is gorex in the user's
+// configuration directory: the directory MyGo gives the app, which the app
+// sets as GOREX_DIR (main.go), so that rex outside GoRex finds it too.
 //
 // spec: F-106
 func TestDataDirectory(t *testing.T) {
 	config := t.TempDir()
 	t.Setenv("GOREX_DIR", "")
 	t.Setenv("XDG_CONFIG_HOME", config)
-	if d := rex.Dir(); d != filepath.Join(config, "GoRex") {
+	if d := rex.Dir(); d != filepath.Join(config, "gorex") {
 		t.Errorf("data directory %s", d)
 	}
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("HOME", "/home/someone")
-	if d := rex.Dir(); d != "/home/someone/.config/GoRex" {
+	if d := rex.Dir(); d != "/home/someone/.config/gorex" {
 		t.Errorf("data directory %s", d)
 	}
 }

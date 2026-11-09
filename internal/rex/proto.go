@@ -237,7 +237,7 @@ func Dir() string {
 	if err != nil {
 		base = os.TempDir()
 	}
-	return filepath.Join(base, "GoRex")
+	return filepath.Join(base, "gorex") // as MyGo names the app's data directory
 }
 
 // SocketPath returns the path of the socket a client connects to:

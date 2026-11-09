@@ -736,7 +736,7 @@ func eventsGlob() string {
 		return filepath.Join(d, "events", "*.jsonl")
 	}
 	c, _ := os.UserConfigDir()
-	return filepath.Join(c, "GoRex", "events", "*.jsonl")
+	return filepath.Join(c, "gorex", "events", "*.jsonl")
 }
 
 // views are the tables of "spec query".

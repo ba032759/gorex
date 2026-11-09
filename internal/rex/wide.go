@@ -16,7 +16,7 @@ import (
 // that may help explain it later, appended to events/YYYY-MM-DD.jsonl in
 // Dir. They are for asking questions nobody planned, with DuckDB:
 //
-//	duckdb -c "select op, count(*), avg(duration_ms) from read_json_auto('~/.config/GoRex/events/*.jsonl') group by op"
+//	duckdb -c "select op, count(*), avg(duration_ms) from read_json_auto('~/.config/gorex/events/*.jsonl') group by op"
 //
 // GOREX_EVENTS=off turns them off. Files older than eventsKeep are removed.
 // The fields are described in .claude/skills/gorex-events/SKILL.md.

@@ -3,6 +3,10 @@
 ### T-120 The data directory
 status: accepted · traces: F-106, F-118, F-183, F-430 · source: code
 
+The data directory is `GOREX_DIR`. The app sets it to the directory MyGo
+gives it, `$XDG_CONFIG_HOME/gorex`, else `~/.config/gorex`; without
+`GOREX_DIR`, `rex` takes the same directory.
+
 | File | What |
 |---|---|
 | `server.sock` | the socket (F-106) |

@@ -32,7 +32,7 @@ installs the tools; `mise run format` formats.
 ## Observing it
 
 The server and the CLI write wide events, one JSON line per request, event
-and command, to `~/.config/GoRex/events/`. Query them, with the spec and the
+and command, to `~/.config/gorex/events/`. Query them, with the spec and the
 test results, with `go run ./tools/spec query "SQL"`; the `gorex-events`
 skill lists the fields and useful queries. When something misbehaves, look
 at the events before guessing; when a feature lacks the events to show it

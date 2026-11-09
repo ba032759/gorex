@@ -193,7 +193,7 @@ the code say `GoRex`: `rex.Dir()` joins the user's configuration
 directory and `GoRex`, and the app sets `GOREX_DIR` from MyGo's data
 directory of the app.
 
-- Status: resolved (2026-11-09): the code is right (`GoRex`, F-106); the README is corrected: `$XDG_CONFIG_HOME/GoRex`, else `~/.config/GoRex`.
+- Status: resolved (2026-11-09), corrected the same day: the app sets `GOREX_DIR` to the data directory MyGo gives it, `~/.config/gorex` (`$XDG_CONFIG_HOME/gorex`); the first resolution read `rex.Dir()`'s fallback, `GoRex`, as the directory, and events went to both. The fallback and `spec query`'s events now say `gorex`; README, AGENTS.md and the events skill too (F-106).
 
 ## Finding 15: help that says less, or other, than the code
 
