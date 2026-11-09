@@ -10,6 +10,8 @@ import (
 	"math"
 	"net"
 	"os"
+	"os/signal"
+	"os/user"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -32,6 +34,9 @@ const (
 	exitUsage    = 2
 	exitTarget   = 3
 	exitNoServer = 4
+	// exitInterrupted is the status of a command an interrupt ended, as
+	// Ctrl+C: 128 and SIGINT's number, as a shell has it.
+	exitInterrupted = 130
 )
 
 // cliError is an error with the status the command exits with.
@@ -186,9 +191,9 @@ func init() {
 	blockCapture := cmd(cliCmd{name: "capture", short: "print a terminal's screen and scrollback", help: captureHelp},
 		func(o *captureOpts, f *flagSet) {
 			targetFlags(f, &o.a, "swb")
-			f.str(&o.a.Format, "format", "", "the `FORMAT`: text, or vt to keep the escape sequences").defaults("text")
+			f.choice(&o.a.Format, "format", "text", []string{"text", "vt"}, "the `FORMAT`: text, or vt to keep the escape sequences")
 			f.boolean(&o.a.Trim, "trim", false, "drop trailing blank lines")
-			f.boolean(&o.unwrap, "unwrap", false, "Rex's; GoRex joins wrapped lines always").ignore()
+			f.boolean(&o.a.Unwrap, "unwrap", false, "join the rows of a line the terminal wrapped")
 		}, cliCapture)
 	blockZoom := cmd(cliCmd{name: "zoom", use: "[BLOCK]", short: "zoom a block to fill its window (--on, --off)",
 		help: "Zooms a block to fill its window, or ends its zoom: without --on or --off, it toggles."},
@@ -216,7 +221,7 @@ func init() {
 	rexCommands = group(cliCmd{},
 		alias("ls", secCommon, sessionLs),
 		alias("new", secCommon, sessionNew),
-		cmd(cliCmd{name: "run", use: "-- COMMAND...", short: "run a command in a new tab, or beside a block (--split)", section: secCommon, help: placeHelp},
+		cmd(cliCmd{name: "run", use: "-- COMMAND...", short: "run a command in a new window, or beside a block (--split)", section: secCommon, help: placeHelp},
 			func(o *placeOpts, f *flagSet) { placeFlags(o, f, false) }, func(o *placeOpts, c *call) error { return cliPlace(o, c, false) }),
 		cmd(cliCmd{name: "split", use: "[-- COMMAND...]", short: "split a block (yours, by default)", section: secCommon, help: placeHelp},
 			func(o *placeOpts, f *flagSet) { placeFlags(o, f, true) }, func(o *placeOpts, c *call) error { return cliPlace(o, c, true) }),
@@ -251,7 +256,7 @@ func init() {
 			cmd(cliCmd{name: "move", use: "[SESSION]", short: "move a session in the order of sessions"},
 				func(o *orderOpts, f *flagSet) { orderFlags(f, o) }, cliSessionMove),
 			sessionKill),
-		group(cliCmd{name: "window", short: "windows (tabs)", section: secResources},
+		group(cliCmd{name: "window", short: "windows, the app's tabs", section: secResources},
 			windowNew,
 			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list a session's windows"},
 				func(o *lsOpts, f *flagSet) {
@@ -272,7 +277,7 @@ func init() {
 				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "s") }, cliWindowRename),
 			cmd(cliCmd{name: "close", use: "WINDOW...", short: "close windows"},
 				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "s") }, cliWindowClose)),
-		group(cliCmd{name: "block", short: "blocks (terminals)", section: secResources},
+		group(cliCmd{name: "block", short: "blocks, each a terminal: the app's panes", section: secResources},
 			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list blocks"},
 				func(o *lsOpts, f *flagSet) {
 					targetFlags(f, &o.a, "sw")
@@ -292,8 +297,8 @@ func init() {
 		group(cliCmd{name: "client", short: "the apps and commands connected", section: secResources},
 			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list the clients"},
 				func(o *clientLsOpts, f *flagSet) {
-					jsonFlag(f, &o.json)
 					f.boolean(&o.all, "all", false, "rex's commands too")
+					listFlags(&o.listOpts, f)
 				}, cliClientLs),
 			cmd(cliCmd{name: "inspect", use: "[CLIENT]", short: "print an app and the actions it offers",
 				help: "CLIENT is an app's ID, name, position or end of ID. Without it, -C or REX_CLIENT names\nthe app, else the app when exactly one is connected, as rex do finds it."},
@@ -344,8 +349,10 @@ func init() {
 		cmd(cliCmd{name: "keymap", short: "list the key bindings in effect", section: secAutomation, help: keymapHelp},
 			func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliKeymap),
 		group(cliCmd{name: "config", short: "check, or have the app reload, keymap.json", section: secAutomation},
-			cmd[struct{}](cliCmd{name: "check", use: "[PATH]", short: "check keymap.json, or the file at PATH"}, nil, cliConfigCheck),
-			rawCmd(cliCmd{name: "reload", short: "have the app read keymap.json again"}, cliConfigReload)),
+			cmd(cliCmd{name: "check", use: "[PATH]", short: "check keymap.json, or the file at PATH"},
+				func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliConfigCheck),
+			cmd(cliCmd{name: "reload", short: "have the app read keymap.json again"},
+				func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliConfigReload)),
 		group(cliCmd{name: "skill", short: "set up agents (Claude Code, Codex…) to use rex", section: secAutomation, help: skillHelp},
 			skillFlagsCmd("setup", "", "install, or update, the skill and the hooks"),
 			skillFlagsCmd("status", "", "tell what is installed"),
@@ -355,9 +362,16 @@ func init() {
 
 		group(cliCmd{name: "server", short: "the server that keeps the sessions", section: secServer},
 			cmd(cliCmd{name: "status", short: "tell whether the server runs"}, func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliServerStatus),
-			cmd(cliCmd{name: "stop", short: "stop the server and its programs"},
-				func(o *bool, f *flagSet) { f.boolean(o, "forget", false, "also forget the sessions") }, cliServerStop),
-			rawCmd(cliCmd{name: "logs", short: "print the server's log"}, cliServerLogs),
+			cmd(cliCmd{name: "stop", short: "stop the server and its programs", help: stopHelp},
+				func(o *stopOpts, f *flagSet) {
+					f.boolean(&o.discard, "discard,forget", false, "delete the saved sessions once the server has stopped; --forget is GoRex's first name")
+					f.boolean(&o.ifIdle, "if-idle", false, "stop only if the server has no sessions and no other client")
+				}, cliServerStop),
+			cmd(cliCmd{name: "logs", short: "print the server's log"},
+				func(o *logsOpts, f *flagSet) {
+					f.boolean(&o.follow, "follow", false, "print what the server adds to it, until the server stops")
+					f.position(&o.lines, "n,lines", "print the newest `N` lines").defaults("every line")
+				}, cliServerLogs),
 			rawCmd(cliCmd{name: "start", short: "start the server, unless one runs"}, cliServerStart),
 			rawCmd(cliCmd{name: "run", short: "run the server in the foreground"}, cliServerRun)),
 		cmd(cliCmd{name: "version", short: "print rex's version, and the server's", section: secServer},
@@ -419,7 +433,7 @@ type inspectOpts struct {
 // createFlags are the flags of commands that start a terminal; dir is
 // where it starts without --cwd.
 func createFlags(f *flagSet, o *rex.CreateOptions, dir string) {
-	f.str(&o.Dir, "c,cwd,d,dir", "", "start in `DIR`; ~ is your home").defaults(dir)
+	f.str(&o.Dir, "c,cwd,d,dir", "", "start in `DIR`; ~ is your home, ~NAME that user's").defaults(dir)
 	f.boolean(&o.KeepOpen, "keep-open", false, "keep the terminal after its command exits")
 	f.str(&o.Shell, "shell", "", "run the command in `SHELL`'s login environment; none: directly").defaults("your login shell")
 	f.boolean(&o.Interactive, "interactive", false, "also read the shell's interactive startup files")
@@ -465,25 +479,30 @@ func globalFlags(o *global) *flagSet {
 	}), true)
 	f.str(&o.client, "C,client", "", "the app, `CLIENT`, that rex do asks").defaults("REX_CLIENT")
 	f.duration(&o.timeout, "timeout", 10*time.Second, "wait up to `DURATION` for an answer")
-	o.autostart = true
-	f.add("autostart", "start a server when none runs; --autostart=false does not", (*autostartValue)(&o.autostart), true)
+	f.boolean(&o.autostart, "autostart", true, "start a server when none runs; --autostart=false does not")
 	var color string
 	f.str(&color, "color", "", "Rex's `WHEN`").ignore()
 	f.add("v,verbose,vv", "Rex's", funcValue(func(string) error { return nil }), true).ignore()
 	return f
 }
 
-// autostartValue is on for --autostart and --autostart=true, and off
-// for any other value.
-type autostartValue bool
-
-func (v *autostartValue) Set(s string) error { *v = s == "true"; return nil }
-func (v *autostartValue) String() string     { return strconv.FormatBool(bool(*v)) }
-
-// isCLICommand tells whether a word is a command of rex, which runs the
-// CLI rather than the app when GoRex is started with it.
+// isCLICommand tells whether a word is a command of rex.
 func isCLICommand(s string) bool {
 	return s == "help" || s == "--help" || s == "-h" || rexCommands.find(s) != nil
+}
+
+// isCLI tells whether GoRex's arguments are a command of rex, after
+// rex's global options: then GoRex runs as rex, not as the app. A global
+// option with a bad value runs rex too, which says what is wrong.
+func isCLI(args []string) bool {
+	var g global
+	f := globalFlags(&g)
+	rest, err := f.parseLeading(args)
+	if err != nil {
+		name, _, _ := strings.Cut(strings.TrimLeft(args[0], "-"), "=")
+		return f.names[name] != nil
+	}
+	return len(rest) > 0 && isCLICommand(rest[0])
 }
 
 // runCLI runs rex with its arguments and returns the exit status.
@@ -501,7 +520,12 @@ func runCLI(args []string) int {
 		opts.client = c
 	}
 	start := time.Now()
+	stop := onInterrupt(func() {
+		wideCommand(args, exitInterrupted, errors.New("interrupted"), start)
+		os.Exit(exitInterrupted)
+	})
 	err = dispatch(args[0], args[1:])
+	stop()
 	code := exitOK
 	if err != nil {
 		if !errors.Is(err, errQuiet) {
@@ -511,6 +535,24 @@ func runCLI(args []string) int {
 	}
 	wideCommand(args, code, err, start)
 	return code
+}
+
+// onInterrupt runs f when the command is interrupted, until stop.
+func onInterrupt(f func()) (stop func()) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ch:
+			f()
+		case <-done:
+		}
+	}()
+	return func() {
+		signal.Stop(ch)
+		close(done)
+	}
 }
 
 // wideCommand records a rex command that ran: which, from where (a GoRex
@@ -711,16 +753,36 @@ func cliVersion(o *bool, _ *call) error {
 
 func absPath(p string) (string, error) { return filepath.Abs(p) }
 
+// fixDir makes --cwd absolute: ~ is the user's home, ~NAME that user's,
+// and a relative path starts from the directory rex runs in.
 func fixDir(o *rex.CreateOptions) {
 	if o.Dir != "" {
-		if strings.HasPrefix(o.Dir, "~") {
-			home, _ := os.UserHomeDir()
-			o.Dir = home + o.Dir[1:]
+		if home, rest, ok := homeOf(o.Dir); ok {
+			o.Dir = filepath.Join(home, rest)
 		}
 		if abs, err := absPath(o.Dir); err == nil {
 			o.Dir = abs
 		}
 	}
+}
+
+// homeOf splits a path that starts with ~ or ~NAME into the home it
+// names and the rest; ok is false for another path, or a user that does
+// not exist, which stays as it is, as a shell leaves it.
+func homeOf(p string) (home, rest string, ok bool) {
+	if !strings.HasPrefix(p, "~") {
+		return "", "", false
+	}
+	name, rest, _ := strings.Cut(p[1:], "/")
+	if name == "" {
+		home, err := os.UserHomeDir()
+		return home, rest, err == nil
+	}
+	u, err := user.Lookup(name)
+	if err != nil {
+		return "", "", false
+	}
+	return u.HomeDir, rest, true
 }
 
 func cliSessionNew(n *newOpts, f *call) error {
@@ -1106,7 +1168,7 @@ func placeFlags(p *placeOpts, f *flagSet, split bool) {
 	targetFlags(f, &p.a, "swb")
 	d := f.str(&p.dir, "split", side, sideUsage)
 	if !split {
-		d.defaults("a new tab")
+		d.defaults("a new window")
 	}
 	f.percent(&p.ratio, "ratio", 50, pctRange{1, 99, true},
 		"the new block's share of the split, in percent: `PCT`")
@@ -1237,16 +1299,10 @@ func cliSendKeysCompat(args []string) error {
 	return err
 }
 
-type captureOpts struct {
-	a      rex.Args
-	unwrap bool
-}
+type captureOpts struct{ a rex.Args }
 
 func cliCapture(o *captureOpts, _ *call) error {
 	a := &o.a
-	if a.Format == "html" {
-		return usagef("GoRex captures text or vt, not html")
-	}
 	var res map[string]any
 	if err := do("capture", a, &res); err != nil {
 		return err
@@ -1554,10 +1610,13 @@ func cliTree(o *bool, _ *call) error {
 	return nil
 }
 
-type clientLsOpts struct{ json, all bool }
+type clientLsOpts struct {
+	listOpts
+	all bool
+}
 
 func cliClientLs(o *clientLsOpts, _ *call) error {
-	jsonOut, all := o.json, o.all
+	jsonOut, all, full := o.json, o.all, !o.short
 	c, err := connect()
 	if err != nil {
 		return err
@@ -1572,12 +1631,17 @@ func cliClientLs(o *clientLsOpts, _ *call) error {
 		return nil
 	}
 	w := table()
-	fmt.Fprintln(w, "ID\tKIND\tNAME\tAGE\tVIEWING")
+	if !o.quiet {
+		fmt.Fprintln(w, "ID\tKIND\tNAME\tAGE\tVIEWING")
+	}
 	for _, cl := range cs {
-		if cl.Kind == "cli" && !all {
-			continue
+		switch {
+		case cl.Kind == "cli" && !all:
+		case o.quiet:
+			fmt.Fprintln(w, short(cl.ID, full))
+		default:
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", short(cl.ID, full), cl.Kind, dash(cl.Name), ago(cl.Connected), short(cl.Viewing, full))
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", rex.ShortID(cl.ID), cl.Kind, dash(cl.Name), ago(cl.Connected), short(cl.Viewing, false))
 	}
 	return w.Flush()
 }
@@ -1827,31 +1891,46 @@ func cliKeymap(o *bool, _ *call) error {
 	return nil
 }
 
-func cliConfigCheck(_ *struct{}, f *call) error {
+// configCheck is what rex config check finds in a keymap.
+type configCheck struct {
+	Path     string   `json:"path"`
+	Exists   bool     `json:"exists"`
+	Preset   string   `json:"preset"`
+	Bindings int      `json:"bindings"`
+	FromFile int      `json:"from_file"`
+	Problems []string `json:"problems"`
+}
+
+func cliConfigCheck(o *bool, f *call) error {
 	path := keymapPath()
 	if len(f.args) > 0 {
 		path = f.args[0]
 	}
 	loadSettingsQuiet()
 	km := loadKeymap(path)
-	exists := "no"
-	if km.exists {
-		exists = "yes"
+	r := configCheck{Path: path, Exists: km.exists, Preset: presetOf(path), Bindings: len(km.bindings), Problems: km.problems}
+	if r.Problems == nil {
+		r.Problems = []string{}
 	}
-	user := 0
 	for _, b := range km.bindings {
 		if b.source != "default" {
-			user++
+			r.FromFile++
 		}
 	}
-	fmt.Printf("path: %s\nexists: %s\npreset: %s\nbindings: %d (%d from the file)\n", path, exists, presetOf(path), len(km.bindings), user)
-	bad := false
-	for _, p := range km.problems {
-		fmt.Println(p)
-		bad = bad || strings.HasPrefix(p, "error")
-	}
-	if bad {
-		return errors.New("the keymap has errors")
+	output(*o, r, func() {
+		exists := "no"
+		if r.Exists {
+			exists = "yes"
+		}
+		fmt.Printf("path: %s\nexists: %s\npreset: %s\nbindings: %d (%d from the file)\n", path, exists, r.Preset, r.Bindings, r.FromFile)
+		for _, p := range r.Problems {
+			fmt.Println(p)
+		}
+	})
+	for _, p := range r.Problems {
+		if strings.HasPrefix(p, "error") {
+			return errors.New("the keymap has errors")
+		}
 	}
 	return nil
 }
@@ -1867,17 +1946,14 @@ func presetOf(path string) string {
 	return defaultPreset() + " (default)"
 }
 
-func cliConfigReload(args []string) error {
+// cliConfigReload has the app read its keymap again, and checks it. With
+// no app connected it fails, as rex do does.
+func cliConfigReload(o *bool, _ *call) error {
 	var res json.RawMessage
 	if err := do("client.do", &rex.Args{Action: "client.config.reload", Client: opts.client}, &res); err != nil {
-		var re *rex.Error
-		if errors.As(err, &re) && re.Code == "no_client" {
-			fmt.Println("no app is running: it reads the keymap as it starts")
-			return nil
-		}
 		return err
 	}
-	return cliConfigCheck(nil, &call{})
+	return cliConfigCheck(o, &call{})
 }
 
 func cliServerStatus(o *bool, _ *call) error {
@@ -1908,17 +1984,36 @@ func cliServerStatus(o *bool, _ *call) error {
 	return nil
 }
 
-func cliServerStop(o *bool, _ *call) error {
-	forget := *o
+type stopOpts struct{ discard, ifIdle bool }
+
+func cliServerStop(o *stopOpts, _ *call) error {
 	c, err := rex.Dial()
 	if err != nil {
+		if o.discard {
+			return rex.DiscardState()
+		}
 		return &cliError{exitNoServer, errors.New("the server is not running")}
 	}
 	defer c.Close()
-	if forget {
-		return c.ShutdownForget()
+	switch {
+	case o.ifIdle:
+		err = c.ShutdownIdle(o.discard)
+		if re, ok := errors.AsType[*rex.Error](err); ok && strings.HasPrefix(re.Msg, "unknown op") {
+			return &cliError{exitNoServer, errors.New("the server is too old for --if-idle: it goes on")}
+		}
+	case o.discard:
+		err = c.ShutdownForget()
+	default:
+		return c.Shutdown()
 	}
-	return c.Shutdown()
+	if err != nil || !o.discard {
+		return err
+	}
+	// The saved sessions are gone once the server has stopped.
+	for deadline := time.Now().Add(10 * time.Second); serverRuns() && time.Now().Before(deadline); {
+		time.Sleep(20 * time.Millisecond)
+	}
+	return rex.DiscardState()
 }
 
 func cliServerStart(args []string) error {
@@ -1932,13 +2027,82 @@ func cliServerStart(args []string) error {
 
 func cliServerRun(args []string) error { return rex.Serve() }
 
-func cliServerLogs(args []string) error {
-	b, err := os.ReadFile(filepath.Join(rex.Dir(), "server.log"))
+type logsOpts struct {
+	follow bool
+	lines  int
+}
+
+// cliServerLogs prints server.log, or its last lines; with --follow, it
+// goes on printing what the server adds, until the server stops.
+func cliServerLogs(o *logsOpts, _ *call) error {
+	path := filepath.Join(rex.Dir(), "server.log")
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
+	at := int64(len(b))
+	if o.lines > 0 {
+		b = lastLines(b, o.lines)
+	}
 	os.Stdout.Write(b)
-	return nil
+	if !o.follow {
+		return nil
+	}
+	for {
+		time.Sleep(200 * time.Millisecond)
+		if b, at, err = readFrom(path, at); err != nil {
+			return err
+		}
+		os.Stdout.Write(b)
+		if len(b) == 0 && !serverRuns() {
+			return nil
+		}
+	}
+}
+
+// lastLines are the last n lines of b.
+func lastLines(b []byte, n int) []byte {
+	end := len(b)
+	if end > 0 && b[end-1] == '\n' {
+		end--
+	}
+	for i := end - 1; i >= 0; i-- {
+		if b[i] == '\n' {
+			if n--; n == 0 {
+				return b[i+1:]
+			}
+		}
+	}
+	return b
+}
+
+// readFrom reads a file from offset at, and returns where it ended; from
+// the start again when the file is shorter, as after it was replaced.
+func readFrom(path string, at int64) ([]byte, int64, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, at, err
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, at, err
+	}
+	if fi.Size() < at {
+		at = 0
+	}
+	b, err := io.ReadAll(io.NewSectionReader(f, at, fi.Size()-at))
+	return b, at + int64(len(b)), err
+}
+
+// serverRuns tells whether a server answers on the socket.
+func serverRuns() bool {
+	c, err := rex.Dial()
+	if err != nil {
+		return false
+	}
+	c.Close()
+	return true
 }
 
 // cliStatus reports a program's status for a block, as OSC 7501 would

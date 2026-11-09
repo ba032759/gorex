@@ -32,9 +32,9 @@ Also: `rex capture`.
 | `-s`, `--session` | `SESSION` | none | the SESSION to act in |
 | `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 | `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
-| `--format` | `FORMAT` | text | the FORMAT: text, or vt to keep the escape sequences |
+| `--format` | `FORMAT`, text or vt | `text` | the FORMAT: text, or vt to keep the escape sequences |
 | `--trim` |  | `false` | drop trailing blank lines |
-| `--unwrap` |  | `false` | Rex's; GoRex joins wrapped lines always; taken, and ignored |
+| `--unwrap` |  | `false` | join the rows of a line the terminal wrapped |
 
 ## `rex block close`
 
@@ -156,8 +156,10 @@ Also: `rex client list`.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `--json` |  | `false` | print JSON |
 | `--all` |  | `false` | rex's commands too |
+| `--json` |  | `false` | print JSON |
+| `-q`, `--quiet` |  | `false` | print the IDs alone, one a line |
+| `--short` |  | `true` | short IDs; --short=false prints full ones |
 
 ## `rex completion`
 
@@ -165,11 +167,15 @@ Flags: none; it reads its arguments itself.
 
 ## `rex config check`
 
-Flags: none.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex config reload`
 
-Flags: none; it reads its arguments itself.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex do`
 
@@ -228,14 +234,14 @@ Flags: none; it reads its arguments itself.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |
 | `-s`, `--session` | `SESSION` | none | the SESSION to act in |
 | `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 | `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
-| `--split` | `DIRECTION` | a new tab | put the block beside the anchor, toward DIRECTION: right, left, above or below |
+| `--split` | `DIRECTION` | a new window | put the block beside the anchor, toward DIRECTION: right, left, above or below |
 | `--ratio` | `PCT`, from 1 to 99 | `50` | the new block's share of the split, in percent: PCT |
 | `--label` | `LABEL` | none | a LABEL to target it by |
 | `--focus` |  | `true` | focus it; --focus=false leaves the focus where it is |
@@ -251,7 +257,10 @@ Flags: none; it reads its arguments itself.
 
 ## `rex server logs`
 
-Flags: none; it reads its arguments itself.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--follow` |  | `false` | print what the server adds to it, until the server stops |
+| `-n`, `--lines` | `N`, from 1 | every line | print the newest N lines |
 
 ## `rex server run`
 
@@ -271,7 +280,8 @@ Flags: none; it reads its arguments itself.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `--forget` |  | `false` | also forget the sessions |
+| `--discard`, `--forget` |  | `false` | delete the saved sessions once the server has stopped; --forget is GoRex's first name |
+| `--if-idle` |  | `false` | stop only if the server has no sessions and no other client |
 
 ## `rex session inspect`
 
@@ -309,7 +319,7 @@ Also: `rex new`.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the directory rex runs in | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |
@@ -365,7 +375,7 @@ Flags: none; it reads its arguments itself.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the anchor's | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | the anchor's | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |
@@ -459,7 +469,7 @@ Also: `rex new-tab`.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | with a command, the directory rex runs in; else the focused block's | start in DIR; ~ is your home |
+| `-c`, `--cwd`, `-d`, `--dir` | `DIR` | with a command, the directory rex runs in; else the focused block's | start in DIR; ~ is your home, ~NAME that user's |
 | `--keep-open` |  | `false` | keep the terminal after its command exits |
 | `--shell` | `SHELL` | your login shell | run the command in SHELL's login environment; none: directly |
 | `--interactive` |  | `false` | also read the shell's interactive startup files |

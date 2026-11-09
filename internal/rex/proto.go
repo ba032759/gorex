@@ -94,6 +94,8 @@ type Args struct {
 	Keys   []string `json:"keys,omitempty"`
 	Format string   `json:"format,omitempty"`
 	Trim   bool     `json:"trim,omitempty"`
+	// Unwrap, on capture, joins the rows of a line the terminal wrapped.
+	Unwrap bool `json:"unwrap,omitempty"`
 
 	// Subscriptions: one session's events, every event, the model.
 	All   bool `json:"all,omitempty"`

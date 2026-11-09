@@ -64,23 +64,25 @@ not valid.
 ## Read
 
 ### F-164 Capture a screen
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex capture` and `rex block capture` SHALL print the block's scrollback
-and screen as text.
-A line that the terminal wrapped SHALL come joined.
+and screen as text, a line for each row.
+WHEN `--unwrap` is given, `rex` SHALL join the rows of a line that the
+terminal wrapped.
 `--trim` SHALL drop the spaces at the end of each line and the blank
 lines at the end.
 `--format vt` SHALL print the escape sequences that draw the screen.
-`--format html` and other formats SHALL exit with 2.
-`--unwrap` SHALL be taken and change nothing.
+IF `--format` is not `text` or `vt`, as `html`, THEN `rex` SHALL exit
+with 2 before it connects to the server.
 The output SHALL end with a newline.
 
 ### F-165 Scrollback
-status: proposed · traces: B-2, B-3 · source: code
+status: proposed · traces: B-2, B-3 · source: code, rex-docs, owner
 
-The server SHALL keep about 8 MiB of each block's output above its
-screen.
+The server SHALL keep about 64 MiB of each block's output above its
+screen, as Rex does.
+WHEN the scrollback is full, the server SHALL drop its oldest lines.
 A full-screen program's screen SHALL have no scrollback.
 
 ## Wait

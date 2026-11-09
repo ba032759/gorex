@@ -77,7 +77,7 @@ With no app connected, `rex do` exits with 1 and `rex config reload`
 prints a note and exits with 0. Both ask the app for an action. The
 server's code `no_client` has no exit status of its own.
 
-- Status: decided: an app action with no app connected exits with 1, for `rex do` and `rex config reload`.
+- Status: resolved (2026-11-09): an app action with no app connected exits with 1, for `rex do` and `rex config reload` (F-175, F-180).
 
 ## Finding 6: the server going away gives exit status 4 or 1
 
@@ -180,7 +180,7 @@ The spec takes Rex's words: window (avoid tab), block (avoid pane).
 `rex kill` ends sessions and `rex close` closes blocks; the spec says
 close, and avoids kill.
 
-- Status: decided: the CLI, its help and the skill say session, window and block; the app shows a window as a tab and a block as a pane, as Rex's app does. The glossary says so.
+- Status: resolved (2026-11-09): the CLI, its help and the skill say session, window and block; the app shows a window as a tab and a block as a pane, as Rex's app does (F-103, F-185). The glossary says so (window, block). The app, the README and the actions' names (`pane.split`, `client.tab.new`) keep tab and pane.
 
 ## Finding 14: the data directory on Linux
 
@@ -193,16 +193,14 @@ the code say `GoRex`: `rex.Dir()` joins the user's configuration
 directory and `GoRex`, and the app sets `GOREX_DIR` from MyGo's data
 directory of the app.
 
-- Status: decided: the code is right (`GoRex`); the README is corrected.
+- Status: resolved (2026-11-09): the code is right (`GoRex`, F-106); the README is corrected: `$XDG_CONFIG_HOME/GoRex`, else `~/.config/GoRex`.
 
 ## Finding 15: help that says less, or other, than the code
 
 - Kind: other
 - Items: F-103, F-169, F-178, F-186
-- Code: `help.go:83`, `help.go:40`, `help.go:46`
-- Status: in part resolved by D-13 (proposed): the help lists every flag
-  from its declaration, and a group prints its own help. The prose
-  below is still written by hand, and still says less.
+- Code: `help.go:83`, `help.go:40`, `help.go:46`, `keymap.go:269`
+- Status: resolved (2026-11-09): D-13 lists every flag from its declaration, and a group prints its own help; the prose now says what the code does: `rex help events` the window and block events printed without `-s` (F-169), `rex help skill` the seven hooks (F-186), `rex help keymap` the default preset, `macos` when `settings.json` asks for it (F-178). The `darwin` preset went with macOS (D-16).
 
 - `rex help events`: without `-s`, only "sessions created and
   destroyed". The code also prints every session's window and block
@@ -223,7 +221,7 @@ directory of the app.
 `GoRex ls` runs `rex ls`. `GoRex --timeout 5s ls` starts the app, as
 `--timeout` is not a command. `rex --timeout 5s ls` works.
 
-- Status: decided: the global options also work by the name GoRex, before a command of `rex`.
+- Status: resolved (2026-11-09): the global options also work by the name GoRex, before a command of `rex` (F-100).
 
 ## Finding 17: flags taken and ignored
 
@@ -258,7 +256,7 @@ it, as Finding 17's flags. The old reference listed them as "Flags:
 none", which read as "refuses every flag". GoRex's `server stop --forget`
 is Rex's `--discard` under another name.
 
-- Status: decided: take them as Rex: `client ls -q` and `--short`, `server stop --discard` (and `--forget`, GoRex's old name) and `--if-idle`, `config check --json`, `server logs --follow` and `-n`, `config reload --json`.
+- Status: resolved (2026-11-09): taken as Rex: `client ls -q` and `--short` (F-156), `server stop --discard` (and `--forget`, GoRex's old name) and `--if-idle` (F-182), `config check --json` (F-179), `server logs --follow` and `-n` (F-183), `config reload --json` (F-180).
 
 ## Finding 19: what Rex has and rex does not
 
@@ -282,7 +280,7 @@ is Rex's `--discard` under another name.
 - Exit status 130 for an interrupted command is not specified: Go's
   default handling of `SIGINT` decides it.
 
-- Status: decided, item by item: remote (`-S`, hosts, home) deferred to the phone feature (D-5); `rex api` and Lua stay out (D-7, D-4); scrollback about 64 MiB and `--unwrap` as Rex; exit 130 on an interrupt; `completion powershell` refused (Linux only), `nu` deferred; the Codex hook deferred; the event fields and `rex actions` stay as they are, as GoRex's.
+- Status: resolved (2026-11-09), item by item: scrollback about 64 MiB (F-165) and `capture --unwrap` as Rex, a wrapped line's rows apart without it (F-164); 130 on an interrupt (F-104); `completion powershell` refused, Linux only (F-124). Deferred or kept, as decided: remote (`-S`, hosts, home) deferred to the phone feature (D-5); `rex api` and Lua stay out (D-7, D-4); `nu` deferred; the Codex hook deferred; the event fields and `rex actions` stay as they are, as GoRex's.
 
 ## Finding 20: rex status is GoRex's own
 
@@ -416,7 +414,7 @@ connected. Rex also prints the actions the client offers.
 - `rex window focus NEXT` matches `next` in any case, then goes to the
   previous window: only the exact word `next` goes forward.
 
-- Status: decided: `~user` is that user's home; `next` and `prev` match in any case, as other words.
+- Status: resolved (2026-11-09): `~user` is that user's home (F-132); `next` and `prev` match in any case, as other words (F-142).
 
 ## Finding 31: what the functional template does not hold
 
@@ -466,7 +464,7 @@ too, without an error. The flags of a command take `1` as true and
 refuse `yes` with exit status 2 (F-102). D-13 kept the difference: the
 owner decides whether `--autostart` is a boolean as the others.
 
-- Status: decided: `--autostart` is a boolean as every other flag: true, false, 1, 0; anything else exits with 2.
+- Status: resolved (2026-11-09): `--autostart` is a boolean as every other flag: true, false, 1, 0; anything else exits with 2 (F-101).
 
 ## Finding 34: an unknown capture format exits with 1, html with 2
 
@@ -481,7 +479,7 @@ server answers. A wrong value is a wrong command line (F-104: 2). D-13
 did not declare the formats as the values `--format` takes, which would
 make both exit with 2 before connecting.
 
-- Status: decided: `--format` declares its values; an unknown one exits with 2 before connecting.
+- Status: resolved (2026-11-09): `--format` declares its values, `text` and `vt`; another, `html` too, exits with 2 before connecting (F-164).
 
 ## Finding 35: the server clamps a ratio in three ways
 

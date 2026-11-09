@@ -47,14 +47,16 @@ It keeps running whether or not an app shows it.
 
 ### window
 An item of a session that holds one layout of blocks. The app shows it
-as a tab.
+as a tab, as Rex's app does; `rex`, its help and the skill say window.
 avoid: tab
 
 ### active window
 The window of a session that the session shows.
 
 ### block
-One terminal in a window, with its program: a leaf of a layout.
+One terminal in a window, with its program: a leaf of a layout. The app
+shows it as a pane, as Rex's app does; `rex`, its help and the skill say
+block.
 avoid: pane
 
 ### terminal

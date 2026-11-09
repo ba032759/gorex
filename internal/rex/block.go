@@ -11,13 +11,16 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/egoist/mygo/plugins/terminal"
+	"golang.org/x/text/width"
 )
 
 // scrollback is about how many bytes of output a block keeps above its
-// screen, for the windows that attach to it and for capture.
-const scrollback = 8 << 20
+// screen, for the windows that attach to it and for capture: about 64
+// MiB, as Rex's terminals keep.
+const scrollback = 64 << 20
 
 // block is a pseudo-terminal of the server and its program.
 type block struct {
@@ -514,14 +517,19 @@ func (b *block) kill() {
 }
 
 // capture returns the block's screen and scrollback: its text, or, as
-// "vt", the escape sequences that draw it.
-func (b *block) capture(format string, trim bool) (string, error) {
+// "vt", the escape sequences that draw it. The text has a line for each
+// row, unless unwrap joins the rows of a line the terminal wrapped.
+func (b *block) capture(format string, trim, unwrap bool) (string, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	var out string
 	switch format {
 	case "", "text":
 		out = b.vt.Text()
+		if !unwrap {
+			cols, _ := b.vt.Size()
+			out = splitRows(out, cols)
+		}
 	case "vt":
 		out = string(b.vt.Snapshot())
 	default:
@@ -541,6 +549,48 @@ func (b *block) capture(format string, trim bool) (string, error) {
 		out += "\n"
 	}
 	return out, nil
+}
+
+// splitRows breaks text whose wrapped lines the emulator joined into the
+// rows it wrapped them in, cols cells wide. The emulator's text joins
+// them always: a line wider than the screen is one it wrapped, and it
+// wrapped each row as it filled, a wide character that would not fit
+// going on to the next row.
+func splitRows(text string, cols int) string {
+	if cols <= 0 {
+		return text
+	}
+	var b strings.Builder
+	for i, line := range strings.Split(text, "\n") {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		w := 0
+		for _, r := range line {
+			rw := cellWidth(r)
+			if w > 0 && w+rw > cols {
+				b.WriteByte('\n')
+				w = 0
+			}
+			b.WriteRune(r)
+			w += rw
+		}
+	}
+	return b.String()
+}
+
+// cellWidth is how many cells a character takes: none for a mark that
+// joins the one before, two for a wide one.
+func cellWidth(r rune) int {
+	switch {
+	case unicode.In(r, unicode.Mn, unicode.Me, unicode.Cf):
+		return 0
+	}
+	switch width.LookupRune(r).Kind() {
+	case width.EastAsianWide, width.EastAsianFullwidth:
+		return 2
+	}
+	return 1
 }
 
 // info describes the block and what runs in its foreground.

@@ -279,6 +279,13 @@ func (c *Client) Resize(sid string, cols, rows int) error {
 // next server, in their directories.
 func (c *Client) Shutdown() error { return c.call(Request{Op: "shutdown"}, nil) }
 
+// ShutdownIdle ends the server only when it has no session and no other
+// client, and refuses clients that connect meanwhile; forget drops the
+// saved state too.
+func (c *Client) ShutdownIdle(forget bool) error {
+	return c.call(Request{Op: "shutdown.idle", Args: &Args{Forget: forget}}, nil)
+}
+
 // ShutdownForget ends the server and its blocks, for good.
 func (c *Client) ShutdownForget() error {
 	return c.call(Request{Op: "shutdown", Args: &Args{Forget: true}}, nil)

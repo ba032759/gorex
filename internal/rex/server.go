@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"os"
@@ -38,6 +39,8 @@ type Server struct {
 	quitOnce sync.Once
 	forget   bool
 	stopping bool
+	// closed refuses new clients: the server stops, as it was idle.
+	closed bool
 
 	saveTimer *time.Timer
 	lastSaved []byte
@@ -291,6 +294,11 @@ func (s *Server) control(nc net.Conn, r *bufio.Reader, first []byte) {
 		out: make(chan []byte, 1024), done: make(chan struct{}),
 	}
 	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		nc.Close()
+		return
+	}
 	s.conns[c] = struct{}{}
 	s.mu.Unlock()
 	go func() {
@@ -486,8 +494,17 @@ func (s *Server) do(c *conn, req Request) (any, error) {
 		}
 		b.resize(req.Cols, req.Rows)
 		return nil, nil
-	case "shutdown":
+	case "shutdown", "shutdown.idle":
 		s.mu.Lock()
+		if req.Op == "shutdown.idle" {
+			// Idle: no session and no client but this one. A client
+			// that connects from now on is refused.
+			if n, others := len(s.model.Sessions), len(s.conns)-1; n > 0 || others > 0 {
+				s.mu.Unlock()
+				return nil, fmt.Errorf("the server is in use: %d sessions, %d other clients", n, others)
+			}
+			s.closed = true
+		}
 		s.forget = a.Forget
 		s.mu.Unlock()
 		go func() {
@@ -524,7 +541,7 @@ func (s *Server) do(c *conn, req Request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		text, err := b.capture(a.Format, a.Trim)
+		text, err := b.capture(a.Format, a.Trim, a.Unwrap)
 		if err != nil {
 			return nil, usageError(err.Error())
 		}
@@ -806,6 +823,15 @@ type savedBlock struct {
 }
 
 func statePath() string { return filepath.Join(Dir(), "state.json") }
+
+// DiscardState deletes the saved sessions, for a server that does not
+// run: the next one starts with none.
+func DiscardState() error {
+	if err := os.Remove(statePath()); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
+}
 
 // save writes the state, when it changed.
 func (s *Server) save() {

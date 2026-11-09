@@ -6,14 +6,14 @@ The commands themselves are in `cli-layout.md`, `cli-terminals.md` and
 ## Invocation
 
 ### F-100 Run as rex
-status: proposed · traces: B-3, B-7 · source: code
+status: proposed · traces: B-3, B-7 · source: code, owner
 
 The executable SHALL run as `rex` when its file name, without `.exe` and
 in any case, is `rex`.
-WHEN it runs by another name, and its first argument is a command of
-`rex`, THEN it SHALL run as `rex` too.
-WHEN `rex` gets no arguments THEN it SHALL print the overview help and
-exit with 0.
+WHEN it runs by another name with a command of `rex` as its first
+argument after the global options of F-101, it SHALL run as `rex` too.
+WHEN `rex` gets no arguments, it SHALL print the overview help and exit
+with 0.
 
 ### F-101 Global options
 status: proposed · traces: B-3, B-5 · source: code, rex-docs
@@ -29,9 +29,13 @@ Before the command, `rex` SHALL take these options:
 | `-v`, `--verbose`, `-vv` | taken and ignored |
 | `-S`, `--server` | refused, with exit status 2 |
 
-WHEN an option before the command is not in the table THEN `rex` SHALL
-exit with 2. A bad `--timeout` value SHALL exit with 2.
+IF an option before the command is not in the table, THEN `rex` SHALL
+exit with 2.
+IF the value of `--timeout` is not a duration, THEN `rex` SHALL exit
+with 2.
 IF an option that takes a value is the last word, as `rex -C`, THEN
+`rex` SHALL exit with 2.
+IF `--autostart` has a value other than `true`, `false`, `1` or `0`, THEN
 `rex` SHALL exit with 2.
 WHEN the value of an option is empty, `rex` SHALL use the option's
 default.
@@ -49,7 +53,7 @@ WHEN a flag is unknown, lacks its value, or a boolean has another value,
 THEN `rex` SHALL exit with 2.
 
 ### F-103 Help
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
 `rex help`, `rex --help` and `rex -h` SHALL print the overview: the
 commands, the options before the command, the target rules and the exit
@@ -58,6 +62,8 @@ statuses.
 `rex help session new`.
 The help of a command SHALL list every flag it takes, with its
 spellings, the values it takes and its default.
+The help SHALL say session, window and block, and tab and pane only for
+how the app shows a window and a block.
 For a topic that is not a command, `rex help` SHALL print the overview.
 A group without a subcommand, such as `rex session`, SHALL print the
 group's help, which lists its commands, and exit with 0.
@@ -66,7 +72,7 @@ IF the command or subcommand is unknown, THEN `rex` SHALL exit with 2.
 ## Exit statuses and errors
 
 ### F-104 Exit statuses
-status: proposed · traces: B-3, B-5 · source: code, rex-docs
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, owner
 
 `rex` SHALL exit with:
 
@@ -78,6 +84,7 @@ status: proposed · traces: B-3, B-5 · source: code, rex-docs
 | 3 | a target matches nothing, or more than one thing |
 | 4 | no server answers |
 | the program's | `rex wait`, and `--wait`, for a block's program |
+| 130 | an interrupt, as `Ctrl+C`, ended the command |
 
 WHEN a command fails THEN `rex` SHALL print `Error: ` and the reason on
 standard error.
@@ -288,9 +295,11 @@ protocol.
 runs.
 
 ### F-124 Shell completion
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
 `rex completion bash`, `zsh` or `fish` SHALL print a script that completes
 the commands of `rex`, the commands of its groups, and the flags of each
 command.
-Another shell SHALL exit with 2.
+IF the shell is `powershell`, THEN `rex` SHALL exit with 2 and say that
+GoRex runs on Linux (D-16).
+IF the shell is another, as `nu`, THEN `rex` SHALL exit with 2.

@@ -41,7 +41,7 @@ options for the block they create:
 
 | Option | Effect |
 |---|---|
-| `-c`, `--cwd`, `-d`, `--dir DIR` | the block's directory; `~` is the home directory; a relative path starts from the directory `rex` runs in |
+| `-c`, `--cwd`, `-d`, `--dir DIR` | the block's directory; `~` is the user's home directory, `~NAME` that user's; a relative path starts from the directory `rex` runs in |
 | `--keep-open` | the block stays when its command exits (F-139) |
 | `--shell SHELL` | the shell whose environment runs the command; `none` starts it directly (F-133) |
 | `--interactive` | the shell also reads its interactive startup files (F-133) |
@@ -200,7 +200,7 @@ window of F-111, and make that window active.
 nearest block on that side.
 `next` and `prev` SHALL move it to the next or previous block in layout
 order.
-`rex window focus next` and `prev` SHALL make the window after or before
+`rex window focus next` and `prev`, in any case, SHALL make the window after or before
 the window of F-111 active.
 WHEN the focus or the window is at the edge or the end, it SHALL stay,
 unless `--wrap` is given.
@@ -364,12 +364,14 @@ IF `rex block new` is asked for a block, THEN `rex` SHALL exit with 2:
 `rex run` and `rex split` create blocks.
 
 ### F-156 List clients
-status: proposed · traces: B-3 · source: code, rex-docs
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex client ls` SHALL list the clients connected to the server, each with
 its kind, name, age and the session it shows.
 The table SHALL leave out clients of kind `cli`, unless `--all` is given.
 WHEN `--json` is given, `rex` SHALL print every client.
+WHEN `-q` is given, `rex` SHALL print the IDs of the clients alone, one a
+line, as `rex ls -q` does.
 
 ### F-193 Inspect a client
 status: proposed · traces: B-3 · source: code, rex-docs

@@ -18,14 +18,14 @@ THEN `rex` SHALL exit with 2.
 ### F-175 The app that performs it
 status: proposed · traces: B-3 · source: code, rex-docs, tests
 
-WHEN `-C` or `REX_CLIENT` names a client THEN the server SHALL send the
+WHEN `-C` or `REX_CLIENT` names a client, the server SHALL send the
 action to the app it matches, by ID or name.
-WHEN one app is connected THEN the server SHALL send it there.
-WHEN no app is connected THEN `rex` SHALL exit with 1: `no app is
+WHEN one app is connected, the server SHALL send it there.
+IF no app is connected, THEN `rex` SHALL exit with 1: `no app is
 connected: open GoRex`.
-WHEN several apps are connected and none is named THEN `rex` SHALL exit
+IF several apps are connected and none is named, THEN `rex` SHALL exit
 with 3 and list them.
-WHEN the app does not answer in 30 seconds THEN `rex` SHALL exit with 1.
+IF the app does not answer in 30 seconds, THEN `rex` SHALL exit with 1.
 
 ### F-176 No scripts
 status: proposed · traces: B-5 · source: code, rex-docs
@@ -59,21 +59,23 @@ The preset SHALL follow `settings.json` in the data directory.
 `--json` SHALL print `path`, `bindings` and `problems`.
 
 ### F-179 Check the keymap
-status: proposed · traces: B-3 · source: code, rex-docs
+status: proposed · traces: B-3 · source: code, rex-docs, tests
 
 `rex config check [PATH]` SHALL read `keymap.json`, or the file at
 `PATH`.
 It SHALL print the path, whether the file exists, the preset, the number
 of bindings, and each problem.
-WHEN a problem is an error THEN `rex` SHALL exit with 1.
+`--json` SHALL print `path`, `exists`, `preset`, `bindings`, `from_file`
+and `problems`.
+IF a problem is an error, THEN `rex` SHALL exit with 1.
 
 ### F-180 Reload the keymap
-status: proposed · traces: B-3 · source: code, rex-docs
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex config reload` SHALL ask the app to read its keymap again, then
-print what `rex config check` prints.
-WHEN no app is connected THEN `rex` SHALL print that the app reads the
-keymap as it starts, and exit with 0.
+print what `rex config check` prints, as JSON with `--json`.
+IF no app is connected, THEN `rex` SHALL exit with 1, as `rex do` does
+(F-175).
 
 ## The server
 
@@ -87,25 +89,34 @@ ID, uptime, socket, data directory, number of sessions and executable.
 WHEN no server runs THEN `rex` SHALL print `not running` and exit with 4.
 
 ### F-182 Stop the server
-status: proposed · traces: B-2 · source: code, rex-docs, tests
+status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server stop` SHALL end the server and every program in its blocks.
 The server SHALL save the model first: the next server restores it
 (D-9).
-`--forget` SHALL delete the saved state, so that the next server starts
-with no session.
-WHEN no server runs THEN `rex` SHALL exit with 4.
+WHEN `--discard`, or GoRex's first name `--forget`, is given, the server
+SHALL delete the saved state, so that the next server starts with no
+session.
+WHEN `--if-idle` is given, the server SHALL stop only if it has no
+session and no client but `rex`, and SHALL refuse a client that connects
+as it stops.
+IF `--if-idle` is given and the server is in use, THEN `rex` SHALL say
+what uses it, leave it running, and exit with 1.
+IF no server runs, THEN `rex` SHALL exit with 4, or, with `--discard`,
+delete the saved state and exit with 0.
 
 ### F-183 Start the server, read its log
-status: proposed · traces: B-2 · source: code, rex-docs
+status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server start` SHALL start a server when none runs, and exit with 0
 when one runs.
 `rex server run` SHALL run a server in the foreground.
-WHEN another server runs for the data directory THEN `rex server run`
+IF another server runs for the data directory, THEN `rex server run`
 SHALL exit with 1.
 `rex server logs` SHALL print the server's log, `server.log` in the data
-directory.
+directory; with `-n N`, its newest `N` lines.
+WHEN `--follow` is given, `rex` SHALL go on printing what the server adds
+to its log, until the server stops.
 
 ### F-184 A server with nothing to do
 status: proposed · traces: B-2 · source: code
@@ -128,6 +139,8 @@ The skill of Codex, OpenCode and Pi SHALL go to `~/.agents/skills/rex`.
 `--project` SHALL put them in the repository the user is in.
 For each item, `rex` SHALL print its agent, its path and its state:
 `created`, `updated`, `unchanged`, `foreign` or `unreadable`.
+The skill SHALL say session, window and block, and tab and pane only
+for how the app shows a window and a block.
 
 ### F-186 The hooks of Claude Code
 status: proposed · traces: B-4 · source: code, rex-docs, tests
