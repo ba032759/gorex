@@ -1087,12 +1087,14 @@ func uniq(ws []string) []string {
 
 // cmdStats prints the size of each area, and the time it takes to read:
 // what a reviewer faces.
+// cmdStats shows what a reader reads: the live items, not the rejected
+// and superseded ones, which stay as history.
 func cmdStats(root string) {
 	items, refs, _ := load(root)
 	type area struct {
-		layer, name string
-		n, words    int
-		tested      int
+		layer, name    string
+		n, words, past int
+		tested         int
 	}
 	tested := map[string]bool{}
 	for _, r := range refs {
@@ -1102,7 +1104,7 @@ func cmdStats(root string) {
 	}
 	byArea := map[string]*area{}
 	var order []string
-	total := 0
+	total, live, past := 0, 0, 0
 	for _, it := range items {
 		k := it.Layer + "/" + it.Area
 		a, ok := byArea[k]
@@ -1111,7 +1113,13 @@ func cmdStats(root string) {
 			byArea[k] = a
 			order = append(order, k)
 		}
+		if it.Status == "rejected" || it.Status == "superseded" {
+			a.past++
+			past++
+			continue
+		}
 		a.n++
+		live++
 		a.words += it.Words
 		total += it.Words
 		if tested[it.ID] {
@@ -1119,10 +1127,11 @@ func cmdStats(root string) {
 		}
 	}
 	sort.Strings(order)
-	fmt.Printf("%-12s %-18s %6s %7s %8s %7s\n", "layer", "area", "items", "words", "minutes", "tested")
+	fmt.Printf("%-12s %-18s %6s %7s %8s %7s %6s\n", "layer", "area", "items", "words", "minutes", "tested", "past")
 	for _, k := range order {
 		a := byArea[k]
-		fmt.Printf("%-12s %-18s %6d %7d %8.0f %7d\n", a.layer, a.name, a.n, a.words, float64(a.words)/200, a.tested)
+		fmt.Printf("%-12s %-18s %6d %7d %8.0f %7d %6d\n", a.layer, a.name, a.n, a.words, float64(a.words)/200, a.tested, a.past)
 	}
-	fmt.Printf("%-31s %6d %7d %8.0f\n", "total", len(items), total, float64(total)/200)
+	fmt.Printf("%-31s %6d %7d %8.0f %7s %6d\n", "total", live, total, float64(total)/200, "", past)
+	fmt.Println("(past: rejected and superseded items, kept as history and not counted)")
 }
