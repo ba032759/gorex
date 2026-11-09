@@ -369,6 +369,8 @@ func (s *Server) request(c *conn, req Request) Response {
 			res.Code = "usage"
 		case errors.Is(err, ErrNoClient):
 			res.Code = "no_client"
+		case errors.Is(err, ErrServerGone):
+			res.Code = "server_gone"
 		case errors.Is(err, ErrNoTarget):
 			res.Code = "not_found"
 		}

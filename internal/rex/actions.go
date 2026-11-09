@@ -1104,7 +1104,7 @@ func (s *Server) wait(a *Args) (any, error) {
 		s.mu.Unlock()
 		select {
 		case <-s.quit:
-			return nil, errors.New("the server is shutting down")
+			return nil, ErrServerGone
 		case <-time.After(50 * time.Millisecond):
 		}
 	}

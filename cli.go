@@ -67,6 +67,8 @@ func exitCode(err error) int {
 			return exitTarget
 		case "usage":
 			return exitUsage
+		case "server_gone":
+			return exitNoServer
 		}
 	}
 	return exitFailed
@@ -1631,7 +1633,7 @@ func cliEvents(o *eventsOpts, _ *call) error {
 		select {
 		case <-c.Closed():
 			out.Flush()
-			return &cliError{exitNoServer, errors.New("the server went away")}
+			return &cliError{exitNoServer, rex.ErrServerGone}
 		case e := <-events:
 			if jsonOut {
 				b, _ := json.Marshal(e)

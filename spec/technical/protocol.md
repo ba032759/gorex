@@ -45,6 +45,7 @@ status: proposed · traces: F-104, F-113 · source: code, tests
 | `ambiguous` | a target matched several items; `error` lists them | 3 |
 | `usage` | the request makes no sense | 2 |
 | `no_client` | no app takes client actions | 1 |
+| `server_gone` | the server shut down before it answered; the client gives the same code to a request whose connection was lost | 4 |
 | none | any other failure | 1 |
 
 A request with an unknown `op` fails with no code.

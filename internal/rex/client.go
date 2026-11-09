@@ -32,12 +32,20 @@ type Client struct {
 }
 
 // Error is an error the server answered, with what kind it is: Code is
-// "not_found" or "ambiguous" for a target, "usage", "no_client" or "".
+// "not_found" or "ambiguous" for a target, "usage", "no_client",
+// "server_gone" or "".
 type Error struct {
 	Code, Msg string
 }
 
 func (e *Error) Error() string { return e.Msg }
+
+// Is makes an error of the code "server_gone" ErrServerGone.
+func (e *Error) Is(target error) bool { return target == ErrServerGone && e.Code == "server_gone" }
+
+// ErrServerGone is the error of a request whose server went away before
+// it answered: the connection was lost, or the server shut down.
+var ErrServerGone = errors.New("the server went away")
 
 // ErrTimeout is the error of a request whose answer took too long.
 var ErrTimeout = errors.New("timed out")
@@ -143,7 +151,7 @@ func (c *Client) read() {
 			c.mu.Lock()
 			c.err = err
 			for id, ch := range c.pending {
-				ch <- Response{ID: id, Error: "connection to the server lost"}
+				ch <- Response{ID: id, Error: ErrServerGone.Error(), Code: "server_gone"}
 				delete(c.pending, id)
 			}
 			c.mu.Unlock()
@@ -180,7 +188,7 @@ func (c *Client) callFor(req Request, out any, d time.Duration) error {
 	c.mu.Lock()
 	if c.err != nil {
 		c.mu.Unlock()
-		return errors.New("rex: connection to the server lost")
+		return &Error{Code: "server_gone", Msg: ErrServerGone.Error()}
 	}
 	c.nextID++
 	req.ID = c.nextID
@@ -191,7 +199,10 @@ func (c *Client) callFor(req Request, out any, d time.Duration) error {
 	_, err := c.conn.Write(append(b, '\n'))
 	c.wmu.Unlock()
 	if err != nil {
-		return err
+		c.mu.Lock()
+		delete(c.pending, req.ID)
+		c.mu.Unlock()
+		return &Error{Code: "server_gone", Msg: fmt.Sprintf("%s: %v", ErrServerGone, err)}
 	}
 	var res Response
 	var timeout <-chan time.Time

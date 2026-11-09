@@ -88,7 +88,7 @@ server's code `no_client` has no exit status of its own.
 When the server ends, `rex events` exits with 4 ("server unreachable").
 `rex wait`, waiting on the same server, exits with 1.
 
-- Status: decided: the server going away exits with 4 for every command.
+- Status: resolved (2026-11-09): the server going away exits with 4 for every command: the server's code `server_gone`, or a lost connection (F-104, F-168, T-103).
 
 ## Finding 7: two ways to match a client
 

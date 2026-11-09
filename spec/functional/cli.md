@@ -69,7 +69,7 @@ IF the command or subcommand is unknown, THEN `rex` SHALL exit with 2.
 ## Exit statuses and errors
 
 ### F-104 Exit statuses
-status: proposed · traces: B-3, B-5 · source: code, rex-docs
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, owner
 
 `rex` SHALL exit with:
 
@@ -79,11 +79,12 @@ status: proposed · traces: B-3, B-5 · source: code, rex-docs
 | 1 | it failed for another reason |
 | 2 | the command line is wrong, or the request makes no sense |
 | 3 | a target matches nothing, or more than one thing |
-| 4 | no server answers |
+| 4 | no server answers, or the server went away before it answered |
 | the program's | `rex wait`, and `--wait`, for a block's program |
 
-WHEN a command fails THEN `rex` SHALL print `Error: ` and the reason on
+WHEN a command fails, `rex` SHALL print `Error: ` and the reason on
 standard error.
+IF the server goes away during any command, THEN `rex` SHALL exit with 4.
 
 ### F-105 The exit status of a program waited for
 status: proposed · traces: B-3 · source: code, rex-docs

@@ -59,3 +59,23 @@ func TestTimeoutLimitsEveryRequest(t *testing.T) {
 		}
 	}
 }
+
+// spec: F-104, F-168, T-103
+func TestServerGoneExits4(t *testing.T) {
+	c := startTestServer(t)
+	var s map[string]any
+	if err := c.Do("session.new", &rex.Args{Create: &rex.CreateOptions{Command: []string{"sleep", "30"}}}, &s); err != nil {
+		t.Fatal(err)
+	}
+	block := s["block_id"].(string)
+	if _, code := cli(t, nil, "wait", "--for", "200ms", block); code != exitFailed {
+		t.Errorf("wait --for: exit %d, not 1", code)
+	}
+	go func() {
+		time.Sleep(300 * time.Millisecond)
+		c.ShutdownForget()
+	}()
+	if out, code := cli(t, nil, "wait", block); code != exitNoServer {
+		t.Errorf("wait as the server went away: exit %d, not 4: %s", code, out)
+	}
+}
