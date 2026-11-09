@@ -2001,11 +2001,19 @@ func cliServerStop(o *stopOpts, _ *call) error {
 		if re, ok := errors.AsType[*rex.Error](err); ok && strings.HasPrefix(re.Msg, "unknown op") {
 			return &cliError{exitNoServer, errors.New("the server is too old for --if-idle: it goes on")}
 		}
-		return err
 	case o.discard:
-		return c.ShutdownForget()
+		err = c.ShutdownForget()
+	default:
+		return c.Shutdown()
 	}
-	return c.Shutdown()
+	if err != nil || !o.discard {
+		return err
+	}
+	// The saved sessions are gone once the server has stopped.
+	for deadline := time.Now().Add(10 * time.Second); serverRuns() && time.Now().Before(deadline); {
+		time.Sleep(20 * time.Millisecond)
+	}
+	return rex.DiscardState()
 }
 
 func cliServerStart(args []string) error {

@@ -165,13 +165,13 @@ func TestServerStopIfIdle(t *testing.T) {
 	if out, code = cli(t, nil, "server", "stop", "--if-idle", "--discard"); code != 0 {
 		t.Errorf("stop --if-idle when idle: %d %s", code, out)
 	}
+	if _, err := os.Stat(filepath.Join(os.Getenv("GOREX_DIR"), "state.json")); err == nil {
+		t.Error("--discard left the saved sessions")
+	}
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("the idle server did not stop")
-	}
-	if _, err := os.Stat(filepath.Join(os.Getenv("GOREX_DIR"), "state.json")); err == nil {
-		t.Error("--discard left the saved sessions")
 	}
 }
 
@@ -186,10 +186,10 @@ func TestServerStopDiscard(t *testing.T) {
 	if out, code := cli(t, nil, "server", "stop", "--forget"); code != 0 {
 		t.Fatalf("stop --forget: %d %s", code, out)
 	}
-	<-done
 	if _, err := os.Stat(state); err == nil {
 		t.Error("--forget left the saved sessions")
 	}
+	<-done
 	os.WriteFile(state, []byte(`{"version": 1}`), 0o600)
 	if out, code := cli(t, nil, "--autostart=false", "server", "stop", "--discard"); code != 0 {
 		t.Errorf("stop --discard without a server: %d %s", code, out)
