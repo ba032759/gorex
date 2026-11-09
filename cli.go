@@ -344,8 +344,10 @@ func init() {
 		cmd(cliCmd{name: "keymap", short: "list the key bindings in effect", section: secAutomation, help: keymapHelp},
 			func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliKeymap),
 		group(cliCmd{name: "config", short: "check, or have the app reload, keymap.json", section: secAutomation},
-			cmd[struct{}](cliCmd{name: "check", use: "[PATH]", short: "check keymap.json, or the file at PATH"}, nil, cliConfigCheck),
-			rawCmd(cliCmd{name: "reload", short: "have the app read keymap.json again"}, cliConfigReload)),
+			cmd(cliCmd{name: "check", use: "[PATH]", short: "check keymap.json, or the file at PATH"},
+				func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliConfigCheck),
+			cmd(cliCmd{name: "reload", short: "have the app read keymap.json again"},
+				func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliConfigReload)),
 		group(cliCmd{name: "skill", short: "set up agents (Claude Code, Codex…) to use rex", section: secAutomation, help: skillHelp},
 			skillFlagsCmd("setup", "", "install, or update, the skill and the hooks"),
 			skillFlagsCmd("status", "", "tell what is installed"),
@@ -1826,31 +1828,46 @@ func cliKeymap(o *bool, _ *call) error {
 	return nil
 }
 
-func cliConfigCheck(_ *struct{}, f *call) error {
+// configCheck is what rex config check finds in a keymap.
+type configCheck struct {
+	Path     string   `json:"path"`
+	Exists   bool     `json:"exists"`
+	Preset   string   `json:"preset"`
+	Bindings int      `json:"bindings"`
+	FromFile int      `json:"from_file"`
+	Problems []string `json:"problems"`
+}
+
+func cliConfigCheck(o *bool, f *call) error {
 	path := keymapPath()
 	if len(f.args) > 0 {
 		path = f.args[0]
 	}
 	loadSettingsQuiet()
 	km := loadKeymap(path)
-	exists := "no"
-	if km.exists {
-		exists = "yes"
+	r := configCheck{Path: path, Exists: km.exists, Preset: presetOf(path), Bindings: len(km.bindings), Problems: km.problems}
+	if r.Problems == nil {
+		r.Problems = []string{}
 	}
-	user := 0
 	for _, b := range km.bindings {
 		if b.source != "default" {
-			user++
+			r.FromFile++
 		}
 	}
-	fmt.Printf("path: %s\nexists: %s\npreset: %s\nbindings: %d (%d from the file)\n", path, exists, presetOf(path), len(km.bindings), user)
-	bad := false
-	for _, p := range km.problems {
-		fmt.Println(p)
-		bad = bad || strings.HasPrefix(p, "error")
-	}
-	if bad {
-		return errors.New("the keymap has errors")
+	output(*o, r, func() {
+		exists := "no"
+		if r.Exists {
+			exists = "yes"
+		}
+		fmt.Printf("path: %s\nexists: %s\npreset: %s\nbindings: %d (%d from the file)\n", path, exists, r.Preset, r.Bindings, r.FromFile)
+		for _, p := range r.Problems {
+			fmt.Println(p)
+		}
+	})
+	for _, p := range r.Problems {
+		if strings.HasPrefix(p, "error") {
+			return errors.New("the keymap has errors")
+		}
 	}
 	return nil
 }
@@ -1866,17 +1883,14 @@ func presetOf(path string) string {
 	return defaultPreset() + " (default)"
 }
 
-func cliConfigReload(args []string) error {
+// cliConfigReload has the app read its keymap again, and checks it. With
+// no app connected it fails, as rex do does.
+func cliConfigReload(o *bool, _ *call) error {
 	var res json.RawMessage
 	if err := do("client.do", &rex.Args{Action: "client.config.reload", Client: opts.client}, &res); err != nil {
-		var re *rex.Error
-		if errors.As(err, &re) && re.Code == "no_client" {
-			fmt.Println("no app is running: it reads the keymap as it starts")
-			return nil
-		}
 		return err
 	}
-	return cliConfigCheck(nil, &call{})
+	return cliConfigCheck(o, &call{})
 }
 
 func cliServerStatus(o *bool, _ *call) error {

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -59,5 +62,39 @@ func TestCaptureFormats(t *testing.T) {
 	}
 	if _, code := cli(t, nil, "--autostart=false", "capture", "--format", "vt"); code != exitNoServer {
 		t.Errorf("--format vt without a server: %d", code)
+	}
+}
+
+// An action of the app with no app connected fails: rex do and rex
+// config reload exit with 1.
+//
+// spec: F-175, F-180
+func TestNoAppFails(t *testing.T) {
+	startTestServer(t)
+	for _, args := range [][]string{{"do", "client.tab.new"}, {"config", "reload"}, {"config", "reload", "--json"}} {
+		if out, code := cli(t, nil, args...); code != exitFailed || !strings.Contains(out, "no app is connected") {
+			t.Errorf("%s: %d %s", strings.Join(args, " "), code, out)
+		}
+	}
+}
+
+// rex config check --json prints what it found, and exits with 1 when a
+// problem is an error.
+//
+// spec: F-179
+func TestConfigCheckJSON(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("GOREX_DIR", dir)
+	path := filepath.Join(dir, "keymap.json")
+	os.WriteFile(path, []byte(`{"preset": "linux", "bindings": [{"key": "ctrl+shift+k", "action": "none"}]}`), 0o644)
+	out, code := cli(t, nil, "config", "check", "--json")
+	var r configCheck
+	if err := json.Unmarshal([]byte(out), &r); err != nil || code != 0 || r.Path != path || !r.Exists || r.Preset != "linux" || r.Problems == nil {
+		t.Errorf("config check --json: %d %s %+v", code, out, r)
+	}
+	os.WriteFile(path, []byte(`{"preset": "nope"}`), 0o644)
+	out, code = cli(t, nil, "config", "check", "--json")
+	if code != exitFailed || !strings.Contains(out, `"problems": [`) || !strings.Contains(out, "unknown preset") {
+		t.Errorf("config check --json of a bad file: %d %s", code, out)
 	}
 }

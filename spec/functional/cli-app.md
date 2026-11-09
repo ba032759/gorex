@@ -18,14 +18,14 @@ THEN `rex` SHALL exit with 2.
 ### F-175 The app that performs it
 status: proposed · traces: B-3 · source: code, rex-docs, tests
 
-WHEN `-C` or `REX_CLIENT` names a client THEN the server SHALL send the
+WHEN `-C` or `REX_CLIENT` names a client, the server SHALL send the
 action to the app it matches, by ID or name.
-WHEN one app is connected THEN the server SHALL send it there.
-WHEN no app is connected THEN `rex` SHALL exit with 1: `no app is
+WHEN one app is connected, the server SHALL send it there.
+IF no app is connected, THEN `rex` SHALL exit with 1: `no app is
 connected: open GoRex`.
-WHEN several apps are connected and none is named THEN `rex` SHALL exit
+IF several apps are connected and none is named, THEN `rex` SHALL exit
 with 3 and list them.
-WHEN the app does not answer in 30 seconds THEN `rex` SHALL exit with 1.
+IF the app does not answer in 30 seconds, THEN `rex` SHALL exit with 1.
 
 ### F-176 No scripts
 status: proposed · traces: B-5 · source: code, rex-docs
@@ -59,21 +59,23 @@ The preset SHALL follow `settings.json` in the data directory.
 `--json` SHALL print `path`, `bindings` and `problems`.
 
 ### F-179 Check the keymap
-status: proposed · traces: B-3 · source: code, rex-docs
+status: proposed · traces: B-3 · source: code, rex-docs, tests
 
 `rex config check [PATH]` SHALL read `keymap.json`, or the file at
 `PATH`.
 It SHALL print the path, whether the file exists, the preset, the number
 of bindings, and each problem.
-WHEN a problem is an error THEN `rex` SHALL exit with 1.
+`--json` SHALL print `path`, `exists`, `preset`, `bindings`, `from_file`
+and `problems`.
+IF a problem is an error, THEN `rex` SHALL exit with 1.
 
 ### F-180 Reload the keymap
-status: proposed · traces: B-3 · source: code, rex-docs
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex config reload` SHALL ask the app to read its keymap again, then
-print what `rex config check` prints.
-WHEN no app is connected THEN `rex` SHALL print that the app reads the
-keymap as it starts, and exit with 0.
+print what `rex config check` prints, as JSON with `--json`.
+IF no app is connected, THEN `rex` SHALL exit with 1, as `rex do` does
+(F-175).
 
 ## The server
 

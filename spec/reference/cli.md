@@ -165,11 +165,15 @@ Flags: none; it reads its arguments itself.
 
 ## `rex config check`
 
-Flags: none.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex config reload`
 
-Flags: none; it reads its arguments itself.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--json` |  | `false` | print JSON |
 
 ## `rex do`
 

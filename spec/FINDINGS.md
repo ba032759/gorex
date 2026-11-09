@@ -77,7 +77,7 @@ With no app connected, `rex do` exits with 1 and `rex config reload`
 prints a note and exits with 0. Both ask the app for an action. The
 server's code `no_client` has no exit status of its own.
 
-- Status: decided: an app action with no app connected exits with 1, for `rex do` and `rex config reload`.
+- Status: resolved (2026-11-09): an app action with no app connected exits with 1, for `rex do` and `rex config reload` (F-175, F-180).
 
 ## Finding 6: the server going away gives exit status 4 or 1
 
