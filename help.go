@@ -64,7 +64,8 @@ Presets: linux (Ctrl+Shift), macos (the Mac's shortcuts with Ctrl or Super
 for Cmd), none. Without "preset", linux, or macos when settings.json has
 "macosKeybindings": true. Keys: modifiers (ctrl, alt, shift, super or
 cmd) and a key joined by "+", sequences joined by ">". "none" unbinds a
-key. "rex actions" lists the actions; "rex config reload" applies changes.`
+key. "rex actions" lists the actions; "rex config reload" applies changes.
+rex keymap exits with 1 when a problem is an error, as rex config check does.`
 
 const statusHelp = `Program status (the OSC 7501 protocol): what a program in a terminal is
 doing, which the app shows on its tabs and panes and in notifications. A

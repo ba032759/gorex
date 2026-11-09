@@ -521,7 +521,7 @@ the same problems. `rex config check` exits with 1 when one is an error;
 reference says that `rex keymap` exits with 1 when a complaint is an
 error.
 
-- Status: decided: as Rex's reference: `rex keymap` exits with 1 when any complaint is an error, as `rex config check` does.
+- Status: resolved (2026-11-09): as Rex's reference: `rex keymap` exits with 1 when any complaint is an error, as `rex config check` does (F-178, F-179).
 
 ## Finding 38: rex server logs prints the whole log
 

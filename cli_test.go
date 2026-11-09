@@ -109,6 +109,28 @@ func TestConfigCheckJSON(t *testing.T) {
 	}
 }
 
+// rex keymap exits with 1 when a problem is an error, as rex config
+// check does, and with 0 for a warning alone.
+//
+// spec: F-178, F-179
+func TestKeymapErrorsExit1(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("GOREX_DIR", dir)
+	path := filepath.Join(dir, "keymap.json")
+	os.WriteFile(path, []byte(`{"preset": "nope"}`), 0o644)
+	for _, args := range [][]string{{"keymap"}, {"keymap", "--json"}, {"config", "check"}} {
+		if out, code := cli(t, nil, args...); code != exitFailed || !strings.Contains(out, "unknown preset") {
+			t.Errorf("%s of a bad file: %d %s", strings.Join(args, " "), code, out)
+		}
+	}
+	os.WriteFile(path, []byte(`{"preset": "linux", "bindings": [{"key": "ctrl+shift+k", "action": "nope.nothing"}]}`), 0o644)
+	for _, args := range [][]string{{"keymap"}, {"config", "check"}} {
+		if out, code := cli(t, nil, args...); code != 0 || !strings.Contains(out, "warning") {
+			t.Errorf("%s with a warning: %d %s", strings.Join(args, " "), code, out)
+		}
+	}
+}
+
 // rex client ls -q prints the IDs alone; --short=false, full ones.
 //
 // spec: F-156

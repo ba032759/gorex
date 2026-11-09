@@ -63,7 +63,7 @@ server or an app (Finding 19).
 ## Keys and configuration
 
 ### F-178 Show the keymap
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex keymap` SHALL list the key bindings in effect, sorted by action,
 each with its keys, its arguments and where it comes from.
@@ -75,8 +75,8 @@ The preset SHALL be the one that `keymap.json` names, else the default
 of T-122.
 `rex keymap` SHALL print the problems of `keymap.json` on standard
 error.
-IF a problem is an error, THEN `rex keymap` SHALL still exit with 0
-(Finding 37).
+IF a problem is an error, THEN `rex keymap` SHALL exit with 1, as `rex
+config check` does (F-179).
 
 ### F-179 Check the keymap
 status: proposed · traces: B-3 · source: code, rex-docs, tests

@@ -1902,6 +1902,17 @@ func cliKeymap(o *bool, _ *call) error {
 			fmt.Fprintln(os.Stderr, p)
 		}
 	})
+	return keymapErrors(km.problems)
+}
+
+// keymapErrors fails when a problem of a keymap is an error, for rex
+// keymap and rex config check alike.
+func keymapErrors(problems []string) error {
+	for _, p := range problems {
+		if strings.HasPrefix(p, "error") {
+			return errors.New("the keymap has errors")
+		}
+	}
 	return nil
 }
 
@@ -1941,12 +1952,7 @@ func cliConfigCheck(o *bool, f *call) error {
 			fmt.Println(p)
 		}
 	})
-	for _, p := range r.Problems {
-		if strings.HasPrefix(p, "error") {
-			return errors.New("the keymap has errors")
-		}
-	}
-	return nil
+	return keymapErrors(r.Problems)
 }
 
 func presetOf(path string) string {
