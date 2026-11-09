@@ -153,6 +153,11 @@ status: proposed · traces: F-174, F-175, F-193 · source: code, tests
 For `client.do`, the server sends the chosen app the event
 `client_action`, with `action_id`, `name`, `params`, `ctx_session` and
 `ctx_block`.
+When the request names a `session`, `window` or `block`, `ctx_block` is
+the block of F-112 they name and `ctx_session` its session; else they
+are the request's own.
+The app applies the action to the block of `ctx_block` when it has it,
+else where its focus is.
 The app answers with the request `client.reply`: `action_id`, and
 `result` or `error`.
 The server then answers `client.do` with the result, or fails it with the

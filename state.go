@@ -227,8 +227,9 @@ func (a *App) connect(client *rex.Client) error {
 			id, _ := ev.Payload["action_id"].(float64)
 			name, _ := ev.Payload["name"].(string)
 			params, _ := json.Marshal(ev.Payload["params"])
+			block, _ := ev.Payload["ctx_block"].(string)
 			a.update(func() {
-				res, err := a.clientAction(name, params)
+				res, err := a.clientAction(name, params, block)
 				go client.Reply(int64(id), res, err)
 			})
 		}
@@ -778,6 +779,28 @@ func (a *App) showSession(id string) {
 	if c := a.client; c != nil {
 		go c.View(id)
 	}
+}
+
+// showBlock shows a block: its session, its window, and the block
+// focused. It tells whether the app has the block.
+func (a *App) showBlock(id string) bool {
+	if a.model == nil || id == "" {
+		return false
+	}
+	ss, _ := a.model.BlockPlace(id)
+	if ss == nil {
+		return false
+	}
+	if ss.ID != a.session {
+		a.showSession(ss.ID)
+	}
+	p := a.panes[id]
+	if p == nil || p.Tab == nil {
+		return false
+	}
+	a.setFocus(p)
+	a.focusReq = p
+	return true
 }
 
 // selectSession shows a session by target: an ID, label, position or the

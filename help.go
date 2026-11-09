@@ -85,7 +85,10 @@ const doHelp = `Asks the GoRex app to perform one of its actions, as its keys do
   rex do pane.split direction=below
   rex do session.select session=work
   rex -C CLIENT do client.tab.goto index=2
-"rex actions" lists them. GoRex has no Lua: scripts are shell scripts.`
+"rex actions" lists them. GoRex has no Lua: scripts are shell scripts.
+An action of a block, a window or a session (pane.*, client.tab.*,
+session.*) acts on the block -s, -w or -b names, else yours, else the
+focused one: the app shows that block, focused, first.`
 
 const eventsHelp = `Prints events as they happen: the server's, as sessions created and
 destroyed, and every session's window and block events, without the

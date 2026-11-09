@@ -1152,6 +1152,17 @@ func (s *Server) clientDo(a *Args) (any, error) {
 		s.mu.Unlock()
 		return nil, err
 	}
+	// A session, window or block named is where the app applies the
+	// action: the block of F-112's rules is its context.
+	ctxSession, ctxBlock := a.CtxSession, a.CtxBlock
+	if a.Session != "" || a.Window != "" || a.Block != "" {
+		ss, _, id, err := s.scopeBlock(a)
+		if err != nil {
+			s.mu.Unlock()
+			return nil, err
+		}
+		ctxSession, ctxBlock = ss.ID, id
+	}
 	s.nextAction++
 	aid := s.nextAction
 	ch := make(chan Args, 1)
@@ -1159,7 +1170,7 @@ func (s *Server) clientDo(a *Args) (any, error) {
 	s.mu.Unlock()
 	ev := Event{Type: "client_action", Time: time.Now(), Payload: map[string]any{
 		"action_id": aid, "name": a.Action, "params": a.Params,
-		"ctx_session": a.CtxSession, "ctx_block": a.CtxBlock,
+		"ctx_session": ctxSession, "ctx_block": ctxBlock,
 	}}
 	b, _ := json.Marshal(Response{Event: &ev})
 	target.send(append(b, '\n'), true)

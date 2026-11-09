@@ -461,6 +461,9 @@ func (m *Model) blockPlace(id string) (*Session, *Window) {
 	return nil, nil
 }
 
+// BlockPlace returns the session and window of a block.
+func (m *Model) BlockPlace(id string) (*Session, *Window) { return m.blockPlace(id) }
+
 // ActiveWindow returns the window the session shows.
 func (s *Session) ActiveWindow() *Window {
 	for _, w := range s.Windows {

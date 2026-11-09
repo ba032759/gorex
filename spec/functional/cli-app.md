@@ -8,12 +8,19 @@ What these commands print, and where `rex skill setup` writes, are in
 ## Actions of the app
 
 ### F-174 Perform an action of the app
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex do ACTION [KEY=VALUE...]` SHALL ask the app of F-175 to perform the
 action, as its key binding does, and wait for its answer.
-The app SHALL perform the action where its own focus is, whatever `-s`
-and `-b` name (Finding 36).
+WHEN `-s`, `-w` or `-b` is given, the app SHALL apply an action of a
+block, a window or a session (`pane.`, `client.tab.`, `session.`) to the
+block of F-112 that they name.
+WHEN none of them is given, the app SHALL apply it to the context block,
+else, when the app does not have that block, where its own focus is.
+WHEN the app applies an action to a block, the app SHALL first show
+that block, focused, in its window and session.
+The app SHALL perform any other action on the app as a whole, whatever
+`-s`, `-w`, `-b` and the context name.
 A value SHALL go to the app as a number when it is one, as a boolean when
 it is `true` or `false`, and else as a string.
 WHERE `--args` is given, the action SHALL also take the arguments of its

@@ -332,8 +332,7 @@ func init() {
 			}, cliStatus),
 		cmd(cliCmd{name: "do", use: "ACTION [KEY=VALUE...]", short: "perform an action of the app, as its keys do", section: secAutomation, help: doHelp},
 			func(o *doOpts, f *flagSet) {
-				f.str(&o.a.Session, "s,session", "", "the `SESSION` to act in")
-				f.str(&o.a.Block, "b,block", "", "the `BLOCK` to act on")
+				targetFlags(f, &o.a, "swb")
 				f.str(&o.args, "args", "", "the action's arguments as a `JSON` object; - reads stdin, @FILE a file")
 				f.str(&o.eval, "e,eval", "", "Rex's Lua `CODE`: refused")
 				f.str(&o.action, "a,action", "", "Rex's `ACTION`").ignore()

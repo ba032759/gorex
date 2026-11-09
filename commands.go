@@ -142,6 +142,17 @@ func knownAction(name string) bool {
 	return slices.ContainsFunc(argActions, func(x actionInfo) bool { return x.Name == name })
 }
 
+// placed tells whether an action acts on a block, a window or a session,
+// rather than on the app as a whole.
+func placed(action string) bool {
+	for _, p := range []string{"pane.", "client.tab.", "session."} {
+		if strings.HasPrefix(action, p) {
+			return true
+		}
+	}
+	return false
+}
+
 // actionList lists the actions, for "rex actions".
 func actionList() []actionInfo {
 	var out []actionInfo
@@ -218,8 +229,9 @@ func (a *App) runAction(name string, args map[string]any) error {
 	return nil
 }
 
-// clientAction performs an action a client asked for with "rex do".
-func (a *App) clientAction(name string, params json.RawMessage) (any, error) {
+// clientAction performs an action a client asked for with "rex do", on
+// block, the block of the request, when the action has a place.
+func (a *App) clientAction(name string, params json.RawMessage, block string) (any, error) {
 	var args map[string]any
 	if len(params) > 0 && string(params) != "null" {
 		if err := json.Unmarshal(params, &args); err != nil {
@@ -228,6 +240,11 @@ func (a *App) clientAction(name string, params json.RawMessage) (any, error) {
 	}
 	if name == "client.actions" {
 		return actionList(), nil
+	}
+	// An action of a block, a window or a session acts on the block of
+	// the request, else where the focus is.
+	if placed(name) {
+		a.showBlock(block)
 	}
 	if err := a.runAction(name, args); err != nil {
 		return nil, err

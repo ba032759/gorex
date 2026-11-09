@@ -507,7 +507,7 @@ the name and the arguments, and acts where its own focus is. `rex do -b
 BLOCK pane.split` splits the focused block, with exit status 0. Rex
 applies the action to `BLOCK`, by default the focused block.
 
-- Status: decided: as Rex's: `rex do -s`, `-w` and `-b` name where the app applies the action; the app acts on the block of `ctx_block` (T-109), else where its focus is.
+- Status: resolved (2026-11-09): as Rex's: `rex do -s`, `-w` and `-b` name where the app applies the action; the app acts on the block of `ctx_block` (T-109), else where its focus is; an action of the whole app stays where it is (F-174, T-109).
 
 ## Finding 37: rex keymap exits with 0 on a keymap with errors
 
