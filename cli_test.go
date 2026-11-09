@@ -616,3 +616,38 @@ func TestNoGorexSession(t *testing.T) {
 		t.Errorf("zoom acted on %q, not the focused block %s", m.Sessions[0].Windows[0].Zoom, first)
 	}
 }
+
+// The wide event of a command names the command as the tree declares it,
+// never the text of its arguments.
+//
+// spec: F-121
+func TestWideCommandNames(t *testing.T) {
+	for args, want := range map[string]string{
+		"send ls":                 "send",
+		"send -b x echo secret":   "send",
+		"session new work":        "session new",
+		"session list":            "session ls",
+		"block send-key enter":    "block send-key",
+		"session nope secret":     "session",
+		"secret words here":       "",
+		"server logs -n 3":        "server logs",
+		"do pane.split dir=right": "do",
+	} {
+		if got := commandPath(strings.Fields(args)); got != want {
+			t.Errorf("rex %s: command %q, want %q", args, got, want)
+		}
+	}
+	dir := t.TempDir()
+	t.Setenv("GOREX_DIR", dir)
+	t.Setenv("GOREX_EVENTS", "")
+	cli(t, nil, "--autostart=false", "send", "ls", "secret")
+	files, _ := filepath.Glob(filepath.Join(dir, "events", "*.jsonl"))
+	var b []byte
+	for _, f := range files {
+		x, _ := os.ReadFile(f)
+		b = append(b, x...)
+	}
+	if !strings.Contains(string(b), `"command":"send"`) || strings.Contains(string(b), "secret") {
+		t.Errorf("the events of rex send ls secret: %s", b)
+	}
+}

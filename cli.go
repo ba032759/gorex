@@ -559,30 +559,26 @@ func onInterrupt(f func()) (stop func()) {
 
 // wideCommand records a rex command that ran: which, from where (a GoRex
 // terminal, an agent), how it ended and how long it took. Of its
-// arguments, it keeps the subcommands and the flags' names, not the
-// values: those may be text typed into terminals.
+// arguments, it keeps the command's names, as the tree declares them,
+// and the flags' names, not the values or the other arguments: those
+// may be text typed into terminals.
 func wideCommand(args []string, code int, err error, start time.Time) {
 	switch args[0] {
 	case "help", "--help", "-h", "completion", "__complete":
 		return
 	}
-	var words, flags []string
-	// The words before the first flag name the command; after a flag, a
-	// word may be the flag's value.
+	var flags []string
 	for _, a := range args {
 		if a == "--" {
 			break // the command it runs
 		}
-		switch {
-		case strings.HasPrefix(a, "-"):
+		if strings.HasPrefix(a, "-") {
 			name, _, _ := strings.Cut(a, "=")
 			flags = append(flags, name)
-		case len(flags) == 0 && len(words) < 4 && !strings.ContainsAny(a, " /=\n") && len(a) <= 24:
-			words = append(words, a)
 		}
 	}
 	w := rex.W{
-		"command":     strings.Join(words, " "),
+		"command":     commandPath(args),
 		"exit_code":   code,
 		"ok":          code == exitOK,
 		"duration_ms": float64(time.Since(start).Microseconds()) / 1000,
@@ -610,6 +606,22 @@ func wideCommand(args []string, code int, err error, start time.Time) {
 	}
 	rex.Wide("cli", w)
 	rex.WideFlush()
+}
+
+// commandPath is the path in the tree of the command that args name, as
+// dispatch finds it: "session new", or "session" for a group and a word
+// it does not have; empty for a word that is not a command.
+func commandPath(args []string) string {
+	c := rexCommands.find(args[0])
+	if c == nil {
+		return ""
+	}
+	if c.sub != nil && len(args) > 1 {
+		if s := c.find(args[1]); s != nil {
+			return s.path
+		}
+	}
+	return c.path
 }
 
 // dispatch runs the command that word names, with its arguments.

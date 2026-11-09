@@ -545,8 +545,8 @@ The event of a command keeps up to four words before the first flag as
 the command, so `rex send ls` records `send ls`, the text typed into a
 terminal. B-8 says the record holds no text the user typed.
 
-- Status: decided: the command's words are the declared names of the
-  command (`session new`), never its arguments.
+- Status: resolved (2026-11-09): the command's words are the declared
+  names of the command (`session new`), never its arguments (F-121).
 
 ## Finding 40: --help after a command is an unknown flag
 
