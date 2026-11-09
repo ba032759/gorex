@@ -22,6 +22,7 @@ func TestServer(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	t.Setenv("GOREX_DIR", dir)
+	t.Setenv("REX_SERVER", "") // not the server of a GoRex the tests run in
 	go Serve()
 	var c *Client
 	for i := 0; i < 100; i++ {

@@ -34,7 +34,7 @@ WHEN a command follows `--`, the block SHALL run it instead of the shell.
 IF two labels are given, THEN `rex` SHALL exit with 2.
 
 ### F-132 A new block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex new`, `rex run`, `rex split` and `rex window new` SHALL take these
 options for the block they create:
@@ -48,15 +48,10 @@ options for the block they create:
 | `--label TEXT` | the block's label; `rex run` and `rex split` only |
 | `--focus=false` | the focus and the active window stay as they were; not `rex new` |
 
-Without `--cwd`, the block SHALL start in the directory of this table:
-
-| Command | Directory |
-|---|---|
-| `rex new` | the directory `rex` runs in |
-| `rex run`, also with `--split` | the directory `rex` runs in |
-| `rex split` | the anchor's directory |
-| `rex window new`, with a command | the directory `rex` runs in |
-| `rex window new`, without a command | the directory of the focused block of the active window |
+WHEN `rex split` or `rex run --split` creates a block without `--cwd`,
+the block SHALL start in the directory of the block it goes beside.
+WHEN `rex new`, `rex run` or `rex window new` creates a block without
+`--cwd`, the block SHALL start in the directory `rex` runs in.
 
 WHEN `rex run`, `rex split` or `rex window new` creates a block without
 `--focus=false`, the block SHALL take the focus and its window SHALL
@@ -92,12 +87,13 @@ WHILE `rex` waits for the program, `--timeout` SHALL NOT end the wait.
 IF no command follows `--`, THEN `rex` SHALL exit with 2.
 
 ### F-135 Split a block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex split [-- COMMAND...]` SHALL put a new block beside the anchor: the
 block of `-b`, else the block of F-112.
 The split SHALL end the zoom of the window.
 IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2, and say the range.
+The server SHALL hold the ratio from 5 to 95 percent (T-107).
 
 ### F-136 Focus after a new block
 status: superseded · superseded-by: F-132 · traces: B-4 · source: code, rex-docs, tests
@@ -143,14 +139,14 @@ WHILE such a block stays, it SHALL take no more input.
 ## Close
 
 ### F-140 Close blocks and windows, end sessions
-status: proposed · traces: B-3 · source: code, rex-docs, tests · conflicts: F-113
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex close [BLOCK...]` and `rex block close` SHALL close each block
-named, in turn.
-`rex window close WINDOW...` SHALL close each window named, in turn, with
-every block in it.
+named.
+`rex window close WINDOW...` SHALL close each window named, with every
+block in it.
 `rex kill SESSION...` and `rex session kill` SHALL end each session
-named, in turn, with every block in it.
+named, with every block in it.
 WHEN a window loses its last block, the server SHALL close the window.
 WHEN a session loses its last window, the server SHALL end the session.
 WHEN the focused block closes, the focus SHALL go to the block of its
@@ -159,8 +155,9 @@ WHEN the active window closes, the window before it SHALL become active,
 else the first.
 IF `rex kill` or `rex window close` names nothing, THEN `rex` SHALL exit
 with 2.
-IF a target matches nothing, THEN `rex` SHALL exit with 3, and the items
-before it SHALL stay closed.
+`rex` SHALL resolve every target before it closes anything.
+IF one of the targets matches nothing, or more than one item, THEN `rex`
+SHALL change nothing and exit with 3.
 
 T-125 says how the server ends a block's program.
 
@@ -192,10 +189,10 @@ windows before it SHALL stay closed.
 ## Arrange
 
 ### F-142 Move the focus by direction or order
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests · conflicts: F-143
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
-`rex focus DIRECTION` SHALL move the focus from the focused block of the
-window of F-111, and make that window active.
+`rex focus DIRECTION` SHALL move the focus from the block of F-112, and
+make its window active.
 `left`, `right`, `up` and `down`, in any case, SHALL move it to the
 nearest block on that side.
 `next` and `prev` SHALL move it to the next or previous block in layout
@@ -204,19 +201,19 @@ order.
 the window of F-111 active.
 WHEN the focus or the window is at the edge or the end, it SHALL stay,
 unless `--wrap` is given.
-WHILE the window is zoomed, `rex focus` SHALL NOT move the focus to a
-side.
+WHILE the window is zoomed, `rex focus DIRECTION` SHALL move the focus
+as in the window without the zoom.
 
 ### F-143 Focus a window or a block
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex focus TARGET` SHALL make a window active, or give a block the focus
 and make its window active.
 `rex window focus WINDOW` SHALL make the window active.
 `rex block focus BLOCK` SHALL give the block the focus and make its
 window active.
-WHEN a block takes the focus, the server SHALL end the zoom of another
-block of its window.
+WHEN a block takes the focus, by any command or in the app, the server
+SHALL end the zoom of another block of its window.
 IF the target of `rex focus` matches both a window and a block and is
 not a full ID, THEN `rex` SHALL exit with 3 and change nothing.
 
@@ -231,7 +228,7 @@ The zoom SHALL NOT change the layout.
 IF both `--on` and `--off` are given, THEN `rex` SHALL exit with 2.
 
 ### F-145 Move a block
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex move [BLOCK] DIRECTION ANCHOR` SHALL take the block out of its
 window and put it beside the anchor, in the anchor's window.
@@ -241,6 +238,7 @@ WHEN the block leaves a window empty, the server SHALL close that window.
 IF the anchor is the block or in another session, THEN `rex` SHALL exit
 with 2.
 IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2.
+The server SHALL hold the ratio from 5 to 95 percent (T-107).
 
 ### F-146 Swap two blocks
 status: proposed · traces: B-3 · source: code, rex-docs, tests
@@ -252,11 +250,11 @@ to the block that takes the place of its focused block.
 IF the two are in different sessions, THEN `rex` SHALL exit with 2.
 
 ### F-147 Resize a block
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
 `rex resize [BLOCK] DIRECTION` SHALL move the nearest split around the
 block on that axis toward the direction.
-The ratio SHALL stay from 10 to 90 percent.
+The ratio SHALL stay from 5 to 95 percent (T-107).
 IF the block is in no split on that axis, THEN `rex` SHALL exit with 2.
 IF `--amount` is not a positive percentage, THEN `rex` SHALL exit with 2.
 

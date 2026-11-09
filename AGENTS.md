@@ -39,4 +39,5 @@ at the events before guessing; when a feature lacks the events to show it
 works, add the fields.
 
 Do not try a change on the user's running GoRex: run a server of your own
-with `GOREX_DIR=$(mktemp -d)`.
+with `REX_SERVER= GOREX_DIR=$(mktemp -d)`: in a GoRex terminal, `rex` reads
+`REX_SERVER` before `GOREX_DIR`.

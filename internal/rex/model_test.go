@@ -20,6 +20,7 @@ func startServer(t *testing.T) (*Client, string) {
 		t.Fatal(err)
 	}
 	t.Setenv("GOREX_DIR", dir)
+	t.Setenv("REX_SERVER", "") // not the server of a GoRex the tests run in
 	t.Setenv("SHELL", "/bin/sh")
 	t.Setenv("ENV", "") // no interactive startup file for sh
 	done := make(chan struct{})
@@ -273,6 +274,91 @@ func TestSessionsWindowsBlocks(t *testing.T) {
 	act(t, c, "block.close", Args{Block: s2["block_id"].(string)})
 	if ss := model(t, c).Sessions; len(ss) != 1 {
 		t.Errorf("%d sessions after closing play's only block", len(ss))
+	}
+}
+
+// spec: F-112, F-142, F-143, F-144
+func TestFocusFromContextAndZoom(t *testing.T) {
+	c, _ := startServer(t)
+	s1 := act(t, c, "session.new", Args{Label: "work"})
+	left := s1["block_id"].(string)
+	right := act(t, c, "block.split", Args{Block: left, Direction: "right"})["block_id"].(string)
+	far := act(t, c, "block.split", Args{Block: right, Direction: "right"})["block_id"].(string)
+	focus := func() string { return model(t, c).Sessions[0].Windows[0].Focus }
+
+	// The focus is on far; rex runs in left: right of left is right.
+	act(t, c, "focus", Args{Target: "right", CtxBlock: left})
+	if got := focus(); got != right {
+		t.Errorf("right of the context block went to %s, not %s", got, right)
+	}
+	// Without a context block, a direction starts from the focused one.
+	act(t, c, "focus", Args{Target: "right"})
+	if got := focus(); got != far {
+		t.Errorf("right of the focused block went to %s, not %s", got, far)
+	}
+	// With -w, from the window's focused block, not the context block.
+	act(t, c, "focus", Args{Target: "left", Session: "work", CtxBlock: left})
+	if got := focus(); got != right {
+		t.Errorf("left of the window's focused block went to %s, not %s", got, right)
+	}
+
+	// Focusing another block, by any command, ends the zoom.
+	for _, f := range []struct {
+		name string
+		a    Args
+		want string
+	}{
+		{"focus left", Args{Target: "left"}, left},
+		{"focus next", Args{Target: "next"}, far},
+		{"focus BLOCK", Args{Target: left}, left},
+	} {
+		act(t, c, "block.focus", Args{Block: right})
+		act(t, c, "block.zoom", Args{Block: right, Zoom: "on"})
+		act(t, c, "focus", f.a)
+		w := model(t, c).Sessions[0].Windows[0]
+		if w.Focus != f.want || w.Zoom != "" {
+			t.Errorf("%s in a zoomed window: focus %s, zoom %q; want %s, no zoom", f.name, w.Focus, w.Zoom, f.want)
+		}
+	}
+	// Focusing the zoomed block keeps the zoom.
+	act(t, c, "block.zoom", Args{Block: right, Zoom: "on"})
+	act(t, c, "block.focus", Args{Block: right})
+	if w := model(t, c).Sessions[0].Windows[0]; w.Zoom != right {
+		t.Errorf("focusing the zoomed block ended its zoom: %q", w.Zoom)
+	}
+}
+
+// spec: F-135, F-145, F-147, T-107
+func TestRatioLimit(t *testing.T) {
+	c, _ := startServer(t)
+	b1 := act(t, c, "session.new", Args{})["block_id"].(string)
+	ratio := func() float32 { return model(t, c).Sessions[0].Windows[0].Layout.Ratio }
+	near := func(r, want float32) bool { return r > want-0.001 && r < want+0.001 }
+
+	// A split of 3 % gives the new block 5 %.
+	b2 := act(t, c, "block.split", Args{Block: b1, Direction: "right", Ratio: 0.03})["block_id"].(string)
+	if r := ratio(); !near(r, MaxRatio) {
+		t.Errorf("split of 3 %%: ratio %v, not %v", r, MaxRatio)
+	}
+	// Resizing stops at the limit, not at 10 or 90 %.
+	for range 30 {
+		act(t, c, "block.resize", Args{Block: b2, Direction: "left", Amount: 10})
+	}
+	if r := ratio(); !near(r, MinRatio) {
+		t.Errorf("resized to the end: ratio %v, not %v", r, MinRatio)
+	}
+	// A move of 99 %, and a ratio the app sets, stay in the limit.
+	act(t, c, "block.move", Args{Block: b2, Direction: "left", Target: b1, Ratio: 0.99})
+	if r := ratio(); !near(r, MaxRatio) {
+		t.Errorf("move of 99 %%: ratio %v, not %v", r, MaxRatio)
+	}
+	split := model(t, c).Sessions[0].Windows[0].Layout.Split
+	act(t, c, "split.ratio", Args{Split: split, Ratio: 0.01})
+	if r := ratio(); !near(r, MinRatio) {
+		t.Errorf("split.ratio 0.01: ratio %v, not %v", r, MinRatio)
+	}
+	if ClampRatio(0.08) != 0.08 || ClampRatio(0.97) != MaxRatio {
+		t.Error("ClampRatio, which the app's dragged dividers use, holds another limit")
 	}
 }
 

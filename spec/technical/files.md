@@ -47,5 +47,6 @@ status: proposed · traces: F-107, F-183 · source: code
 A client starts a server by running its own executable with the one
 argument `-server`, detached, with standard output and error appended to
 `server.log`.
-It then connects every 30 ms, for up to 5 seconds.
+It then connects every 30 ms, for up to the client's timeout: `--timeout`
+for `rex`, 15 seconds for the app.
 A server that cannot lock `server.lock` exits at once.

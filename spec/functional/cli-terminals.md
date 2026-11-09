@@ -109,12 +109,12 @@ WHEN the block is gone and its status is not known THEN `rex` SHALL exit
 with 1.
 
 ### F-168 Give up waiting
-status: proposed · traces: B-3 · source: code, rex-docs
+status: proposed · traces: B-3 · source: code, rex-docs, owner
 
-WHEN `--for DURATION` is given and the wait lasts longer THEN `rex` SHALL
+IF `--for DURATION` is given and the wait lasts longer, THEN `rex` SHALL
 print `gave up after DURATION` and exit with 1.
-Without `--for`, `rex wait` SHALL wait without a limit.
-WHEN the server shuts down during the wait THEN `rex` SHALL exit with 1.
+WHEN no `--for` is given, `rex wait` SHALL wait without a limit.
+IF the server goes away during the wait, THEN `rex` SHALL exit with 4.
 
 ## Follow
 

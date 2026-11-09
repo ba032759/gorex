@@ -1,12 +1,15 @@
 # Technical: the protocol between rex and the server
 
 What another implementation of `rex` keeps to talk to GoRex's server.
-Protocol version 2.
+Protocol version 3.
 
 ### T-100 The socket
 status: proposed · traces: F-106, F-107 · source: code
 
 The server listens on a Unix socket (F-106), mode `0600`.
+A client connects to the socket of `REX_SERVER`, else to that of the
+data directory; the server ignores `REX_SERVER`, so that a server started
+in a block of another one does not take that server's socket.
 A connection's first line decides what it is.
 A line `{"op":"attach","sid":BLOCK,"cols":N,"rows":N}` makes it a
 terminal stream, which the app uses and `rex` does not.
@@ -31,8 +34,8 @@ status: proposed · traces: F-108, F-123, F-181 · source: code, tests
 A client sends `hello` first.
 Its `args` say who it is: `kind` (`app` or `cli`, the default) and
 `name`.
-The data are `version` (the protocol, 2), `pid`, `started`, `host`,
-`exe`, `exeTime`, `clientID` and `bin`.
+The data are `version` (the protocol, 3), `pid`, `started`, `host`,
+`exe`, `exe_time`, `client_id` and `bin`.
 A client that gets another `version` stops (F-108).
 
 ### T-103 Error codes
@@ -44,6 +47,7 @@ status: proposed · traces: F-104, F-113 · source: code, tests
 | `ambiguous` | a target matched several items; `error` lists them | 3 |
 | `usage` | the request makes no sense | 2 |
 | `no_client` | no app takes client actions | 1 |
+| `server_gone` | the server shut down before it answered; the client gives the same code to a request whose connection was lost | 4 |
 | none | any other failure | 1 |
 
 A request with an unknown `op` fails with no code.
@@ -116,6 +120,9 @@ A layout is a leaf `{"block_id"}`, or a split `{"split_id", "vertical",
 "ratio", "a", "b"}`.
 `vertical` puts `a` above `b`, else `a` is left of `b`; `ratio` is `a`'s
 share.
+A ratio that a request sets (a split, a move, a resize, `split.ratio`)
+stays from 0.05 to 0.95, and so does a divider dragged in the app: one
+limit, kept in one place.
 `blocks` maps each block ID to `block_id`, `label`, `session_id`,
 `window_id`, `shell`, `command`, `pid`, `cols`, `rows`, `keep_open`,
 `exited`, `exit_code`, `created` and `restored`.
@@ -128,12 +135,15 @@ fields:
 
 ```
 id label session_id window_id keep_open pid shell created program args
-idle dir title lastOutput lastInput output bells exited exitCode
+idle dir title last_output last_input output bells exited exit_code
 attached status cols rows
 ```
 
 `program` is the foreground process's name; `idle` tells that the shell
 is at its prompt.
+
+Every key of the protocol, and of what `rex` prints with `--json`, is in
+snake case, as Rex's are.
 
 ### T-109 Client actions
 status: proposed · traces: F-174, F-175, F-193 · source: code, tests

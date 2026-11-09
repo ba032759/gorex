@@ -730,7 +730,7 @@ func hookStatus(event string, in hookInput) string {
 // or not at all: a hook must not hold up the agent. A report of working
 // keeps the message of the turn, and is not sent again while working.
 func sendStatus(block, event, report string) {
-	c, err := rex.Dial()
+	c, err := rex.DialFor(opts.timeout)
 	if err != nil {
 		return
 	}

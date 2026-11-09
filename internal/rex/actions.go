@@ -583,7 +583,7 @@ func (s *Server) act(name string, a *Args) (any, error) {
 		for _, ss := range s.model.Sessions {
 			for _, w := range ss.Windows {
 				if sp := w.Layout.findSplit(a.Split); sp != nil {
-					sp.Ratio = min(max(a.Ratio, 0.05), 0.95)
+					sp.Ratio = ClampRatio(a.Ratio)
 					s.changed(ss.ID)
 					return map[string]any{"split_id": a.Split}, nil
 				}
@@ -729,6 +729,7 @@ func (s *Server) split(a *Args) (any, error) {
 	if share <= 0 || share >= 1 {
 		share = 0.5
 	}
+	share = ClampRatio(share)
 	if dir == Left || dir == Right {
 		o.Cols = max(int(float32(o.Cols)*share), 10)
 	} else {
@@ -757,7 +758,8 @@ func (s *Server) split(a *Args) (any, error) {
 var directions = map[string][2]int{"left": {-1, 0}, "right": {1, 0}, "up": {0, -1}, "down": {0, 1}}
 
 // focusBlock gives a block the focus, making its window active: the block
-// a request names, or the one next to the focused one toward a direction.
+// a request names, or the one next to the request's block toward a
+// direction.
 func (s *Server) focusBlock(a *Args) (any, error) {
 	if d := strings.ToLower(a.Direction); d != "" {
 		a2 := *a
@@ -765,11 +767,6 @@ func (s *Server) focusBlock(a *Args) (any, error) {
 		ss, w, from, err := s.scopeBlock(&a2)
 		if err != nil {
 			return nil, err
-		}
-		if a.Block == "" && a.Session == "" && a.Window == "" {
-			// The direction is from the focused block of the client's
-			// window, not from the client's own block.
-			from = w.Focus
 		}
 		to := from
 		order := w.Layout.Blocks()
@@ -797,10 +794,8 @@ func (s *Server) focusBlock(a *Args) (any, error) {
 					return nil, usageError(fmt.Sprintf("unknown direction %q", a.Direction))
 				}
 			}
-			if w.Zoom == "" {
-				if n := Neighbor(w.Layout.Rects(), order, from, v[0], v[1], a.Wrap); n != "" {
-					to = n
-				}
+			if n := Neighbor(w.Layout.Rects(), order, from, v[0], v[1], a.Wrap); n != "" {
+				to = n
 			}
 		}
 		w.setFocus(to)
@@ -812,9 +807,6 @@ func (s *Server) focusBlock(a *Args) (any, error) {
 		return nil, err
 	}
 	w.setFocus(id)
-	if w.Zoom != "" && w.Zoom != id {
-		w.Zoom = ""
-	}
 	s.activate(ss, w)
 	return map[string]any{"block_id": id, "window_id": w.ID, "session_id": ss.ID}, nil
 }
@@ -1008,7 +1000,7 @@ func (l *Layout) resize(id string, dir Direction, amount float32) bool {
 	}
 	for i := len(path) - 1; i >= 0; i-- {
 		if p := path[i]; p.Vertical == vertical {
-			p.Ratio = min(max(p.Ratio+sign*amount, 0.1), 0.9)
+			p.Ratio = ClampRatio(p.Ratio + sign*amount)
 			return true
 		}
 	}
@@ -1111,7 +1103,7 @@ func (s *Server) wait(a *Args) (any, error) {
 		s.mu.Unlock()
 		select {
 		case <-s.quit:
-			return nil, errors.New("the server is shutting down")
+			return nil, ErrServerGone
 		case <-time.After(50 * time.Millisecond):
 		}
 	}

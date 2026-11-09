@@ -16,14 +16,14 @@ WHEN `rex` gets no arguments, it SHALL print the overview help and exit
 with 0.
 
 ### F-101 Global options
-status: proposed · traces: B-3, B-5 · source: code, rex-docs
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, owner
 
 Before the command, `rex` SHALL take these options:
 
 | Option | Effect |
 |---|---|
 | `-C`, `--client CLIENT` | the app that `rex do` asks; default `REX_CLIENT` |
-| `--timeout DURATION` | the longest wait for a request's answer; default `10s` |
+| `--timeout DURATION` | the longest wait to connect, and for each answer; default `10s` |
 | `--autostart[=false]` | start a server when none answers; default on |
 | `--color WHEN` | taken and ignored |
 | `-v`, `--verbose`, `-vv` | taken and ignored |
@@ -39,6 +39,9 @@ IF `--autostart` has a value other than `true`, `false`, `1` or `0`, THEN
 `rex` SHALL exit with 2.
 WHEN the value of an option is empty, `rex` SHALL use the option's
 default.
+`--timeout` SHALL limit each connection to the server, a server started
+included, and the wait for each answer, except the waits of `rex wait`,
+`--wait` and `rex events`.
 
 ### F-102 Flags of a command
 status: proposed · traces: B-3 · source: code
@@ -82,12 +85,13 @@ status: proposed · traces: B-3, B-5 · source: code, rex-docs, owner
 | 1 | it failed for another reason |
 | 2 | the command line is wrong, or the request makes no sense |
 | 3 | a target matches nothing, or more than one thing |
-| 4 | no server answers |
+| 4 | no server answers, or the server went away before it answered |
 | the program's | `rex wait`, and `--wait`, for a block's program |
 | 130 | an interrupt, as `Ctrl+C`, ended the command |
 
-WHEN a command fails THEN `rex` SHALL print `Error: ` and the reason on
+WHEN a command fails, `rex` SHALL print `Error: ` and the reason on
 standard error.
+IF the server goes away during any command, THEN `rex` SHALL exit with 4.
 
 ### F-105 The exit status of a program waited for
 status: proposed · traces: B-3 · source: code, rex-docs
@@ -102,22 +106,31 @@ nothing on standard error.
 ## The server
 
 ### F-106 Which server
-status: proposed · traces: B-6 · source: code
+status: proposed · traces: B-6 · source: code, rex-docs, owner
 
-`rex` SHALL talk to the server of the data directory: `GOREX_DIR`, else
-the user's configuration directory and `GoRex`.
-The socket SHALL be `server.sock` in the data directory.
-WHEN that path has 100 characters or more THEN the socket SHALL be
-`gorex-UID-HASH.sock` in the system's temporary directory.
+WHEN `REX_SERVER` is `unix:PATH`, `rex` SHALL talk to the server whose
+socket is `PATH`.
+WHEN `REX_SERVER` is empty, `rex` SHALL talk to the server of the data
+directory: `GOREX_DIR`, else the user's configuration directory and
+`GoRex`.
+The server SHALL listen on `server.sock` in its data directory, whatever
+`REX_SERVER` says.
+WHEN that path has 100 characters or more, the server SHALL listen on
+`gorex-UID-HASH.sock` in the system's temporary directory instead.
+IF `REX_SERVER` is not empty and not `unix:PATH`, THEN `rex` SHALL exit
+with 2.
+IF `REX_SERVER` names another socket than that of the data directory
+and no server answers on it, THEN `rex` SHALL exit with 4 and start
+nothing.
 
 ### F-107 Start a server when none runs
-status: proposed · traces: B-2, B-3 · source: code, rex-docs
+status: proposed · traces: B-2, B-3 · source: code, rex-docs, owner
 
-WHEN no server answers THEN `rex` SHALL start one in the background and
-wait up to 5 seconds for it.
-WHEN `--autostart=false` is given and no server answers THEN `rex` SHALL
+WHEN no server answers, `rex` SHALL start one in the background and
+wait for it up to `--timeout`.
+IF `--autostart=false` is given and no server answers, THEN `rex` SHALL
 exit with 4 and start nothing.
-WHEN the server still does not answer THEN `rex` SHALL exit with 4.
+IF the server still does not answer, THEN `rex` SHALL exit with 4.
 `rex version`, `rex server status` and `rex server stop` SHALL NOT start
 a server.
 
@@ -132,11 +145,10 @@ which restarts the server.
 ## Context and targets
 
 ### F-109 Where rex runs
-status: proposed · traces: B-3, B-4 · source: code, rex-docs
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, owner
 
 `rex` SHALL take its context from `REX_SESSION` and `REX_BLOCK`.
-WHEN `REX_BLOCK` is empty THEN `rex` SHALL take the block from
-`GOREX_SESSION`.
+`rex` SHALL NOT take its context from `GOREX_SESSION`.
 A command that names no target SHALL act in its context (F-110, F-111,
 F-112).
 
@@ -162,16 +174,18 @@ the context block.
 Else it SHALL act in the active window of the session of F-110.
 
 ### F-112 The block a command acts on
-status: proposed · traces: B-3, B-4 · source: code, rex-docs · conflicts: F-142
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, owner
 
-WHEN `-b`, or the block argument, names a block THEN the command SHALL
-act on it.
-WHEN no `-s` and no `-w` is given THEN it SHALL act on the context block.
-Else it SHALL act on the focused block of the window of F-111, or its
-first block.
+WHEN `-b`, or the block argument, names a block, the command SHALL act
+on it.
+WHEN no block, no `-s` and no `-w` is given, the command SHALL act on the
+context block.
+WHEN `-s` or `-w` is given, or the context has no block of the server,
+the command SHALL act on the focused block of the window of F-111, or on
+its first block.
 
 ### F-113 How a target matches
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex` SHALL match a target in this order, and stop at the first kind
 that matches:
@@ -181,9 +195,12 @@ that matches:
 3. a position from 1, for sessions and windows;
 4. the end of an ID, of at least 4 characters, without a leading `…`.
 
-WHEN a target matches nothing THEN `rex` SHALL exit with 3.
-WHEN a kind matches more than one item THEN `rex` SHALL change nothing,
+IF a target matches nothing, THEN `rex` SHALL change nothing and exit
+with 3.
+IF a kind matches more than one item, THEN `rex` SHALL change nothing,
 list the matches with short ID and name, and exit with 3.
+WHEN a command has several targets, `rex` SHALL resolve them all before
+it acts on any.
 
 ### F-114 Where a block target matches
 status: proposed · traces: B-3 · source: code, tests
@@ -224,7 +241,7 @@ status: proposed · traces: B-4 · source: code, tests
 ## Environment
 
 ### F-118 The environment of a block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, owner
 
 The server SHALL start each block's program with the server's
 environment, without the variables of other terminals, and with:
@@ -236,7 +253,6 @@ environment, without the variables of other terminals, and with:
 | `REX_SERVER` | `unix:` and the socket's path |
 | `REX_BIN_DIR` | `bin` in the data directory |
 | `GOREX_DIR` | the data directory |
-| `GOREX_SESSION` | the block's ID |
 | `PATH` | `REX_BIN_DIR`, then the server's `PATH` |
 | `TERM`, `COLORTERM` | `xterm-256color`, `truecolor` |
 | `TERM_PROGRAM`, `TERM_PROGRAM_VERSION` | `GoRex`, its version |
@@ -250,11 +266,11 @@ executable.
 A block that runs `rex` SHALL then run the `rex` of its own server.
 
 ### F-120 What rex reads from the environment
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
-`rex` SHALL read `REX_SESSION`, `REX_BLOCK` and `GOREX_SESSION` (F-109),
-`REX_CLIENT` (F-101), `GOREX_DIR` (F-106) and `GOREX_EVENTS` (F-121).
-`rex` SHALL NOT read `REX_SERVER`.
+`rex` SHALL read `REX_SESSION` and `REX_BLOCK` (F-109), `REX_CLIENT`
+(F-101), `REX_SERVER` and `GOREX_DIR` (F-106), and `GOREX_EVENTS`
+(F-121).
 
 ### F-121 A wide event per command
 status: proposed · traces: B-8 · verify: event · source: code

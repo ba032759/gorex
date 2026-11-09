@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net"
 	"os"
 	"os/signal"
 	"os/user"
@@ -73,6 +72,8 @@ func exitCode(err error) int {
 			return exitTarget
 		case "usage":
 			return exitUsage
+		case "server_gone":
+			return exitNoServer
 		}
 	}
 	return exitFailed
@@ -648,16 +649,15 @@ func dispatch(word string, args []string) error {
 // connect connects to the server: it starts one when none runs, unless
 // --autostart=false.
 func connect() (*rex.Client, error) {
+	if err := rex.ServerEnvError(); err != nil {
+		return nil, &cliError{exitUsage, err}
+	}
 	var c *rex.Client
 	var err error
 	if opts.autostart {
-		c, err = rex.Connect()
+		c, err = rex.ConnectFor(opts.timeout)
 	} else {
-		var nc net.Conn
-		if nc, err = net.DialTimeout("unix", rex.SocketPath(), opts.timeout); err == nil {
-			nc.Close()
-			c, err = rex.Connect()
-		}
+		c, err = rex.DialFor(opts.timeout)
 	}
 	if err != nil {
 		return nil, &cliError{exitNoServer, fmt.Errorf("could not reach the server at %s: %w", rex.SocketPath(), err)}
@@ -678,9 +678,6 @@ func connect() (*rex.Client, error) {
 // withContext fills in where the command runs, from the environment.
 func withContext(a *rex.Args) *rex.Args {
 	a.CtxSession, a.CtxBlock = os.Getenv("REX_SESSION"), os.Getenv("REX_BLOCK")
-	if a.CtxBlock == "" {
-		a.CtxBlock = os.Getenv("GOREX_SESSION")
-	}
 	return a
 }
 
@@ -736,7 +733,7 @@ func dash(s string) string {
 func cliVersion(o *bool, _ *call) error {
 	jsonOut := *o
 	v := map[string]any{"version": rex.Version, "protocol": rex.ProtocolVersion, "name": "GoRex"}
-	if c, err := rex.Dial(); err == nil {
+	if c, err := rex.DialFor(opts.timeout); err == nil {
 		if h, err := c.Hello(); err == nil {
 			v["server"] = map[string]any{"pid": h.PID, "protocol": h.Version, "started": h.Started, "exe": h.Exe}
 		}
@@ -962,8 +959,37 @@ func cliSessionKill(_ *struct{}, f *call) error {
 	if len(f.args) == 0 {
 		return usagef("usage: rex kill SESSION...")
 	}
-	for _, s := range f.args {
-		if _, err := resolveIDs("session.kill", &rex.Args{Session: s}); err != nil {
+	return eachTarget(&rex.Args{}, f.args, "session", func(a *rex.Args, t string) { a.Session = t })
+}
+
+// eachTarget closes every target of a kind, or kills every session, once
+// it resolved them all: when one does not resolve, nothing changes.
+func eachTarget(base *rex.Args, targets []string, kind string, set func(*rex.Args, string)) error {
+	c, err := connect()
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	var ids []string
+	for _, t := range targets {
+		a := *base
+		set(&a, t)
+		var res map[string]any
+		if err := c.Do(kind+".resolve", withContext(&a), &res); err != nil {
+			return err
+		}
+		if id, _ := res[kind+"_id"].(string); !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	op := kind + ".close"
+	if kind == "session" {
+		op = "session.kill"
+	}
+	for _, id := range ids {
+		a := *base
+		set(&a, id)
+		if err := c.Do(op, withContext(&a), nil); err != nil {
 			return err
 		}
 	}
@@ -981,7 +1007,7 @@ func cliWindowNew(n *newOpts, f *call) error {
 		a.WindowLabel = f.args[0]
 	}
 	o.Command = f.command
-	if o.Dir == "" && len(o.Command) > 0 {
+	if o.Dir == "" {
 		o.Dir, _ = os.Getwd()
 	}
 	fixDir(o)
@@ -1137,14 +1163,7 @@ func cliWindowClose(a *rex.Args, f *call) error {
 	if len(f.args) == 0 {
 		return usagef("usage: rex window close WINDOW...")
 	}
-	for _, w := range f.args {
-		a2 := *a
-		a2.Window = w
-		if _, err := resolveIDs("window.close", &a2); err != nil {
-			return err
-		}
-	}
-	return nil
+	return eachTarget(a, f.args, "window", func(a *rex.Args, t string) { a.Window = t })
 }
 
 // placeOpts are the flags of rex run and rex split.
@@ -1201,7 +1220,9 @@ func cliPlace(p *placeOpts, f *call, split bool) error {
 		dir = "right"
 	}
 	o.Command = cmd
-	if o.Dir == "" && len(cmd) > 0 && !split {
+	if o.Dir == "" && !split && dir == "" {
+		// A new window starts where rex runs; a split, in its anchor's
+		// directory.
 		o.Dir, _ = os.Getwd()
 	}
 	fixDir(o)
@@ -1419,14 +1440,7 @@ func cliBlockClose(a *rex.Args, f *call) error {
 		_, err := resolveIDs("block.close", a)
 		return err
 	}
-	for _, b := range f.args {
-		a2 := *a
-		a2.Block = b
-		if _, err := resolveIDs("block.close", &a2); err != nil {
-			return err
-		}
-	}
-	return nil
+	return eachTarget(a, f.args, "block", func(a *rex.Args, t string) { a.Block = t })
 }
 
 // blockRow is a block, as listings show it.
@@ -1698,7 +1712,7 @@ func cliEvents(o *eventsOpts, _ *call) error {
 		select {
 		case <-c.Closed():
 			out.Flush()
-			return &cliError{exitNoServer, errors.New("the server went away")}
+			return &cliError{exitNoServer, rex.ErrServerGone}
 		case e := <-events:
 			if jsonOut {
 				b, _ := json.Marshal(e)
@@ -1767,7 +1781,7 @@ func cliWait(o *waitOpts, f *call) error {
 	defer c.Close()
 	var res map[string]any
 	if err := c.DoFor("wait", withContext(a), &res, d); err != nil {
-		if strings.Contains(err.Error(), "timed out") {
+		if errors.Is(err, rex.ErrTimeout) {
 			return &cliError{exitFailed, fmt.Errorf("gave up after %s", d)}
 		}
 		return err
@@ -1958,7 +1972,7 @@ func cliConfigReload(o *bool, _ *call) error {
 
 func cliServerStatus(o *bool, _ *call) error {
 	jsonOut := *o
-	c, err := rex.Dial()
+	c, err := rex.DialFor(opts.timeout)
 	if err != nil {
 		output(jsonOut, map[string]any{"running": false, "socket": rex.SocketPath()}, func() {
 			fmt.Printf("not running (socket %s)\n", rex.SocketPath())
@@ -1987,7 +2001,7 @@ func cliServerStatus(o *bool, _ *call) error {
 type stopOpts struct{ discard, ifIdle bool }
 
 func cliServerStop(o *stopOpts, _ *call) error {
-	c, err := rex.Dial()
+	c, err := rex.DialFor(opts.timeout)
 	if err != nil {
 		if o.discard {
 			return rex.DiscardState()
@@ -2017,7 +2031,7 @@ func cliServerStop(o *stopOpts, _ *call) error {
 }
 
 func cliServerStart(args []string) error {
-	c, err := rex.Connect()
+	c, err := rex.ConnectFor(opts.timeout)
 	if err != nil {
 		return &cliError{exitNoServer, err}
 	}
@@ -2097,7 +2111,7 @@ func readFrom(path string, at int64) ([]byte, int64, error) {
 
 // serverRuns tells whether a server answers on the socket.
 func serverRuns() bool {
-	c, err := rex.Dial()
+	c, err := rex.DialFor(opts.timeout)
 	if err != nil {
 		return false
 	}

@@ -35,7 +35,7 @@ context block. The comment says this is meant. Rex's documentation says
 "here" is the agent's own block, and "the focused pane" the focused one,
 so both readings exist. The owner decides which a direction starts from.
 
-- Status: decided: a direction starts from the context block, REX_BLOCK when it is live, else the focused block (F-112).
+- Status: resolved (2026-11-09): a direction starts from the block of F-112: the context block when it is live and no `-s` or `-w` is given, else the window's focused block (F-112, F-142).
 
 ## Finding 3: a new block's directory depends on the command that makes it
 
@@ -51,7 +51,7 @@ starts in `rex`'s directory with a command and in the focused block's
 directory without one. A script that opens a session and a window in a
 row gets two different directories.
 
-- Status: decided: beside a block (`split`, `run --split`), its directory; otherwise (`new`, `run`, `window new`), the directory `rex` runs in.
+- Status: resolved (2026-11-09): beside a block (`split`, `run --split`), its directory; otherwise (`new`, `run`, `window new`), with or without a command, the directory `rex` runs in (F-132).
 
 ## Finding 4: --timeout does not limit most requests
 
@@ -65,7 +65,7 @@ target lookups (`model`, `list`, `clients`, `*.resolve`) use a fixed
 `--autostart=false` dials with `--timeout`. `rex wait` tells its own
 timeout from other errors by the words "timed out" in the message.
 
-- Status: decided: `--timeout` limits every connection and every request that does not stream, as Rex's reference says.
+- Status: resolved (2026-11-09): `--timeout` limits every connection, a server started included, and every request that does not stream; `rex wait` tells its timeout by the error, not the words (F-101, F-107, T-123).
 
 ## Finding 5: "no app" fails in rex do and succeeds in rex config reload
 
@@ -88,7 +88,7 @@ server's code `no_client` has no exit status of its own.
 When the server ends, `rex events` exits with 4 ("server unreachable").
 `rex wait`, waiting on the same server, exits with 1.
 
-- Status: decided: the server going away exits with 4 for every command.
+- Status: resolved (2026-11-09): the server going away exits with 4 for every command: the server's code `server_gone`, or a lost connection (F-104, F-168, T-103).
 
 ## Finding 7: two ways to match a client
 
@@ -114,7 +114,7 @@ whose ID ends in `1`, and prints the first.
 `rex list --json`, `rex wait --json` and the model print `exit_code`.
 Every other key is in snake case, as Rex's are.
 
-- Status: decided: snake case everywhere: `exit_code`, `last_output`, `last_input`.
+- Status: resolved (2026-11-09): snake case everywhere: `exit_code`, `last_output`, `last_input`, and hello's `exe_time` and `client_id`; the protocol is version 3 (T-102, T-108).
 
 ## Finding 9: on Windows, REX_BIN_DIR names a directory without rex
 
@@ -139,7 +139,7 @@ Rex's documentation: an ambiguous target changes nothing. `rex kill a b
 c`, `rex close a b c` and `rex window close a b c` act on each target in
 turn. When `b` is ambiguous, `a` is already gone.
 
-- Status: decided: resolve every target first; IF one fails, THEN nothing changes and `rex` exits with 3.
+- Status: resolved (2026-11-09): `rex kill`, `rex close` and `rex window close` resolve every target first; IF one fails, THEN nothing changes and `rex` exits with 3; a target named twice acts once (F-113, F-140).
 
 ## Finding 11: rex sets REX_SERVER and does not read it
 
@@ -152,7 +152,7 @@ by `GOREX_DIR` instead, and refuses `-S`, whose default in Rex is
 `REX_SERVER`. A block whose `GOREX_DIR` is removed reaches another
 server than the one `REX_SERVER` names.
 
-- Status: decided: `rex` reads `REX_SERVER` (`unix:PATH`) before `GOREX_DIR`.
+- Status: resolved (2026-11-09): every client (`rex`, the app) reads `REX_SERVER` (`unix:PATH`) before `GOREX_DIR`; the server listens on its data directory's socket; another form of `REX_SERVER` exits with 2 (F-106, F-120, T-100).
 
 ## Finding 12: GOREX_SESSION holds a block's ID
 
@@ -164,7 +164,7 @@ server than the one `REX_SERVER` names.
 "session" was one terminal. `rex` still reads it when `REX_BLOCK` is
 empty.
 
-- Status: decided: `GOREX_SESSION` goes; `REX_BLOCK` is the one name.
+- Status: resolved (2026-11-09): `GOREX_SESSION` goes: blocks do not get it and `rex` does not read it; `REX_BLOCK` is the one name (F-109, F-118, F-120).
 
 ## Finding 13: block, pane and terminal; window and tab
 
@@ -387,7 +387,7 @@ the zoom hides, and the zoom stays on the other one. `rex focus BLOCK`,
 for the same block, ends the zoom. Two ways to focus one block leave the
 window in two states.
 
-- Status: decided: focusing another block ends the window's zoom, by any command; directions and next/prev then move as without zoom.
+- Status: resolved (2026-11-09): focusing another block ends the window's zoom, by any command or in the app; directions and `next`/`prev` move as without the zoom (F-142, F-143).
 
 ## Finding 29: rex client inspect takes no flags
 
@@ -492,4 +492,4 @@ holds a split's ratio to 5–95 % in one place and 10–90 % in another, and
 the app's view to 8–92 %. `--ratio 3` gives 5 %, without a word. Found by
 the percentage change of the experiment (`p2-old-pct`).
 
-- Status: decided: one limit, 5 to 95 %, kept in one place and used by the server and the app; `rex` takes 1 to 99 and the server holds it in the limit.
+- Status: resolved (2026-11-09): one limit, 5 to 95 %, kept in one place (`rex.ClampRatio`) and used by the server's split, move, resize and `split.ratio`, and by the app's dragged dividers; `rex` takes 1 to 99 and the server holds it in the limit (F-135, F-145, F-147, T-107).
