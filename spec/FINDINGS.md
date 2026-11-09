@@ -115,6 +115,10 @@ whose ID ends in `1`, and prints the first.
 Every other key is in snake case, as Rex's are.
 
 - Status: resolved (2026-11-09): snake case everywhere: `exit_code`, `last_output`, `last_input`, and hello's `exe_time` and `client_id`; the protocol is version 3 (T-102, T-108).
+  Found at the first run on the owner's server, the same day: a block's
+  own ID was `id` in `rex block ls --json` and `list`, where every other
+  record says `session_id`, `window_id`, `block_id`. It is `block_id`
+  now; the protocol is version 4 (T-108).
 
 ## Finding 9: on Windows, REX_BIN_DIR names a directory without rex
 

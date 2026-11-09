@@ -120,3 +120,11 @@ When a question has no column to answer it, add one: in
 `internal/rex/wide_server.go` (requests and events) or `wideCommand` in
 `cli.go` (commands). Flat keys, set only when meaningful (`setNonZero`),
 never text a user typed or a terminal printed. Add it to this list.
+
+## Time
+
+`ts` is UTC, read by DuckDB as a TIMESTAMP without a zone. `now()` is the
+local time with a zone, so `ts > now() - interval 15 minute` shifts by the
+zone and can find nothing. Compare in UTC:
+`ts > (now() at time zone 'UTC') - interval 15 minute`.
+

@@ -378,5 +378,7 @@ status: accepted · traces: B-3 · source: code, rex-docs
 offers; `--json` SHALL print them as JSON.
 It SHALL find the app as `rex do -C` does (F-113): `CLIENT`, else `-C`
 or `REX_CLIENT`, else the app when exactly one is connected.
+IF no app is connected, THEN `rex` SHALL exit with 1, as for an action
+of the app (F-175).
 IF no app matches, or several do and none is named, THEN `rex` SHALL
 exit with 3.

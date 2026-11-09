@@ -1,7 +1,7 @@
 # Technical: the protocol between rex and the server
 
 What another implementation of `rex` keeps to talk to GoRex's server.
-Protocol version 3.
+Protocol version 4.
 
 ### T-100 The socket
 status: accepted · traces: F-106, F-107 · source: code
@@ -136,7 +136,7 @@ status: accepted · traces: F-130 · source: code, tests
 fields:
 
 ```
-id label session_id window_id keep_open pid shell created program args
+block_id label session_id window_id keep_open pid shell created program args
 idle dir title last_output last_input output bells exited exit_code
 attached status cols rows
 ```

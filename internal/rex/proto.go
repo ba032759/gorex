@@ -18,7 +18,7 @@ import (
 )
 
 // ProtocolVersion changes whenever the wire protocol does.
-const ProtocolVersion = 3
+const ProtocolVersion = 4
 
 // Version is GoRex's version, as "rex version" prints it.
 const Version = "0.2.0"
@@ -148,7 +148,7 @@ type CreateOptions struct {
 
 // BlockInfo describes a block and what runs in it now.
 type BlockInfo struct {
-	ID       string    `json:"id"`
+	ID       string    `json:"block_id"`
 	Label    string    `json:"label,omitempty"`
 	Session  string    `json:"session_id,omitempty"`
 	Window   string    `json:"window_id,omitempty"`
