@@ -518,7 +518,7 @@ func TestSeveralTargetsAllOrNothing(t *testing.T) {
 	}
 }
 
-// spec: F-106, F-120
+// spec: F-106
 func TestRexServerBeforeGorexDir(t *testing.T) {
 	c := startTestServer(t)
 	if err := c.Do("session.new", &rex.Args{Label: "here"}, nil); err != nil {
@@ -545,7 +545,7 @@ func TestRexServerBeforeGorexDir(t *testing.T) {
 	}
 }
 
-// spec: F-109, F-118, F-120
+// spec: F-109, F-118
 func TestNoGorexSession(t *testing.T) {
 	c := startTestServer(t)
 	var s map[string]any
