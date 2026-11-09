@@ -51,7 +51,7 @@ phone SHALL show it, with the prompt's text.
 - **ID**: `B-`, `D-`, `F-` or `T-` and a number, unique in the spec, never
   reused, never renumbered. A removed item stays, with its status.
 - **status**: `proposed`, `accepted`, `rejected`, `deferred`, `superseded`
-  (with `superseded-by: F-20`). Agents write `proposed`; only the owner
+  (with `superseded-by: F-20`, or several: `F-20, F-21`). Agents write `proposed`; only the owner
   accepts, rejects or defers. Rejected and deferred items stay in the spec
   with a `rationale:`, so the idea is not proposed again unknowingly.
 - **traces**: the IDs of the items above it.
@@ -66,8 +66,9 @@ phone SHALL show it, with the prompt's text.
   functional, `function` (the default), `performance`, `security`,
   `usability` or `operational`.
 - **conflicts**: the items this one contradicts, when both describe what
-  GoRex does (competing behaviour). Two accepted items in conflict are a
-  gap: the owner resolves it.
+  GoRex does (competing behaviour). On one of the two is enough; `spec
+  show` shows it on both. Two accepted items in conflict are a gap: the
+  owner resolves it.
 - Fields go one per line or on one line joined by `·`. Any other field
   (`rationale:`, `actor:`, `priority:`) is kept.
 
@@ -153,13 +154,21 @@ session on the phone". The title names it. Its rules are its fit
 criteria: each one a sentence a test, an event or a person can check.
 
 - One event per item. A second trigger is a second item; a variant of the
-  same one (a flag, an error) is a rule of the item.
-- The rules that matter to whoever sets it off, usually five or fewer.
-  Not every flag: the help lists them, the tests pin them down.
-- Output formats (the fields of `--json`, a file's layout) are technical
-  items. The functional item says what the output tells.
-- A behaviour that contradicts another item gets `conflicts:` on both
-  sides, until the owner resolves it.
+  same one (a flag, an error) is a rule of the item. One event stays one
+  item whatever it acts on: renaming a session, a window or a block is
+  one item.
+- A rule is what the owner would want to be asked about before it
+  changes: what happens, what is refused, what the user would miss or be
+  surprised by. A flag that only sets a value (a label, a ratio, a
+  directory) is not a rule, nor is a default; the reference lists them,
+  the tests pin them down. Usually five rules or fewer.
+- Output formats (the columns of a table, the fields of `--json`, a
+  file's layout) are technical items. The functional item says what the
+  output tells.
+- What several items share (the direction words, the options of a new
+  block) is an item of its own, in a table, that the others name.
+- A behaviour that contradicts another item gets `conflicts:`, until the
+  owner resolves it.
 
 Every rule is one sentence in one of the five EARS patterns. The
 conditions come first, each closed by a comma; then the subject; then
@@ -265,6 +274,19 @@ The glossary's entries are headings, with an optional `avoid:` line:
 A terminal in a window, with its program: the leaf of a layout.
 avoid: pane
 ```
+
+## The reference: made from the code
+
+`spec/reference/` holds what the code has, listed by the code: every
+command of `rex` and every flag it takes (`reference/cli.md`). Nobody
+writes it: `mise run spec-ref` makes it, and a test fails when it
+differs from the code, so it cannot drift. A changed flag or default
+shows in the diff of a pull request, without a spec item to change.
+
+The functional items say what the commands are for; the reference says
+what they take. `spec check` reports a command of the reference that no
+functional item names (``rex split`` in its text) as a gap: code without
+a stated intent. Write an item for it, or remove the command.
 
 ## Verification: tests name what they verify
 

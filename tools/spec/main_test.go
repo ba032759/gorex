@@ -59,12 +59,13 @@ func TestCheck(t *testing.T) {
 		"error F-8 kind speed is not one of function",
 		"error F-8 conflicts with F-77",
 		"warning F-8 not EARS: conditions first",
+		"gap  no functional item names `rex orphan`",
 	} {
 		if !strings.Contains(all, want) {
 			t.Errorf("no %q in:\n%s", want, all)
 		}
 	}
-	for _, bad := range []string{"B-1 a need", "B-2 a need", "F-1 neither", "F-5 neither", "F-6 a use case without **", "F-4 vague in a requirement: can", "F-4 vague in a requirement: typically, etc, can", "F-5 avoided term", "F-5 vague"} {
+	for _, bad := range []string{"`rex ls`", "B-2 a need", "F-1 neither", "F-5 neither", "F-6 a use case without **", "F-4 vague in a requirement: can", "F-4 vague in a requirement: typically, etc, can", "F-5 avoided term", "F-5 vague"} {
 		if strings.Contains(all, bad) {
 			t.Errorf("%q in:\n%s", bad, all)
 		}

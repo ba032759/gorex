@@ -462,6 +462,7 @@ func load(root string) ([]*Item, []TestRef, []Problem) {
 	probs = append(probs, gprobs...)
 	probs = append(probs, checkWriting(items, gl)...)
 	probs = append(probs, checkShape(items)...)
+	probs = append(probs, checkReference(items, parseReference(root))...)
 	return items, refs, check(items, probs, refs)
 }
 
