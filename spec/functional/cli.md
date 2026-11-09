@@ -155,13 +155,15 @@ the context block.
 Else it SHALL act in the active window of the session of F-110.
 
 ### F-112 The block a command acts on
-status: proposed · traces: B-3, B-4 · source: code, rex-docs · conflicts: F-142
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, owner
 
-WHEN `-b`, or the block argument, names a block THEN the command SHALL
-act on it.
-WHEN no `-s` and no `-w` is given THEN it SHALL act on the context block.
-Else it SHALL act on the focused block of the window of F-111, or its
-first block.
+WHEN `-b`, or the block argument, names a block, the command SHALL act
+on it.
+WHEN no block, no `-s` and no `-w` is given, the command SHALL act on the
+context block.
+WHEN `-s` or `-w` is given, or the context has no block of the server,
+the command SHALL act on the focused block of the window of F-111, or on
+its first block.
 
 ### F-113 How a target matches
 status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140

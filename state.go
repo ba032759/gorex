@@ -619,7 +619,7 @@ func (a *App) moveFocus(dx, dy int) {
 // next or prev.
 func (a *App) focusDir(dir string) {
 	t := a.tab()
-	if t == nil || t.Focus == nil || t.Zoom != nil && dir != "next" && dir != "prev" {
+	if t == nil || t.Focus == nil {
 		return
 	}
 	a.act("block.focus", rex.Args{Window: t.WID, Direction: dir})

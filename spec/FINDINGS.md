@@ -35,7 +35,7 @@ context block. The comment says this is meant. Rex's documentation says
 "here" is the agent's own block, and "the focused pane" the focused one,
 so both readings exist. The owner decides which a direction starts from.
 
-- Status: decided: a direction starts from the context block, REX_BLOCK when it is live, else the focused block (F-112).
+- Status: resolved (2026-11-09): a direction starts from the block of F-112: the context block when it is live and no `-s` or `-w` is given, else the window's focused block (F-112, F-142).
 
 ## Finding 3: a new block's directory depends on the command that makes it
 
@@ -389,7 +389,7 @@ the zoom hides, and the zoom stays on the other one. `rex focus BLOCK`,
 for the same block, ends the zoom. Two ways to focus one block leave the
 window in two states.
 
-- Status: decided: focusing another block ends the window's zoom, by any command; directions and next/prev then move as without zoom.
+- Status: resolved (2026-11-09): focusing another block ends the window's zoom, by any command or in the app; directions and `next`/`prev` move as without the zoom (F-142, F-143).
 
 ## Finding 29: rex client inspect takes no flags
 

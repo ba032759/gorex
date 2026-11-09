@@ -467,8 +467,12 @@ func (s *Session) windowIndex(id string) int {
 	return slices.IndexFunc(s.Windows, func(w *Window) bool { return w.ID == id })
 }
 
-// setFocus gives a block the focus of its window.
+// setFocus gives a block the focus of its window, ending the zoom of
+// another block.
 func (w *Window) setFocus(id string) {
+	if w.Zoom != id {
+		w.Zoom = ""
+	}
 	w.Focus = id
 	w.Recent = slices.DeleteFunc(w.Recent, func(b string) bool { return b == id })
 	w.Recent = append(w.Recent, id)

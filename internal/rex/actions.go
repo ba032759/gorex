@@ -759,7 +759,8 @@ func (s *Server) split(a *Args) (any, error) {
 var directions = map[string][2]int{"left": {-1, 0}, "right": {1, 0}, "up": {0, -1}, "down": {0, 1}}
 
 // focusBlock gives a block the focus, making its window active: the block
-// a request names, or the one next to the focused one toward a direction.
+// a request names, or the one next to the request's block toward a
+// direction.
 func (s *Server) focusBlock(a *Args) (any, error) {
 	if d := strings.ToLower(a.Direction); d != "" {
 		a2 := *a
@@ -767,11 +768,6 @@ func (s *Server) focusBlock(a *Args) (any, error) {
 		ss, w, from, err := s.scopeBlock(&a2)
 		if err != nil {
 			return nil, err
-		}
-		if a.Block == "" && a.Session == "" && a.Window == "" {
-			// The direction is from the focused block of the client's
-			// window, not from the client's own block.
-			from = w.Focus
 		}
 		to := from
 		order := w.Layout.Blocks()
@@ -799,10 +795,8 @@ func (s *Server) focusBlock(a *Args) (any, error) {
 					return nil, usageError(fmt.Sprintf("unknown direction %q", a.Direction))
 				}
 			}
-			if w.Zoom == "" {
-				if n := Neighbor(w.Layout.Rects(), order, from, v[0], v[1], a.Wrap); n != "" {
-					to = n
-				}
+			if n := Neighbor(w.Layout.Rects(), order, from, v[0], v[1], a.Wrap); n != "" {
+				to = n
 			}
 		}
 		w.setFocus(to)
@@ -814,9 +808,6 @@ func (s *Server) focusBlock(a *Args) (any, error) {
 		return nil, err
 	}
 	w.setFocus(id)
-	if w.Zoom != "" && w.Zoom != id {
-		w.Zoom = ""
-	}
 	s.activate(ss, w)
 	return map[string]any{"block_id": id, "window_id": w.ID, "session_id": ss.ID}, nil
 }

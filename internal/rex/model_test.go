@@ -278,6 +278,57 @@ func TestSessionsWindowsBlocks(t *testing.T) {
 	}
 }
 
+// spec: F-112, F-142, F-143, F-144
+func TestFocusFromContextAndZoom(t *testing.T) {
+	c, _ := startServer(t)
+	s1 := act(t, c, "session.new", Args{Label: "work"})
+	left := s1["block_id"].(string)
+	right := act(t, c, "block.split", Args{Block: left, Direction: "right"})["block_id"].(string)
+	far := act(t, c, "block.split", Args{Block: right, Direction: "right"})["block_id"].(string)
+	focus := func() string { return model(t, c).Sessions[0].Windows[0].Focus }
+
+	// The focus is on far; rex runs in left: right of left is right.
+	act(t, c, "focus", Args{Target: "right", CtxBlock: left})
+	if got := focus(); got != right {
+		t.Errorf("right of the context block went to %s, not %s", got, right)
+	}
+	// Without a context block, a direction starts from the focused one.
+	act(t, c, "focus", Args{Target: "right"})
+	if got := focus(); got != far {
+		t.Errorf("right of the focused block went to %s, not %s", got, far)
+	}
+	// With -w, from the window's focused block, not the context block.
+	act(t, c, "focus", Args{Target: "left", Session: "work", CtxBlock: left})
+	if got := focus(); got != right {
+		t.Errorf("left of the window's focused block went to %s, not %s", got, right)
+	}
+
+	// Focusing another block, by any command, ends the zoom.
+	for _, f := range []struct {
+		name string
+		a    Args
+		want string
+	}{
+		{"focus left", Args{Target: "left"}, left},
+		{"focus next", Args{Target: "next"}, far},
+		{"focus BLOCK", Args{Target: left}, left},
+	} {
+		act(t, c, "block.focus", Args{Block: right})
+		act(t, c, "block.zoom", Args{Block: right, Zoom: "on"})
+		act(t, c, "focus", f.a)
+		w := model(t, c).Sessions[0].Windows[0]
+		if w.Focus != f.want || w.Zoom != "" {
+			t.Errorf("%s in a zoomed window: focus %s, zoom %q; want %s, no zoom", f.name, w.Focus, w.Zoom, f.want)
+		}
+	}
+	// Focusing the zoomed block keeps the zoom.
+	act(t, c, "block.zoom", Args{Block: right, Zoom: "on"})
+	act(t, c, "block.focus", Args{Block: right})
+	if w := model(t, c).Sessions[0].Windows[0]; w.Zoom != right {
+		t.Errorf("focusing the zoomed block ended its zoom: %q", w.Zoom)
+	}
+}
+
 // spec: F-139, F-160, F-161, F-164, F-166, F-167
 func TestSendCaptureWait(t *testing.T) {
 	c, _ := startServer(t)

@@ -192,10 +192,10 @@ windows before it SHALL stay closed.
 ## Arrange
 
 ### F-142 Move the focus by direction or order
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests · conflicts: F-143
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
-`rex focus DIRECTION` SHALL move the focus from the focused block of the
-window of F-111, and make that window active.
+`rex focus DIRECTION` SHALL move the focus from the block of F-112, and
+make its window active.
 `left`, `right`, `up` and `down`, in any case, SHALL move it to the
 nearest block on that side.
 `next` and `prev` SHALL move it to the next or previous block in layout
@@ -204,19 +204,19 @@ order.
 the window of F-111 active.
 WHEN the focus or the window is at the edge or the end, it SHALL stay,
 unless `--wrap` is given.
-WHILE the window is zoomed, `rex focus` SHALL NOT move the focus to a
-side.
+WHILE the window is zoomed, `rex focus DIRECTION` SHALL move the focus
+as in the window without the zoom.
 
 ### F-143 Focus a window or a block
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex focus TARGET` SHALL make a window active, or give a block the focus
 and make its window active.
 `rex window focus WINDOW` SHALL make the window active.
 `rex block focus BLOCK` SHALL give the block the focus and make its
 window active.
-WHEN a block takes the focus, the server SHALL end the zoom of another
-block of its window.
+WHEN a block takes the focus, by any command or in the app, the server
+SHALL end the zoom of another block of its window.
 IF the target of `rex focus` matches both a window and a block and is
 not a full ID, THEN `rex` SHALL exit with 3 and change nothing.
 
