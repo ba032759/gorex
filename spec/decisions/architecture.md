@@ -88,14 +88,13 @@ server. One file to install (B-7).
 version of it first in `PATH`, as Rex's documentation warns.
 
 ### D-7 A protocol of GoRex's own
-status: proposed · traces: B-6 · source: code, rex-docs
-rationale: unknown
+status: proposed · traces: B-6 · source: code, rex-docs, owner
 
 **Choice.** Clients speak JSON lines over the Unix socket, with GoRex's
 own requests (`technical/protocol.md`).
 
 **Rejected, by omission.** Rex's server API (`rex api`, its dotted
-methods and JSON schemas). The sources do not say why.
+methods and JSON schemas). D-11 gives the reason.
 
 **Consequences.** Rex's own `rex` cannot drive a GoRex server, and the
 reverse.
@@ -130,3 +129,24 @@ not the text.
 
 **Rejected.** Free-form logs, and telemetry sent anywhere. Rex sends no
 telemetry either.
+
+### D-11 GoRex keeps its own server, not Rex's Linux server
+status: accepted · traces: B-1 · source: owner, rex-docs
+
+**Context.** Superlogical ships a Rex server for Linux and FreeBSD: one
+`rex` binary that is the server and the CLI, without an app. It is closed
+source, it is in testing, and it has no stable release.
+
+**Options.** (a) GoRex becomes an app for Rex's server and removes its
+own server. (b) GoRex keeps its own server.
+
+**Choice.** (b), for now.
+
+**Reason.** With (a), GoRex depends on a closed program in testing, whose
+protocol GoRex cannot change and which can change at any time. GoRex also
+needs to change its server: access from a phone, wide events. With (b),
+GoRex is also a place to try how a spec drives work on a server.
+
+**Consequences.** When Rex's Linux server has a stable release and a
+documented API, examine (a) again. GoRex then gives a value only as the
+app, and its own server is a cost.

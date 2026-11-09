@@ -7,6 +7,8 @@ documentation or the repository.
 
 1. Why GoRex, and not Rex's own Linux server with another terminal, or
    Rex for Mac connected to it? What does the user lack on Linux today?
+   *Answered (owner, 2026-11-09):* GoRex keeps its own server for now;
+   examine this again when Rex's server is stable (D-11).
 2. Who is the user: the owner alone, or others who use Rex on a Mac and
    Linux elsewhere?
 3. How much of B-1 is Windows? The README treats it as a first-class

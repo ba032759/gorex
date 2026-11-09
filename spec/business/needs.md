@@ -9,9 +9,8 @@ blocks, kept by a server. Rex runs as an app on macOS and iOS only; its
 Linux and FreeBSD builds are servers without an app. GoRex gives the user
 that model with an app on Linux, and also on macOS and Windows.
 
-It fails if the user who knows Rex has to learn GoRex again. Why the owner
-needs this, and not Rex's own Linux server with another terminal, is not
-in the sources.
+It fails if the user who knows Rex has to learn GoRex again. Why GoRex
+has its own server, and not Rex's Linux server, is in D-11.
 
 ### B-2 Work outlives the app
 status: proposed · source: rex-docs, code
