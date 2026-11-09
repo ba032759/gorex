@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -26,7 +28,7 @@ var (
 	// comma: WHILE (a state), WHEN (an event), WHERE (a feature), IF …,
 	// THEN (an unwanted case). Without one, it holds always.
 	earsKey  = regexp.MustCompile(`\b(WHILE|WHEN|WHERE|IF|THEN)\b`)
-	earsLead = regexp.MustCompile(`^(?:(?:WHILE|WHEN|WHERE|IF)\b[^,]*,\s*)+(?:THEN\s+)?[^,]*?\bSHALL\b`)
+	earsLead = regexp.MustCompile(`^(?:WHILE|WHEN|WHERE|IF)\b.*,\s*(?:THEN\s+)?[^,]*\bSHALL\b`)
 	maxRules = 7
 )
 
@@ -38,7 +40,7 @@ func earsProblem(sn string) string {
 	if len(keys) == 0 {
 		return ""
 	}
-	if !earsLead.MatchString(sn) && !earsLead.MatchString(strings.TrimSpace(strings.SplitN(sn, "SHALL", 2)[0])+" SHALL") {
+	if !earsLead.MatchString(sn) {
 		return "conditions first, each closed by a comma: WHEN …, the X SHALL …"
 	}
 	if slices.Contains(keys, "THEN") && !slices.Contains(keys, "IF") {
@@ -141,6 +143,67 @@ func checkShape(items []*Item) []Problem {
 			if !rule && !tableRe.MatchString(it.Body) {
 				bad("neither a rule (SHALL, WHEN … THEN), a use case (**Actor.**, **Goal.**, steps) nor a table")
 			}
+		}
+	}
+	return probs
+}
+
+// The reference (spec/reference/*.md) is made from the code: each heading
+// that is a code span names something the code has, as "## `rex split`",
+// with its other names on an "Also:" line. Each needs a functional item
+// that names it: code with no stated intent is a gap.
+var (
+	refHeadRe = regexp.MustCompile("^##\\s+`([^`]+)`\\s*$")
+	refAlsoRe = regexp.MustCompile("`([^`]+)`")
+)
+
+type refName struct {
+	names []string
+	file  string
+	line  int
+}
+
+func parseReference(root string) []refName {
+	var out []refName
+	files, _ := filepath.Glob(filepath.Join(root, "spec", "reference", "*.md"))
+	for _, path := range files {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		rel, _ := filepath.Rel(root, path)
+		for n, line := range strings.Split(string(b), "\n") {
+			if m := refHeadRe.FindStringSubmatch(line); m != nil {
+				out = append(out, refName{names: []string{m[1]}, file: rel, line: n + 1})
+			} else if strings.HasPrefix(line, "Also:") && len(out) > 0 {
+				for _, m := range refAlsoRe.FindAllStringSubmatch(line, -1) {
+					out[len(out)-1].names = append(out[len(out)-1].names, m[1])
+				}
+			}
+		}
+	}
+	return out
+}
+
+func checkReference(items []*Item, refs []refName) []Problem {
+	var text strings.Builder
+	for _, it := range items {
+		if it.Layer == "functional" && it.Status != "rejected" && it.Status != "superseded" {
+			text.WriteString(it.Title + "\n" + it.Body + "\n")
+		}
+	}
+	all := text.String()
+	var probs []Problem
+	for _, r := range refs {
+		named := false
+		for _, n := range r.names {
+			if regexp.MustCompile("`" + regexp.QuoteMeta(n) + "[ `]").MatchString(all) {
+				named = true
+				break
+			}
+		}
+		if !named {
+			probs = append(probs, Problem{"gap", r.file, r.line, "", "no functional item names `" + r.names[0] + "`: what is it for?"})
 		}
 	}
 	return probs

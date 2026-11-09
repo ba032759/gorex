@@ -214,89 +214,77 @@ func dispatch(cmd string, args []string) error {
 	case "help", "--help", "-h":
 		printHelp(strings.Join(args, " "))
 		return nil
-	case "version":
-		return cliVersion(args)
-	case "ls":
-		return cliSessionLs(args)
-	case "new":
-		return cliSessionNew(args)
-	case "run":
-		return cliRun(args, false)
-	case "split":
-		return cliRun(args, true)
-	case "send":
-		return cliSend(args)
-	case "send-key":
-		return cliSendKey(args)
-	case "send-keys":
-		return cliSendKeysCompat(args)
-	case "capture":
-		return cliCapture(args)
-	case "kill":
-		return cliSessionKill(args)
-	case "focus":
-		return cliFocus(args)
-	case "zoom":
-		return cliZoom(args)
-	case "move":
-		return cliMove(args)
-	case "swap":
-		return cliSwap(args)
-	case "resize":
-		return cliResize(args)
-	case "close":
-		return cliBlockClose(args)
-	case "list":
-		return cliTree(args)
-	case "new-tab":
-		return cliWindowNew(args)
-	case "session":
-		return sub("session", args, map[string]func([]string) error{
+	}
+	if g, ok := groups()[cmd]; ok {
+		return sub(cmd, args, g)
+	}
+	if f, ok := cliCommandFuncs()[cmd]; ok {
+		return f(args)
+	}
+	return usagef("unknown command %q: run \"rex help\"", cmd)
+}
+
+func cliSplit(args []string) error { return cliRun(args, true) }
+
+// commands are rex's commands without subcommands; groups has the others.
+func cliCommandFuncs() map[string]func([]string) error {
+	return map[string]func([]string) error{
+		"run":        func(args []string) error { return cliRun(args, false) },
+		"split":      cliSplit,
+		"version":    cliVersion,
+		"ls":         cliSessionLs,
+		"new":        cliSessionNew,
+		"send":       cliSend,
+		"send-key":   cliSendKey,
+		"send-keys":  cliSendKeysCompat,
+		"capture":    cliCapture,
+		"kill":       cliSessionKill,
+		"focus":      cliFocus,
+		"zoom":       cliZoom,
+		"move":       cliMove,
+		"swap":       cliSwap,
+		"resize":     cliResize,
+		"close":      cliBlockClose,
+		"list":       cliTree,
+		"new-tab":    cliWindowNew,
+		"status":     cliStatus,
+		"events":     cliEvents,
+		"wait":       cliWait,
+		"do":         cliDo,
+		"actions":    cliActions,
+		"keymap":     cliKeymap,
+		"completion": cliCompletion,
+	}
+}
+
+// groups are the commands that have subcommands, as "rex session new".
+func groups() map[string]map[string]func([]string) error {
+	return map[string]map[string]func([]string) error{
+		"session": {
 			"new": cliSessionNew, "ls": cliSessionLs, "list": cliSessionLs, "inspect": cliSessionInspect,
 			"rename": cliSessionRename, "move": cliSessionMove, "kill": cliSessionKill,
-		})
-	case "window":
-		return sub("window", args, map[string]func([]string) error{
+		},
+		"window": {
 			"new": cliWindowNew, "ls": cliWindowLs, "list": cliWindowLs, "inspect": cliWindowInspect,
 			"focus": cliWindowFocus, "move": cliWindowMove, "rename": cliWindowRename, "close": cliWindowClose,
-		})
-	case "block":
-		return sub("block", args, map[string]func([]string) error{
+		},
+		"block": {
 			"ls": cliBlockLs, "list": cliBlockLs, "inspect": cliBlockInspect, "focus": cliBlockFocus,
 			"send": cliSend, "send-key": cliSendKey, "capture": cliCapture, "zoom": cliZoom, "move": cliMove,
 			"swap": cliSwap, "rename": cliBlockRename, "close": cliBlockClose, "types": cliBlockTypes,
 			"new": cliBlockNew,
-		})
-	case "client":
-		return sub("client", args, map[string]func([]string) error{"ls": cliClientLs, "list": cliClientLs, "inspect": cliClientInspect})
-	case "status":
-		return cliStatus(args)
-	case "events":
-		return cliEvents(args)
-	case "wait":
-		return cliWait(args)
-	case "do":
-		return cliDo(args)
-	case "actions":
-		return cliActions(args)
-	case "keymap":
-		return cliKeymap(args)
-	case "config":
-		return sub("config", args, map[string]func([]string) error{"check": cliConfigCheck, "reload": cliConfigReload})
-	case "skill":
-		return sub("skill", args, map[string]func([]string) error{
+		},
+		"client": {"ls": cliClientLs, "list": cliClientLs, "inspect": cliClientInspect},
+		"config": {"check": cliConfigCheck, "reload": cliConfigReload},
+		"skill": {
 			"setup": cliSkillSetup, "status": cliSkillStatus, "remove": cliSkillRemove, "show": cliSkillShow,
 			"hook": cliSkillHook,
-		})
-	case "server":
-		return sub("server", args, map[string]func([]string) error{
+		},
+		"server": {
 			"status": cliServerStatus, "stop": cliServerStop, "logs": cliServerLogs, "start": cliServerStart,
 			"run": cliServerRun,
-		})
-	case "completion":
-		return cliCompletion(args)
+		},
 	}
-	return usagef("unknown command %q: run \"rex help\"", cmd)
 }
 
 func sub(group string, args []string, cmds map[string]func([]string) error) error {
@@ -316,6 +304,7 @@ func sub(group string, args []string, cmds map[string]func([]string) error) erro
 // after its arguments, as "--name value", "--name=value" or "-n value";
 // what follows "--" is a command to run.
 type flags struct {
+	order   [][]string // the spellings of each flag, as declared
 	strs    map[string]*string
 	bools   map[string]*bool
 	names   map[string]string // every spelling to the flag's name
@@ -334,6 +323,7 @@ func (f *flags) str(spellings string, p *string) *flags {
 	for _, n := range names {
 		f.names[n] = names[len(names)-1]
 	}
+	f.order = append(f.order, names)
 	f.strs[names[len(names)-1]] = p
 	return f
 }
@@ -343,6 +333,7 @@ func (f *flags) boolean(spellings string, p *bool) *flags {
 	for _, n := range names {
 		f.names[n] = names[len(names)-1]
 	}
+	f.order = append(f.order, names)
 	f.bools[names[len(names)-1]] = p
 	return f
 }
@@ -352,7 +343,17 @@ func (f *flags) targets(a *rex.Args) *flags {
 	return f.str("s,session", &a.Session).str("w,window", &a.Window).str("b,block", &a.Block)
 }
 
+// flagProbe, when set, gets each command's flags instead of parsing
+// them: the reference test lists them so (spec/reference/cli.md).
+var flagProbe func(*flags)
+
+var errProbed = errors.New("flags probed")
+
 func (f *flags) parse(args []string) error {
+	if flagProbe != nil {
+		flagProbe(f)
+		return errProbed
+	}
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "--" {

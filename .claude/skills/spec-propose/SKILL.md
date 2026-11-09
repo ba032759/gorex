@@ -51,12 +51,18 @@ and `rationale: unknown - ask the owner`.
   `The X SHALL …`, `WHEN …, the X SHALL …`, `WHILE …, the X SHALL …`,
   `IF …, THEN the X SHALL …` (errors), `WHERE …, the X SHALL …`. A
   multi-step interaction is a use case (`**Actor.**`, `**Goal.**`,
-  numbered steps, `**Extensions.**`); exhaustive cases a table. Not every
-  flag; output formats (`--json` fields) are technical items. A quality
+  numbered steps, `**Extensions.**`); exhaustive cases a table. A rule is
+  what the owner would want to be asked about before it changes; a flag
+  that only sets a value, or a default, is not one: `spec/reference/`
+  lists those, made from the code (`mise run spec-ref` after changing a
+  command or flag). Output formats (columns, `--json` fields) are
+  technical items. A quality
   (speed, security) is an item with `kind:`. Say how it is verified
   (`verify: test | event | manual`).
-- Behaviour that contradicts another item: `conflicts: F-n` on both, and
-  tell the owner.
+- Behaviour that contradicts another item: `conflicts: F-n` on one of
+  them, and tell the owner.
+- A new command needs a functional item that names it: `spec check`
+  reports one without as a gap.
 - Technical items for what a reimplementation must keep (a protocol, a file
   format, an invariant), not for how the code happens to be organised.
 - Changed behaviour: edit the item, keep its ID; the diff shows the change.

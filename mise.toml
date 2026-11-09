@@ -47,6 +47,10 @@ run = "go run ./tools/spec test -- go test -race -json ./..."
 description = "Spec errors fail; gaps are listed"
 run = "go run ./tools/spec check -q"
 
+[tasks.spec-ref]
+description = "Remake spec/reference/ from the code"
+run = "SPEC_UPDATE=1 go test -run TestReference ."
+
 [tasks.spec-strict]
 description = "Gaps (accepted items no test verifies) fail too"
 run = "go run ./tools/spec check --strict"
