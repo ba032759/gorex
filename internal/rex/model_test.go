@@ -178,7 +178,7 @@ func TestEncodeKey(t *testing.T) {
 	}
 }
 
-// spec: F-114, F-135, F-136, F-140, F-142, F-143, F-144, F-145, F-146, F-149, F-150, F-151, T-103, T-105
+// spec: F-114, F-132, F-135, F-140, F-142, F-143, F-144, F-145, F-146, F-149, F-150, F-191, T-103, T-105
 func TestSessionsWindowsBlocks(t *testing.T) {
 	c, _ := startServer(t)
 	s1 := act(t, c, "session.new", Args{Label: "work", Create: &CreateOptions{Dir: "/tmp"}})

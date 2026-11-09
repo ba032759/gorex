@@ -36,10 +36,11 @@ so both readings exist. The owner decides which a direction starts from.
 
 Without `--cwd`, `rex new` starts in the directory `rex` runs in, with or
 without a command. `rex run` does the same, only with a command. `rex
-split` starts in the anchor's directory. `rex window new` starts in
-`rex`'s directory with a command and in the focused block's directory
-without one. A script that opens a session and a window in a row gets
-two different directories.
+split` starts in the anchor's directory, but `rex run --split`, which
+makes the same split, starts in `rex`'s (`cli.go:1002`). `rex window new`
+starts in `rex`'s directory with a command and in the focused block's
+directory without one. A script that opens a session and a window in a
+row gets two different directories.
 
 ## Finding 4: --timeout does not limit most requests
 
@@ -75,7 +76,7 @@ When the server ends, `rex events` exits with 4 ("server unreachable").
 ## Finding 7: two ways to match a client
 
 - Kind: competing behaviour
-- Items: F-113, F-156, F-175
+- Items: F-113, F-193, F-175
 - Code: `cli.go:1525`, `internal/rex/actions.go:1143`
 
 `rex do -C` matches a client by the server's rules (F-113): full ID,
@@ -87,7 +88,7 @@ whose ID ends in `1`, and prints the first.
 ## Finding 8: one fact, two JSON names
 
 - Kind: competing behaviour
-- Items: F-152, F-153, F-166, T-107, T-108
+- Items: F-152, F-153, F-166, T-107, T-108, T-124
 - Code: `internal/rex/proto.go:165`, `internal/rex/proto.go:170`, `internal/rex/model.go:76`
 
 `rex block ls --json` prints `exitCode`, `lastOutput` and `lastInput`.
@@ -108,7 +109,7 @@ nothing, and `rex` is not on a block's `PATH` unless installed elsewhere.
 ## Finding 10: commands with several targets stop half done
 
 - Kind: difference from Rex
-- Items: F-113, F-140, F-141, F-151
+- Items: F-113, F-140, F-141, F-192
 - Code: `cli.go:742`, `cli.go:962`, `cli.go:1279`
 
 Rex's documentation: an ambiguous target changes nothing. `rex kill a b
@@ -315,3 +316,57 @@ outside backticks. The GUI area needs `tab` for what the app draws.
 the git history are neither code nor tests; this pass marks them `code`.
 A `repo-docs` source would show where an item rests on prose a person
 wrote.
+
+## Finding 28: a zoomed window's focus moves to a hidden block
+
+- Kind: competing behaviour
+- Items: F-142, F-143, F-144
+- Code: `internal/rex/actions.go:779`, `internal/rex/actions.go:802`, `internal/rex/actions.go:817`
+
+In a zoomed window, `rex focus left` (or `right`, `up`, `down`) does not
+move the focus. `rex focus next` and `prev` do: the focus goes to a block
+the zoom hides, and the zoom stays on the other one. `rex focus BLOCK`,
+for the same block, ends the zoom. Two ways to focus one block leave the
+window in two states.
+
+## Finding 29: rex client inspect takes no flags
+
+- Kind: difference from Rex
+- Items: F-193
+- Code: `cli.go:1514`
+
+`rex client inspect` reads its arguments without parsing flags. `rex
+client inspect --json`, which Rex's reference shows, looks for a client
+named `--json` and exits with 3. Without a client it takes the first app;
+Rex takes `-C`, then `REX_CLIENT`, then the app when exactly one is
+connected. Rex also prints the actions the client offers.
+
+## Finding 30: small accidents of the layout commands
+
+- Kind: accidental behaviour
+- Items: F-132, F-191
+- Code: `cli.go:522`, `internal/rex/actions.go:444`
+
+- `--cwd ~bob/src` becomes the user's home followed by `bob/src`, not
+  bob's home.
+- `rex window focus NEXT` matches `next` in any case, then goes to the
+  previous window: only the exact word `next` goes forward.
+
+## Finding 31: what the functional template does not hold
+
+- Kind: spec rules
+- Items: F-132, F-133, F-137, F-148, F-112, F-113
+- Code: `tools/spec/shape.go:29`
+
+- Options that four commands share (F-132), the way a command starts
+  (F-133) and the words for directions (F-148) are no one event's use
+  case. Repeated in each item they say one thing four times; they stay
+  items of their own, read by the items that use them.
+- An EARS condition cannot hold a comma: `spec check` reads the first
+  comma as its end. "WHEN `rex run`, `rex split` or …" fails; the rules
+  say "`rex run` or `rex split` or …" instead.
+- `superseded-by:` takes one item. F-137 went to two (F-134, F-135) and
+  to T-124; the item's text says so.
+- `conflicts:` on both sides makes a rewrite of one file change items of
+  another (F-112, F-113 in `cli.md`).
+

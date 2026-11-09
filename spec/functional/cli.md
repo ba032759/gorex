@@ -147,7 +147,7 @@ the context block.
 Else it SHALL act in the active window of the session of F-110.
 
 ### F-112 The block a command acts on
-status: proposed · traces: B-3, B-4 · source: code, rex-docs
+status: proposed · traces: B-3, B-4 · source: code, rex-docs · conflicts: F-142
 
 WHEN `-b`, or the block argument, names a block THEN the command SHALL
 act on it.
@@ -156,7 +156,7 @@ Else it SHALL act on the focused block of the window of F-111, or its
 first block.
 
 ### F-113 How a target matches
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140, F-141, F-192, F-193
 
 `rex` SHALL match a target in this order, and stop at the first kind
 that matches:

@@ -116,3 +116,14 @@ documentation or the repository.
 27. Why native and without a web view: size, speed, feel, or the wish to
     try MyGo? Is a web view ruled out for a later client, such as a
     phone?
+
+## F-142, F-143 Focus in a zoomed window
+
+28. Should `rex focus next` in a zoomed window end the zoom, as `rex
+    focus BLOCK` does, or not move, as `rex focus left` does
+    (Finding 28)?
+
+## F-193 Inspect a client
+
+29. Should `rex client inspect` take `--json` and `-C`, and match a
+    client as every other target does (Findings 7, 29)?
