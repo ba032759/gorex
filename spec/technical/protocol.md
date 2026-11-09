@@ -32,8 +32,8 @@ status: proposed · traces: F-108, F-123, F-181 · source: code, tests
 A client sends `hello` first.
 Its `args` say who it is: `kind` (`app` or `cli`, the default) and
 `name`.
-The data are `version` (the protocol, 2), `pid`, `started`, `host`,
-`exe`, `exeTime`, `clientID` and `bin`.
+The data are `version` (the protocol, 3), `pid`, `started`, `host`,
+`exe`, `exe_time`, `client_id` and `bin`.
 A client that gets another `version` stops (F-108).
 
 ### T-103 Error codes
@@ -129,12 +129,15 @@ fields:
 
 ```
 id label session_id window_id keep_open pid shell created program args
-idle dir title lastOutput lastInput output bells exited exitCode
+idle dir title last_output last_input output bells exited exit_code
 attached status cols rows
 ```
 
 `program` is the foreground process's name; `idle` tells that the shell
 is at its prompt.
+
+Every key of the protocol, and of what `rex` prints with `--json`, is in
+snake case, as Rex's are.
 
 ### T-109 Client actions
 status: proposed · traces: F-174, F-175, F-193 · source: code, tests

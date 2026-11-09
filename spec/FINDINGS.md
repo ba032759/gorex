@@ -114,7 +114,7 @@ whose ID ends in `1`, and prints the first.
 `rex list --json`, `rex wait --json` and the model print `exit_code`.
 Every other key is in snake case, as Rex's are.
 
-- Status: decided: snake case everywhere: `exit_code`, `last_output`, `last_input`.
+- Status: resolved (2026-11-09): snake case everywhere: `exit_code`, `last_output`, `last_input`, and hello's `exe_time` and `client_id`; the protocol is version 3 (T-102, T-108).
 
 ## Finding 9: on Windows, REX_BIN_DIR names a directory without rex
 

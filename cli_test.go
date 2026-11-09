@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,5 +78,30 @@ func TestServerGoneExits4(t *testing.T) {
 	}()
 	if out, code := cli(t, nil, "wait", block); code != exitNoServer {
 		t.Errorf("wait as the server went away: exit %d, not 4: %s", code, out)
+	}
+}
+
+// spec: F-130, T-108, T-124
+func TestJSONKeysInSnakeCase(t *testing.T) {
+	c := startTestServer(t)
+	if err := c.Do("session.new", &rex.Args{Label: "work"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	out, code := cli(t, nil, "block", "ls", "--json")
+	var res struct {
+		Blocks []map[string]any `json:"blocks"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &res) != nil || len(res.Blocks) != 1 {
+		t.Fatalf("block ls --json: %d %s", code, out)
+	}
+	for _, k := range []string{"exit_code", "last_output", "last_input"} {
+		if _, ok := res.Blocks[0][k]; !ok {
+			t.Errorf("block ls --json has no %s: %v", k, res.Blocks[0])
+		}
+	}
+	for k := range res.Blocks[0] {
+		if strings.ToLower(k) != k {
+			t.Errorf("block ls --json has the key %s", k)
+		}
 	}
 }

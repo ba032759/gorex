@@ -17,7 +17,7 @@ import (
 )
 
 // ProtocolVersion changes whenever the wire protocol does.
-const ProtocolVersion = 2
+const ProtocolVersion = 3
 
 // Version is GoRex's version, as "rex version" prints it.
 const Version = "0.2.0"
@@ -162,12 +162,12 @@ type BlockInfo struct {
 	Dir string `json:"dir"`
 	// Title is the last title a program set (OSC 0, OSC 2).
 	Title      string    `json:"title,omitempty"`
-	LastOutput time.Time `json:"lastOutput"`
-	LastInput  time.Time `json:"lastInput"`
+	LastOutput time.Time `json:"last_output"`
+	LastInput  time.Time `json:"last_input"`
 	Output     uint64    `json:"output"`
 	Bells      int       `json:"bells"`
 	Exited     bool      `json:"exited"`
-	ExitCode   int       `json:"exitCode"`
+	ExitCode   int       `json:"exit_code"`
 	Attached   int       `json:"attached"`
 	// Status is what programs reported of themselves (OSC 7501).
 	Status []StatusRecord `json:"status,omitempty"`
@@ -185,9 +185,9 @@ type Hello struct {
 	// last as the server started: a development build compares them with
 	// its own, to replace a server of an older build.
 	Exe     string    `json:"exe,omitempty"`
-	ExeTime time.Time `json:"exeTime,omitzero"`
+	ExeTime time.Time `json:"exe_time,omitzero"`
 	// ClientID is the ID the server gave the connection.
-	ClientID string `json:"clientID,omitempty"`
+	ClientID string `json:"client_id,omitempty"`
 	// Bin is the directory of the rex command the server puts first in
 	// its terminals' PATH.
 	Bin string `json:"bin,omitempty"`
