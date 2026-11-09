@@ -7,6 +7,8 @@ import (
 
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
+
+	"gorex/internal/rex"
 )
 
 const (
@@ -205,7 +207,7 @@ func (a *App) node(c *ui.Context, k *colors, t *Tab, n *Node) ui.Element {
 				total, d = bounds.H-gap, dy
 			}
 			if total > 0 && d != 0 {
-				a.setRatio(n, min(max(n.Ratio+d/total, 0.08), 0.92), false)
+				a.setRatio(n, rex.ClampRatio(n.Ratio+d/total), false)
 			}
 		} else if a.dragging == n.SplitID && !div.Dragging() {
 			a.setRatio(n, n.Ratio, true) // the drag ended

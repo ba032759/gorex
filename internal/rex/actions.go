@@ -585,7 +585,7 @@ func (s *Server) act(name string, a *Args) (any, error) {
 		for _, ss := range s.model.Sessions {
 			for _, w := range ss.Windows {
 				if sp := w.Layout.findSplit(a.Split); sp != nil {
-					sp.Ratio = min(max(a.Ratio, 0.05), 0.95)
+					sp.Ratio = ClampRatio(a.Ratio)
 					s.changed(ss.ID)
 					return map[string]any{"split_id": a.Split}, nil
 				}
@@ -731,6 +731,7 @@ func (s *Server) split(a *Args) (any, error) {
 	if share <= 0 || share >= 1 {
 		share = 0.5
 	}
+	share = ClampRatio(share)
 	if dir == Left || dir == Right {
 		o.Cols = max(int(float32(o.Cols)*share), 10)
 	} else {
@@ -1001,7 +1002,7 @@ func (l *Layout) resize(id string, dir Direction, amount float32) bool {
 	}
 	for i := len(path) - 1; i >= 0; i-- {
 		if p := path[i]; p.Vertical == vertical {
-			p.Ratio = min(max(p.Ratio+sign*amount, 0.1), 0.9)
+			p.Ratio = ClampRatio(p.Ratio + sign*amount)
 			return true
 		}
 	}

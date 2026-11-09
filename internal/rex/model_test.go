@@ -330,6 +330,40 @@ func TestFocusFromContextAndZoom(t *testing.T) {
 	}
 }
 
+// spec: F-135, F-145, F-147, T-107
+func TestRatioLimit(t *testing.T) {
+	c, _ := startServer(t)
+	b1 := act(t, c, "session.new", Args{})["block_id"].(string)
+	ratio := func() float32 { return model(t, c).Sessions[0].Windows[0].Layout.Ratio }
+	near := func(r, want float32) bool { return r > want-0.001 && r < want+0.001 }
+
+	// A split of 3 % gives the new block 5 %.
+	b2 := act(t, c, "block.split", Args{Block: b1, Direction: "right", Ratio: 0.03})["block_id"].(string)
+	if r := ratio(); !near(r, MaxRatio) {
+		t.Errorf("split of 3 %%: ratio %v, not %v", r, MaxRatio)
+	}
+	// Resizing stops at the limit, not at 10 or 90 %.
+	for range 30 {
+		act(t, c, "block.resize", Args{Block: b2, Direction: "left", Amount: 10})
+	}
+	if r := ratio(); !near(r, MinRatio) {
+		t.Errorf("resized to the end: ratio %v, not %v", r, MinRatio)
+	}
+	// A move of 99 %, and a ratio the app sets, stay in the limit.
+	act(t, c, "block.move", Args{Block: b2, Direction: "left", Target: b1, Ratio: 0.99})
+	if r := ratio(); !near(r, MaxRatio) {
+		t.Errorf("move of 99 %%: ratio %v, not %v", r, MaxRatio)
+	}
+	split := model(t, c).Sessions[0].Windows[0].Layout.Split
+	act(t, c, "split.ratio", Args{Split: split, Ratio: 0.01})
+	if r := ratio(); !near(r, MinRatio) {
+		t.Errorf("split.ratio 0.01: ratio %v, not %v", r, MinRatio)
+	}
+	if ClampRatio(0.08) != 0.08 || ClampRatio(0.97) != MaxRatio {
+		t.Error("ClampRatio, which the app's dragged dividers use, holds another limit")
+	}
+}
+
 // spec: F-139, F-160, F-161, F-164, F-166, F-167
 func TestSendCaptureWait(t *testing.T) {
 	c, _ := startServer(t)

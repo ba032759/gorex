@@ -167,9 +167,19 @@ func ParseDirection(s string) (Direction, bool) {
 	return "", false
 }
 
+// The ratio of every split, however it is set, stays from MinRatio to
+// MaxRatio: neither side of a divider gets less than 5 %.
+const (
+	MinRatio = 0.05
+	MaxRatio = 0.95
+)
+
+// ClampRatio holds a split's ratio from MinRatio to MaxRatio.
+func ClampRatio(r float32) float32 { return min(max(r, MinRatio), MaxRatio) }
+
 // insert puts block id next to the leaf of anchor, toward dir, the block
-// taking share of the room (0.5 when out of range). It returns false when
-// anchor is not in the layout.
+// taking share of the room (0.5 when out of range, held from MinRatio to
+// MaxRatio). It returns false when anchor is not in the layout.
 func (l *Layout) insert(anchor, id string, dir Direction, share float32, splitID string) bool {
 	leaf, _ := l.find(anchor)
 	if leaf == nil {
@@ -178,6 +188,7 @@ func (l *Layout) insert(anchor, id string, dir Direction, share float32, splitID
 	if share <= 0 || share >= 1 {
 		share = 0.5
 	}
+	share = ClampRatio(share)
 	old := &Layout{Block: leaf.Block}
 	nw := &Layout{Block: id}
 	leaf.Block, leaf.Split = "", splitID

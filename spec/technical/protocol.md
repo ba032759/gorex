@@ -120,6 +120,9 @@ A layout is a leaf `{"block_id"}`, or a split `{"split_id", "vertical",
 "ratio", "a", "b"}`.
 `vertical` puts `a` above `b`, else `a` is left of `b`; `ratio` is `a`'s
 share.
+A ratio that a request sets (a split, a move, a resize, `split.ratio`)
+stays from 0.05 to 0.95, and so does a divider dragged in the app: one
+limit, kept in one place.
 `blocks` maps each block ID to `block_id`, `label`, `session_id`,
 `window_id`, `shell`, `command`, `pid`, `cols`, `rows`, `keep_open`,
 `exited`, `exit_code`, `created` and `restored`.

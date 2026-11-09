@@ -494,4 +494,4 @@ holds a split's ratio to 5–95 % in one place and 10–90 % in another, and
 the app's view to 8–92 %. `--ratio 3` gives 5 %, without a word. Found by
 the percentage change of the experiment (`p2-old-pct`).
 
-- Status: decided: one limit, 5 to 95 %, kept in one place and used by the server and the app; `rex` takes 1 to 99 and the server holds it in the limit.
+- Status: resolved (2026-11-09): one limit, 5 to 95 %, kept in one place (`rex.ClampRatio`) and used by the server's split, move, resize and `split.ratio`, and by the app's dragged dividers; `rex` takes 1 to 99 and the server holds it in the limit (F-135, F-145, F-147, T-107).

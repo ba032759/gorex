@@ -87,12 +87,13 @@ WHILE `rex` waits for the program, `--timeout` SHALL NOT end the wait.
 IF no command follows `--`, THEN `rex` SHALL exit with 2.
 
 ### F-135 Split a block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex split [-- COMMAND...]` SHALL put a new block beside the anchor: the
 block of `-b`, else the block of F-112.
 The split SHALL end the zoom of the window.
 IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2, and say the range.
+The server SHALL hold the ratio from 5 to 95 percent (T-107).
 
 ### F-136 Focus after a new block
 status: superseded · superseded-by: F-132 · traces: B-4 · source: code, rex-docs, tests
@@ -227,7 +228,7 @@ The zoom SHALL NOT change the layout.
 IF both `--on` and `--off` are given, THEN `rex` SHALL exit with 2.
 
 ### F-145 Move a block
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex move [BLOCK] DIRECTION ANCHOR` SHALL take the block out of its
 window and put it beside the anchor, in the anchor's window.
@@ -237,6 +238,7 @@ WHEN the block leaves a window empty, the server SHALL close that window.
 IF the anchor is the block or in another session, THEN `rex` SHALL exit
 with 2.
 IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2.
+The server SHALL hold the ratio from 5 to 95 percent (T-107).
 
 ### F-146 Swap two blocks
 status: proposed · traces: B-3 · source: code, rex-docs, tests
@@ -248,11 +250,11 @@ to the block that takes the place of its focused block.
 IF the two are in different sessions, THEN `rex` SHALL exit with 2.
 
 ### F-147 Resize a block
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
 `rex resize [BLOCK] DIRECTION` SHALL move the nearest split around the
 block on that axis toward the direction.
-The ratio SHALL stay from 10 to 90 percent.
+The ratio SHALL stay from 5 to 95 percent (T-107).
 IF the block is in no split on that axis, THEN `rex` SHALL exit with 2.
 IF `--amount` is not a positive percentage, THEN `rex` SHALL exit with 2.
 
