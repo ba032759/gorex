@@ -587,7 +587,7 @@ func cli(t *testing.T, env map[string]string, args ...string) (string, int) {
 	return b.String(), code
 }
 
-// spec: F-102, F-103, F-104, F-105, F-112, F-116, F-117, F-130, F-131, F-132, F-135, F-138, F-141, F-143, F-144, F-152, F-154, F-160, F-161, F-164, F-166, F-175, T-124
+// spec: F-102, F-103, F-104, F-105, F-112, F-116, F-117, F-130, F-131, F-132, F-134, F-135, F-140, F-143, F-144, F-154, F-160, F-161, F-164, F-166, F-175, T-124
 func TestCLI(t *testing.T) {
 	c := startTestServer(t)
 	var s map[string]any

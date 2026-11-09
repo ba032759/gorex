@@ -156,7 +156,7 @@ Else it SHALL act on the focused block of the window of F-111, or its
 first block.
 
 ### F-113 How a target matches
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140, F-141, F-192, F-193
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140, F-193
 
 `rex` SHALL match a target in this order, and stop at the first kind
 that matches:
@@ -262,7 +262,7 @@ status: proposed · traces: B-3 · source: code
 
 | Form | Is |
 |---|---|
-| `rex list` | the tree of sessions, windows and blocks (F-153) |
+| `rex list` | the tree of sessions, windows and blocks (F-130) |
 | `rex new-tab [LABEL] [CMD...]` | `rex window new` |
 | `rex send-keys [BLOCK] TEXT` | `rex send`, with `<CR>`, `<Esc>`, `\n`, `\r`, `\e` replaced |
 | `rex split -t BLOCK` | `-b BLOCK` |

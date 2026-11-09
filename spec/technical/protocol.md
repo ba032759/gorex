@@ -79,7 +79,7 @@ status: proposed · traces: F-130, F-131, F-134, F-135, F-140, F-142, F-160, F-1
 | `list` | — | the blocks (T-108) |
 | `clients` | — | `client_id`, `kind`, `name`, `connected_at`, `viewing_session_id` |
 | `session.resolve`, `window.resolve`, `block.resolve` | applies F-110 to F-115 | the IDs |
-| `session.new`, `window.new`, `block.split` | create | F-131, F-137 |
+| `session.new`, `window.new`, `block.split` | create | F-131, F-134, F-135 |
 | `session.rename`, `session.move`, `session.kill` | | `session_id` |
 | `window.close`, `window.rename`, `window.focus`, `window.move` | | `window_id` |
 | `block.close`, `block.rename`, `block.focus`, `block.zoom`, `block.resize` | | `block_id` |
@@ -105,7 +105,7 @@ An event is `{"type", "time", "session_id", "payload"}`.
 A slow connection loses events, never answers.
 
 ### T-107 The model
-status: proposed · traces: F-130, F-153 · source: code, tests
+status: proposed · traces: F-130 · source: code, tests
 
 The model is `{"revision", "sessions", "blocks"}`.
 A session has `session_id`, `label`, `created`, `windows` and
@@ -121,7 +121,7 @@ share.
 `exited`, `exit_code`, `created` and `restored`.
 
 ### T-108 A block's state
-status: proposed · traces: F-152, F-153 · source: code, tests
+status: proposed · traces: F-130 · source: code, tests
 
 `list` returns an object for each block, in layout order, with these
 fields:

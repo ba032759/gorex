@@ -59,7 +59,7 @@ documentation or the repository.
 13. Should `rex focus left` start from the context block, as every other
     command does, or from the focused block (Finding 2)?
 
-## F-131, F-134, F-135, F-150 Directories of new blocks
+## F-132 Directories of new blocks
 
 14. Which directory should a new block start in without `--cwd`: the
     directory `rex` runs in, or that of the block it goes beside
@@ -82,7 +82,7 @@ documentation or the repository.
 19. Should a command with several targets resolve them all before acting
     on any (Finding 10)?
 
-## F-152, T-108 JSON keys
+## F-130, T-108 JSON keys
 
 20. May `rex block ls --json` change `exitCode` and `lastOutput` to snake
     case, which breaks scripts that read them (Finding 8)?

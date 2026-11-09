@@ -31,7 +31,7 @@ so both readings exist. The owner decides which a direction starts from.
 ## Finding 3: a new block's directory depends on the command that makes it
 
 - Kind: competing behaviour
-- Items: F-131, F-134, F-135, F-150
+- Items: F-132
 - Code: `cli.go:548`, `cli.go:768`, `cli.go:1002`, `internal/rex/actions.go:654`
 
 Without `--cwd`, `rex new` starts in the directory `rex` runs in, with or
@@ -88,7 +88,7 @@ whose ID ends in `1`, and prints the first.
 ## Finding 8: one fact, two JSON names
 
 - Kind: competing behaviour
-- Items: F-152, F-153, F-166, T-107, T-108, T-124
+- Items: F-130, F-166, T-107, T-108, T-124
 - Code: `internal/rex/proto.go:165`, `internal/rex/proto.go:170`, `internal/rex/model.go:76`
 
 `rex block ls --json` prints `exitCode`, `lastOutput` and `lastInput`.
@@ -109,7 +109,7 @@ nothing, and `rex` is not on a block's `PATH` unless installed elsewhere.
 ## Finding 10: commands with several targets stop half done
 
 - Kind: difference from Rex
-- Items: F-113, F-140, F-141, F-192
+- Items: F-113, F-140
 - Code: `cli.go:742`, `cli.go:962`, `cli.go:1279`
 
 Rex's documentation: an ambiguous target changes nothing. `rex kill a b
@@ -140,7 +140,7 @@ empty.
 ## Finding 13: block, pane and terminal; window and tab
 
 - Kind: inconsistent terms
-- Items: glossary (block, window, close), F-140, F-141
+- Items: glossary (block, window, close), F-140
 - Code: `help.go:10`, `skill.go:193`, `commands.go` (action names), `README.md`
 
 Rex's CLI and the model say session, window and block. The app and the
@@ -344,7 +344,7 @@ connected. Rex also prints the actions the client offers.
 ## Finding 30: small accidents of the layout commands
 
 - Kind: accidental behaviour
-- Items: F-132, F-191
+- Items: F-132, F-142
 - Code: `cli.go:522`, `internal/rex/actions.go:444`
 
 - `--cwd ~bob/src` becomes the user's home followed by `bob/src`, not
@@ -355,6 +355,7 @@ connected. Rex also prints the actions the client offers.
 ## Finding 31: what the functional template does not hold
 
 - Kind: spec rules
+- Status: resolved in the rules (shared items, commas in conditions, several `superseded-by:`, `conflicts:` on one side)
 - Items: F-132, F-133, F-137, F-148, F-112, F-113
 - Code: `tools/spec/shape.go:29`
 
@@ -369,4 +370,19 @@ connected. Rex also prints the actions the client offers.
   to T-124; the item's text says so.
 - `conflicts:` on both sides makes a rewrite of one file change items of
   another (F-112, F-113 in `cli.md`).
+
+## Finding 32: defaults go to a reference that has none
+
+- Kind: spec rules
+- Items: F-132, F-135, F-145, F-147
+- Code: `reference_test.go`
+
+The template says a default is not a rule: the reference lists it. The
+reference lists each command's flags and their spellings, not their
+defaults, so `--ratio` 50, `--amount` 5 and `--split` right are now
+written nowhere but the code and the help. The directory a new block
+starts in is also a default, but it differs from command to command
+(Finding 3) and the owner is asked about it (question 14), so F-132
+keeps it, as a table. `conflicts:` cannot say that one item's table
+holds competing behaviour; Finding 3 does.
 
