@@ -116,19 +116,18 @@ and no server answers on it, THEN `rex` SHALL exit with 4 and start no
 server.
 
 ### F-107 Start a server when none runs
-status: proposed · traces: B-2, B-3 · conflicts: F-183 · source: code, rex-docs, tests, owner
+status: proposed · traces: B-2, B-3 · source: code, rex-docs, tests, owner
 
 WHEN no server answers, `rex` SHALL start one in the background, and
 wait for it up to `--timeout`.
 IF `--autostart=false` is given and no server answers, THEN `rex` SHALL
-exit with 4 and start nothing.
+exit with 4 and start nothing, except for `rex server start`, which asks
+for a server (F-183).
 IF the server started does not answer in time, THEN `rex` SHALL exit
 with 4.
 `rex version`, `rex server status` and `rex server stop` SHALL NOT
 start a server.
 
-`rex --autostart=false server start` starts a server all the same
-(F-183).
 
 ### F-108 A server of another version
 status: proposed · traces: B-2 · source: code
@@ -301,9 +300,8 @@ WHEN `CLAUDECODE` or `CODEX_SANDBOX` or `CODEX_HOME` is set, the event
 SHALL name the agent that runs `rex`.
 WHEN `GOREX_EVENTS` is `off` or `0`, `rex` SHALL record nothing.
 
-The code takes up to four short words before the first flag as the
-command's words, so `rex send ls` records `send ls`: an argument's
-text. T-121 lists the fields.
+The command's words are the names of the command, as `rex session new`
+declares them, not its arguments (Finding 39). T-121 lists the fields.
 
 ## Other
 

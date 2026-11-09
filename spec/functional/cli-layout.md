@@ -131,7 +131,7 @@ status: proposed · traces: B-3 · source: code, rex-docs, tests
 
 WHEN a block's program exits, the server SHALL close the block, as `rex
 close` does (F-140).
-The server SHALL keep the program's exit status for `rex wait` (F-167).
+The server SHALL keep the program's exit status for `rex wait` (F-166).
 WHERE the block was created with `--keep-open`, the block SHALL stay and
 show `[process exited with code N]`.
 WHILE such a block stays, it SHALL take no more input.

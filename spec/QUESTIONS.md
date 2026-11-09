@@ -159,12 +159,16 @@ documentation or the repository.
     `-s` and `-b` be ignored and say so, as Finding 17's flags (Finding
     36)?
 
+    *Answered (2026-11-09):* yes, as Rex's (Finding 36).
 ## F-178, F-179 The keymap's errors
 
 31. Should `rex keymap` exit with 1 when the keymap has an error, as
     `rex config check` and Rex's `rex keymap` do (Finding 37)?
 
+    *Answered (2026-11-09):* yes, as Rex's (Finding 37).
 ## F-430 The server's log
 
 32. Should `rex server logs` print the newest 200 lines by default and
     take `--all`, as Rex does (Finding 38)?
+
+    *Answered (2026-11-09):* yes, as Rex's, with `--all` (Finding 38).

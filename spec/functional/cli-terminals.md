@@ -258,6 +258,7 @@ remove every record of the block.
 
 The server sees a prompt by its OSC 133 mark, or, for a shell that marks
 none, by the shell's being at its prompt, which it checks every second.
-Rex's protocol keeps `done` and `error` until they are replaced or
-cleared, and lets the terminal decide when to stop showing them; GoRex
-ends them at the next command.
+Rex's protocol keeps `done` and `error` through the program's exit and
+the next prompt, and lets the terminal decide when to stop showing them,
+"for example when the user returns to the terminal and presses a key".
+GoRex ends them when the user's next command starts: the user is back.

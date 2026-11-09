@@ -79,7 +79,7 @@ IF a problem is an error, THEN `rex keymap` SHALL still exit with 0
 (Finding 37).
 
 ### F-179 Check the keymap
-status: proposed · traces: B-3 · source: code, rex-docs, tests · conflicts: F-178
+status: proposed · traces: B-3 · source: code, rex-docs, tests
 
 `rex config check [PATH]` SHALL check `keymap.json` in the data
 directory, or the file at `PATH`, without asking the app.
