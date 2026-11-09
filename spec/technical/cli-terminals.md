@@ -1,7 +1,7 @@
 # Technical: the bytes of a key, and what the terminal commands print
 
 ### T-160 The bytes of a key
-status: proposed · traces: F-161, F-162 · source: code, tests
+status: accepted · traces: F-161, F-162 · source: code, tests
 
 The server sends xterm's bytes for each key of F-162:
 
@@ -25,7 +25,7 @@ The server sends xterm's bytes for each key of F-162:
 in one write.
 
 ### T-161 What the terminal commands print
-status: proposed · traces: F-164, F-166, F-169, F-170, F-173 · source: code, tests
+status: accepted · traces: F-164, F-166, F-169, F-170, F-173 · source: code, tests
 
 | Command | Prints |
 |---|---|

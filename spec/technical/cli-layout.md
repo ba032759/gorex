@@ -1,7 +1,7 @@
 # Technical: what the layout commands print, and how a block's program starts and ends
 
 ### T-124 The output of the layout commands
-status: proposed · traces: F-130, F-131, F-134, F-135, F-150, F-156, F-190, F-193 · source: code, rex-docs, tests
+status: accepted · traces: F-130, F-131, F-134, F-135, F-150, F-156, F-190, F-193 · source: code, rex-docs, tests
 
 Tables of sessions, windows and blocks have a first column for the marks
 of F-117. The columns are:
@@ -42,7 +42,7 @@ With `--json`:
   `viewing_session_id`.
 
 ### T-125 How a block's program starts and ends
-status: proposed · traces: F-133, F-140 · source: code
+status: accepted · traces: F-133, F-140 · source: code
 
 The shell is `--shell`, else `SHELL`, else the system's default, found on
 `PATH` when it is not absolute.
@@ -62,7 +62,7 @@ then `SIGKILL` to the process group after 1 second. A program a signal
 ended has the exit status 128 plus the signal's number.
 
 ### T-126 What inspect prints
-status: proposed · traces: F-190 · source: code
+status: accepted · traces: F-190 · source: code
 
 Without `--json`, the inspect commands print one field a line:
 

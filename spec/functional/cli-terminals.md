@@ -8,7 +8,7 @@ takes are in `reference/cli.md`.
 ## Type
 
 ### F-160 Send text
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex send [TEXT...]` and `rex block send` SHALL type the text into the
 block's terminal, as the user types it.
@@ -20,7 +20,7 @@ input.
 IF the block's program has exited, THEN `rex` SHALL exit with 1.
 
 ### F-161 Press keys
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex send-key KEY...` and `rex block send-key` SHALL press each key, in
 order, as one input to the block's terminal.
@@ -32,7 +32,7 @@ terminal sends nothing when a key is released.
 WHEN `--action` has another value, `rex` SHALL press the keys.
 
 ### F-162 How keys are written
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests
+status: accepted · traces: B-3, B-5 · source: code, rex-docs, tests
 
 A key is written as Rex writes it: modifiers and a key name, joined by
 `+`. The modifiers, and the names of more than one character, are taken
@@ -86,7 +86,7 @@ not valid.
 ## Read
 
 ### F-164 Capture a screen
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex capture` and `rex block capture` SHALL print the block's scrollback
 and screen as text, a line for each row.
@@ -101,7 +101,7 @@ with 2 before it connects to the server.
 The output SHALL end with a newline.
 
 ### F-165 Keep a block's scrollback
-status: proposed · traces: B-2, B-3 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-2, B-3 · source: code, rex-docs, tests, owner
 
 WHEN a line leaves the top of a block's screen, the server SHALL keep it
 in the block's scrollback, up to about 64 MiB of output, as Rex does.
@@ -112,7 +112,7 @@ no scrollback of that screen.
 ## Wait
 
 ### F-166 Wait for a block, window or session
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex wait TARGET` SHALL match the target as a block, else as a window,
 else as a session (F-113, F-114).
@@ -157,7 +157,7 @@ IF the server goes away during the wait, THEN `rex` SHALL exit with 4.
 ## Follow
 
 ### F-169 Follow events
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex events` SHALL print each event as it happens, until the server ends
 or the user interrupts it.
@@ -174,7 +174,7 @@ and its details. `--json` prints each event as the server sends it, on
 one line (T-161).
 
 ### F-170 The events
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests
+status: accepted · traces: B-3, B-5 · source: code, rex-docs, tests
 
 The server SHALL send an event of this table each time the change it
 names happens:
@@ -194,7 +194,7 @@ How an event is sent, and the fields of each kind, are in T-106 and
 T-161.
 
 ### F-171 A block's program or directory changes
-status: proposed · traces: B-4 · source: code
+status: accepted · traces: B-4 · source: code
 
 WHILE a client follows a session's events, or every event, WHEN a
 block's program or directory changes, the server SHALL send
@@ -202,10 +202,14 @@ block's program or directory changes, the server SHALL send
 WHILE no client follows them, the server SHALL NOT send these two
 events.
 
+The events tell what changes after a client starts to follow; a change
+in its first second may give none (Finding 42). A client that needs the
+state at the start reads it with `rex block inspect`.
+
 ## Report
 
 ### F-172 Report a program status
-status: proposed · traces: B-4 · source: code, tests
+status: accepted · traces: B-4 · source: code, tests
 
 `rex status STATE` SHALL set a status record of the block, as an OSC
 7501 report of its program does (F-460).
@@ -224,7 +228,7 @@ status` is GoRex's own: a hook that has no terminal reports with it
 (Finding 20).
 
 ### F-173 Show a block's program status
-status: proposed · traces: B-4 · source: code, tests
+status: accepted · traces: B-4 · source: code, tests
 
 `rex status` without a state SHALL print the block's status records,
 one a line, in the order of their IDs.
@@ -236,7 +240,7 @@ A line tells the record's ID, state, kind, progress, app, title,
 message, and how long ago it was set (T-161).
 
 ### F-460 A program reports its status in its terminal
-status: proposed · traces: B-4, B-5 · source: code, rex-docs, tests
+status: accepted · traces: B-4, B-5 · source: code, rex-docs, tests
 
 WHEN a block's program prints an OSC 7501 report, the server SHALL set
 the status record that the report names, as Rex's protocol says (T-110).
@@ -248,7 +252,7 @@ WHEN a block has 256 records and a report adds one, the server SHALL
 remove the record set least recently.
 
 ### F-461 A program status ends
-status: proposed · traces: B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 WHEN a block's program exits, or its shell shows a prompt, the server
 SHALL remove the block's `working` and `blocked` records.

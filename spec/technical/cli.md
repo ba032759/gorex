@@ -1,7 +1,7 @@
 # Technical: what every command of rex shares
 
 ### T-140 The socket's path
-status: proposed · traces: F-106 · source: code
+status: accepted · traces: F-106 · source: code
 
 The server listens on `server.sock` in its data directory.
 When that path has 100 characters or more, too long for a Unix socket,
@@ -12,7 +12,7 @@ path, in hexadecimal.
 directory.
 
 ### T-141 Marks and JSON of listings
-status: proposed · traces: F-116 · source: code, tests
+status: accepted · traces: F-116 · source: code, tests
 
 A table's first column holds a mark:
 
@@ -29,7 +29,7 @@ A table's first column holds a mark:
 T-124 lists the columns and fields of each command.
 
 ### T-142 A block's environment
-status: proposed · traces: F-118 · source: code, tests
+status: accepted · traces: F-118 · source: code, tests
 
 The server leaves out of its own environment what other terminals and
 GoRex set: `TERM`, `COLORTERM`, `TERM_PROGRAM`, `TERM_PROGRAM_VERSION`,
@@ -54,7 +54,7 @@ When it starts, the server makes `REX_BIN_DIR/rex` a symbolic link to
 its own executable.
 
 ### T-143 What rex version prints
-status: proposed · traces: F-123 · source: code
+status: accepted · traces: F-123 · source: code
 
 Without `--json`: `rex VERSION (GoRex, protocol N)`, and, when a server
 answers, a second line `server pid PID, protocol N`.

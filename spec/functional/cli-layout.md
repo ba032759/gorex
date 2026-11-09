@@ -9,7 +9,7 @@ the server starts and ends a program, are in `technical/cli-layout.md`
 ## Create
 
 ### F-130 List sessions, windows or blocks
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex ls` and `rex session ls` SHALL list the sessions, in their order.
 `rex window ls` SHALL list the windows of the session of F-110, and `rex
@@ -25,7 +25,7 @@ what runs in it and in which directory. `--json` also tells each
 window's layout, focus and zoom. T-124 lists the columns and fields.
 
 ### F-131 Create a session
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex new [LABEL]` and `rex session new` SHALL create a session, after the
 others, with one window of one block.
@@ -34,7 +34,7 @@ WHEN a command follows `--`, the block SHALL run it instead of the shell.
 IF two labels are given, THEN `rex` SHALL exit with 2.
 
 ### F-132 A new block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex new`, `rex run`, `rex split` and `rex window new` SHALL take these
 options for the block they create:
@@ -60,7 +60,7 @@ IF the directory does not exist, THEN the block SHALL start in the home
 directory.
 
 ### F-133 Start a block's command
-status: proposed · traces: B-3 · source: code, rex-docs
+status: accepted · traces: B-3 · source: code, rex-docs
 
 WHEN a block has no command, the server SHALL run the user's login shell
 in it.
@@ -74,7 +74,7 @@ IF the server starts the command directly and does not find it, THEN
 `rex` SHALL exit with 1 and create no block.
 
 ### F-134 Run a command
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex run -- COMMAND...` SHALL run the command in a new block, in a new
 window that it places as `rex window new` does (F-150).
@@ -87,7 +87,7 @@ WHILE `rex` waits for the program, `--timeout` SHALL NOT end the wait.
 IF no command follows `--`, THEN `rex` SHALL exit with 2.
 
 ### F-135 Split a block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex split [-- COMMAND...]` SHALL put a new block beside the anchor: the
 block of `-b`, else the block of F-112.
@@ -127,7 +127,7 @@ exit status (F-105).
 `--timeout` SHALL NOT end this wait.
 
 ### F-139 A block's program exits
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 WHEN a block's program exits, the server SHALL close the block, as `rex
 close` does (F-140).
@@ -139,7 +139,7 @@ WHILE such a block stays, it SHALL take no more input.
 ## Close
 
 ### F-140 Close blocks and windows, end sessions
-status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex close [BLOCK...]` and `rex block close` SHALL close each block
 named.
@@ -189,7 +189,7 @@ windows before it SHALL stay closed.
 ## Arrange
 
 ### F-142 Move the focus by direction or order
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex focus DIRECTION` SHALL move the focus from the block of F-112, and
 make its window active.
@@ -205,7 +205,7 @@ WHILE the window is zoomed, `rex focus DIRECTION` SHALL move the focus
 as in the window without the zoom.
 
 ### F-143 Focus a window or a block
-status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex focus TARGET` SHALL make a window active, or give a block the focus
 and make its window active.
@@ -218,7 +218,7 @@ IF the target of `rex focus` matches both a window and a block and is
 not a full ID, THEN `rex` SHALL exit with 3 and change nothing.
 
 ### F-144 Zoom a block
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex zoom [BLOCK]` and `rex block zoom` SHALL zoom the block, or end its
 zoom when it is zoomed.
@@ -228,7 +228,7 @@ The zoom SHALL NOT change the layout.
 IF both `--on` and `--off` are given, THEN `rex` SHALL exit with 2.
 
 ### F-145 Move a block
-status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex move [BLOCK] DIRECTION ANCHOR` SHALL take the block out of its
 window and put it beside the anchor, in the anchor's window.
@@ -241,7 +241,7 @@ IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2.
 The server SHALL hold the ratio from 5 to 95 percent (T-107).
 
 ### F-146 Swap two blocks
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex swap BLOCK OTHER` and `rex block swap` SHALL swap the places of two
 blocks of one session.
@@ -250,7 +250,7 @@ to the block that takes the place of its focused block.
 IF the two are in different sessions, THEN `rex` SHALL exit with 2.
 
 ### F-147 Resize a block
-status: proposed · traces: B-3 · source: code, owner
+status: accepted · traces: B-3 · source: code, owner
 
 `rex resize [BLOCK] DIRECTION` SHALL move the nearest split around the
 block on that axis toward the direction.
@@ -259,7 +259,7 @@ IF the block is in no split on that axis, THEN `rex` SHALL exit with 2.
 IF `--amount` is not a positive percentage, THEN `rex` SHALL exit with 2.
 
 ### F-148 Words for directions
-status: proposed · traces: B-3 · source: code
+status: accepted · traces: B-3 · source: code
 
 `rex split`, `rex run --split`, `rex move` and `rex resize` SHALL take
 these words, in any case:
@@ -278,7 +278,7 @@ IF a direction is not in the table, THEN `rex` SHALL exit with 2.
 ## Sessions, windows and blocks
 
 ### F-149 Reorder sessions and windows
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex session move [SESSION]` SHALL move a session in the order of
 sessions, and `rex window move [WINDOW]` a window in its session.
@@ -290,7 +290,7 @@ IF none or two of `--before`, `--after` and `--index` are given, THEN
 IF the index is not a number from 1, THEN `rex` SHALL exit with 2.
 
 ### F-150 Create a window
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex window new [LABEL] [-- COMMAND...]` and `rex new-tab` SHALL open a
 window of one block after the active window of the session of F-110.
@@ -339,7 +339,7 @@ Listing sessions, windows or blocks is one event, so one item.
 each block's process ID, program, size and directory.
 
 ### F-154 Rename a session, window or block
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex session rename [SESSION] LABEL`, `rex window rename [WINDOW] LABEL`
 and `rex block rename [BLOCK] LABEL` SHALL set the label.
@@ -348,21 +348,21 @@ IF no label or more than two arguments are given, THEN `rex` SHALL exit
 with 2.
 
 ### F-190 Inspect a session, window or block
-status: proposed · traces: B-3, B-4 · source: code, rex-docs
+status: accepted · traces: B-3, B-4 · source: code, rex-docs
 
 `rex session inspect`, `rex window inspect` and `rex block inspect` SHALL
 print one item, with what its listing tells and more (T-126).
 A block SHALL also show its exit status and its status records.
 
 ### F-155 Block types
-status: proposed · traces: B-5 · source: code, rex-docs
+status: accepted · traces: B-5 · source: code, rex-docs
 
 `rex block types` SHALL print one type, `com.superlogical.terminal.shell`.
 IF `rex block new` is asked for a block, THEN `rex` SHALL exit with 2:
 `rex run` and `rex split` create blocks.
 
 ### F-156 List clients
-status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex client ls` SHALL list the clients connected to the server, each with
 its kind, name, age and the session it shows.
@@ -372,7 +372,7 @@ WHEN `-q` is given, `rex` SHALL print the IDs of the clients alone, one a
 line, as `rex ls -q` does.
 
 ### F-193 Inspect a client
-status: proposed · traces: B-3 · source: code, rex-docs
+status: accepted · traces: B-3 · source: code, rex-docs
 
 `rex client inspect [CLIENT]` SHALL print an app and the actions it
 offers; `--json` SHALL print them as JSON.

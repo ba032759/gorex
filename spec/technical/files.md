@@ -1,7 +1,7 @@
 # Technical: the files of the data directory that rex uses
 
 ### T-120 The data directory
-status: proposed · traces: F-106, F-119, F-183, F-430 · source: code
+status: accepted · traces: F-106, F-118, F-183, F-430 · source: code
 
 | File | What |
 |---|---|
@@ -16,7 +16,7 @@ status: proposed · traces: F-106, F-119, F-183, F-430 · source: code
 The directory and its files are for the user alone: `0700` and `0600`.
 
 ### T-121 Wide events
-status: proposed · traces: F-121 · source: code, tests
+status: accepted · traces: F-121 · source: code, tests
 
 Each wide event is one JSON object on one line, appended with one write
 to the file of its UTC day.
@@ -32,7 +32,7 @@ for a usage error, whose message quotes the command line), `rex_session`,
 The `gorex-events` skill describes the other kinds.
 
 ### T-122 keymap.json
-status: proposed · traces: F-178, F-179 · source: code, rex-docs
+status: accepted · traces: F-178, F-179 · source: code, rex-docs
 
 `keymap.json` is `{"preset": NAME, "bindings": [...]}`.
 A binding is `{"key": KEYS, "action": NAME, "args": {...}}`.
@@ -44,7 +44,7 @@ Without `preset`, it is `macos` when `settings.json` has
 A preset other than `linux`, `macos` or `none` is an error.
 
 ### T-123 Starting the server
-status: proposed · traces: F-107, F-183 · source: code
+status: accepted · traces: F-107, F-183 · source: code
 
 A client starts a server by running its own executable with the one
 argument `-server`, detached, with standard output and error appended to

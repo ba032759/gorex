@@ -1,7 +1,7 @@
 # Technical: what the app, keymap, server and skill commands print, and where the skill goes
 
 ### T-150 The output of the app, keymap and server commands
-status: proposed · traces: F-177, F-178, F-179, F-180, F-181 · source: code, rex-docs, tests
+status: accepted · traces: F-177, F-178, F-179, F-180, F-181 · source: code, rex-docs, tests
 
 A table has a header line and columns separated by two spaces or more.
 `-` stands for an empty value.
@@ -23,7 +23,7 @@ With no server, `rex server status` prints `not running (socket PATH)`,
 and with `--json`, `{"running": false, "socket": PATH}`.
 
 ### T-151 Where rex skill setup writes
-status: proposed · traces: F-185, F-188, F-189, F-431, F-432 · source: code, rex-docs, tests
+status: accepted · traces: F-185, F-188, F-189, F-431, F-432 · source: code, rex-docs, tests
 
 | Agent | Found by | Skill | Hooks |
 |---|---|---|---|

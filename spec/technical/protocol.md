@@ -4,7 +4,7 @@ What another implementation of `rex` keeps to talk to GoRex's server.
 Protocol version 3.
 
 ### T-100 The socket
-status: proposed · traces: F-106, F-107 · source: code
+status: accepted · traces: F-106, F-107 · source: code
 
 The server listens on a Unix socket (F-106), mode `0600`.
 A client connects to the socket of `REX_SERVER`, else to that of the
@@ -16,7 +16,7 @@ terminal stream, which the app uses and `rex` does not.
 Any other line makes it a control connection (T-101).
 
 ### T-101 Control connection
-status: proposed · traces: F-104, F-110 · source: code, tests
+status: accepted · traces: F-104, F-110 · source: code, tests
 
 A control connection carries one JSON object per line, both ways.
 A request is `{"id": N, "op": OP, "args": {...}}`; `id` rises from 1 for
@@ -29,7 +29,7 @@ matches answers by `id`.
 An event is a line `{"id": 0, "event": {...}}` (T-106).
 
 ### T-102 Hello
-status: proposed · traces: F-108, F-123, F-181 · source: code, tests
+status: accepted · traces: F-108, F-123, F-181 · source: code, tests
 
 A client sends `hello` first.
 Its `args` say who it is: `kind` (`app` or `cli`, the default) and
@@ -39,7 +39,7 @@ The data are `version` (the protocol, 3), `pid`, `started`, `host`,
 A client that gets another `version` stops (F-108).
 
 ### T-103 Error codes
-status: proposed · traces: F-104, F-113 · source: code, tests
+status: accepted · traces: F-104, F-113 · source: code, tests
 
 | `code` | Meaning | `rex` exits with |
 |---|---|---|
@@ -53,7 +53,7 @@ status: proposed · traces: F-104, F-113 · source: code, tests
 A request with an unknown `op` fails with no code.
 
 ### T-104 The arguments
-status: proposed · traces: F-110, F-111, F-112, F-113 · source: code
+status: accepted · traces: F-110, F-111, F-112, F-113 · source: code
 
 `args` has these fields, each left out when empty:
 
@@ -74,7 +74,7 @@ status: proposed · traces: F-110, F-111, F-112, F-113 · source: code
 The server resolves every target; `rex` sends them as typed.
 
 ### T-105 The requests of rex
-status: proposed · traces: F-130, F-131, F-134, F-135, F-140, F-142, F-160, F-164, F-166, F-172, F-182 · source: code, tests
+status: accepted · traces: F-130, F-131, F-134, F-135, F-140, F-142, F-160, F-164, F-166, F-172, F-182 · source: code, tests
 
 | `op` | Does | `data` |
 |---|---|---|
@@ -96,7 +96,7 @@ status: proposed · traces: F-130, F-131, F-134, F-135, F-140, F-142, F-160, F-1
 | `shutdown.idle` | as `shutdown`, only with no session and no other client; refuses clients from then on | — |
 
 ### T-106 Events
-status: proposed · traces: F-169, F-170 · source: code, tests
+status: accepted · traces: F-169, F-170 · source: code, tests
 
 `subscribe` replaces what the connection hears.
 With `model`, it hears `{"type":"model","model":...}` at once and after
@@ -111,7 +111,7 @@ has its ID in `session_id`.
 A slow connection loses events, never answers.
 
 ### T-107 The model
-status: proposed · traces: F-130 · source: code, tests
+status: accepted · traces: F-130 · source: code, tests
 
 The model is `{"revision", "sessions", "blocks"}`.
 A session has `session_id`, `label`, `created`, `windows` and
@@ -130,7 +130,7 @@ limit, kept in one place.
 `exited`, `exit_code`, `created` and `restored`.
 
 ### T-108 A block's state
-status: proposed · traces: F-130 · source: code, tests
+status: accepted · traces: F-130 · source: code, tests
 
 `list` returns an object for each block, in layout order, with these
 fields:
@@ -148,7 +148,7 @@ Every key of the protocol, and of what `rex` prints with `--json`, is in
 snake case, as Rex's are.
 
 ### T-109 Client actions
-status: proposed · traces: F-174, F-175, F-193 · source: code, tests
+status: accepted · traces: F-174, F-175, F-193 · source: code, tests
 
 For `client.do`, the server sends the chosen app the event
 `client_action`, with `action_id`, `name`, `params`, `ctx_session` and
@@ -167,7 +167,7 @@ It fails it after 30 seconds without an answer, or when the app goes.
 `client.do` would choose for the same `client`, or fails as it would.
 
 ### T-110 A status report
-status: proposed · traces: F-172, F-173, F-460 · source: code, rex-docs, tests
+status: accepted · traces: F-172, F-173, F-460 · source: code, rex-docs, tests
 
 `status.report` takes the body of an OSC 7501 report in `data`:
 `key=value` pairs joined by `:`.
@@ -188,7 +188,7 @@ text refuse the whole report.
 | records | 256 a block; the oldest goes |
 
 ### T-111 IDs
-status: proposed · traces: F-113, F-116 · source: code
+status: accepted · traces: F-113, F-116 · source: code
 
 An ID is its kind, `:`, and 12 random hexadecimal digits:
 `session:0a1b2c3d4e5f`.

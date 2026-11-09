@@ -8,7 +8,7 @@ What these commands print, and where `rex skill setup` writes, are in
 ## Actions of the app
 
 ### F-174 Perform an action of the app
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex do ACTION [KEY=VALUE...]` SHALL ask the app of F-175 to perform the
 action, as its key binding does, and wait for its answer.
@@ -32,7 +32,7 @@ IF the app does not have the action or fails to perform it, THEN `rex`
 SHALL print the app's error and exit with 1.
 
 ### F-175 Find the app that performs an action
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex do` (F-174), `rex config reload` (F-180) and `rex client inspect`
 (F-193) act through one app, which the server finds by these rules.
@@ -49,7 +49,7 @@ IF the app does not answer in 30 seconds or goes away, THEN `rex` SHALL
 exit with 1.
 
 ### F-176 Run a Rex script
-status: proposed · traces: B-5 · source: code, rex-docs
+status: accepted · traces: B-5 · source: code, rex-docs
 
 GoRex runs no Lua (D-4). `rex do` takes as a script a first argument
 that ends in `.lua`, holds `/` or `\`, or is `-`.
@@ -60,7 +60,7 @@ no Lua and exit with 2.
 and `-a`, and ignore them (Finding 17).
 
 ### F-177 List the actions
-status: proposed · traces: B-3 · source: code, rex-docs
+status: accepted · traces: B-3 · source: code, rex-docs
 
 `rex actions` SHALL list the actions of the app, sorted by name, each
 with its title and the arguments it takes.
@@ -70,7 +70,7 @@ server or an app (Finding 19).
 ## Keys and configuration
 
 ### F-178 Show the keymap
-status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex keymap` SHALL list the key bindings in effect, sorted by action,
 each with its keys, its arguments and where it comes from.
@@ -86,7 +86,7 @@ IF a problem is an error, THEN `rex keymap` SHALL exit with 1, as `rex
 config check` does (F-179).
 
 ### F-179 Check the keymap
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex config check [PATH]` SHALL check `keymap.json` in the data
 directory, or the file at `PATH`, without asking the app.
@@ -100,7 +100,7 @@ other bindings.
 IF a problem is an error, THEN `rex config check` SHALL exit with 1.
 
 ### F-180 Reload the keymap
-status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex config reload` SHALL ask the app of F-175 to read its keymap again,
 and then tell what `rex config check` tells (F-179).
@@ -112,7 +112,7 @@ exit with 1.
 ## The server
 
 ### F-181 Tell whether the server runs
-status: proposed · traces: B-2 · source: code, rex-docs
+status: accepted · traces: B-2 · source: code, rex-docs
 
 `rex server status` SHALL tell whether a server runs for the data
 directory, and SHALL NOT start one.
@@ -123,7 +123,7 @@ IF no server runs, THEN `rex server status` SHALL print `not running`
 and exit with 4.
 
 ### F-182 Stop the server
-status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server stop` SHALL end the server and every program in its blocks,
 after the server saves the model for the next server to restore (D-9).
@@ -142,7 +142,7 @@ IF no server runs and `--discard` is given, THEN `rex` SHALL delete the
 saved model and exit with 0.
 
 ### F-183 Start the server
-status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server start` SHALL start a server in the background when none
 runs for the data directory, as T-123 says.
@@ -161,7 +161,7 @@ the tests' executable is not: with `REX_SERVER=` and a new, empty
 server runs.
 
 ### F-430 Read the server's log
-status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
+status: accepted · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server logs` SHALL print the newest 200 lines of the server's log,
 as Rex's.
@@ -175,7 +175,7 @@ the new log from its start.
 IF the log does not exist, THEN `rex server logs` SHALL exit with 1.
 
 ### F-184 A server with nothing to do
-status: proposed · traces: B-2 · source: code · kind: operational · verify: manual
+status: accepted · traces: B-2 · source: code · kind: operational · verify: manual
 
 WHEN a server has had no block and no client for 10 minutes, the server
 SHALL exit.
@@ -187,7 +187,7 @@ exits with 4 (Finding 21).
 ## Agents
 
 ### F-185 Set up agents
-status: proposed · traces: B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill setup` SHALL install the skill for each agent named with
 `--agent`, else for each agent found, where that agent reads its skills
@@ -236,7 +236,7 @@ A second setup SHALL report `unchanged` for what is current.
 session after its task; later setups SHALL keep this choice.
 
 ### F-188 Tell what is installed
-status: proposed · traces: B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill status` SHALL report, for every agent or each one named with
 `--agent`, whether it is found and the state of its skill and its hook.
@@ -247,7 +247,7 @@ WHERE `--project` is given, `rex skill status` SHALL report on the
 repository the user is in.
 
 ### F-431 Remove the skill
-status: proposed · traces: B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill remove` SHALL remove the skill files and the hooks that `rex`
 installed, for every agent or each one named with `--agent`.
@@ -259,7 +259,7 @@ WHERE `--project` is given, `rex skill remove` SHALL remove them from
 the repository the user is in.
 
 ### F-432 Print the skill's guide
-status: proposed · traces: B-4 · source: code, rex-docs, tests
+status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill show` SHALL print the guide that the skill holds.
 The guide SHALL say session, window and block.
@@ -267,7 +267,7 @@ The guide SHALL use the app's own words for a window and a block only to
 say how the app shows them (Finding 13).
 
 ### F-189 Report an agent's status from its hooks
-status: proposed · traces: B-4 · source: code, tests
+status: accepted · traces: B-4 · source: code, tests
 
 Claude Code runs `rex skill hook claude EVENT` at its events, as F-185
 installs it.

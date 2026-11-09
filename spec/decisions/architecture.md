@@ -1,7 +1,7 @@
 # Decisions: architecture
 
 ### D-1 The server owns the model
-status: proposed · traces: B-2, B-3 · source: code, repo
+status: accepted · traces: B-2, B-3 · source: code, repo
 
 **Context.** The first versions kept the layout of windows and blocks in
 the app (`layout.json`). The app served a socket of its own for the first
@@ -23,7 +23,7 @@ model's revision. The app keeps no layout of its own. The first
 `layout.json` becomes a session once.
 
 ### D-2 Follow Rex's command line
-status: proposed · traces: B-5 · source: code, rex-docs
+status: accepted · traces: B-5 · source: code, rex-docs
 
 **Context.** GoRex had its own first commands: `list`, `new-tab`,
 `send-keys`, and `split` with `-t` and `-v`.
@@ -41,7 +41,7 @@ message, or accepted and ignored. `spec/FINDINGS.md` lists the
 differences.
 
 ### D-3 Keep GoRex's first commands working
-status: proposed · traces: B-3 · source: code
+status: accepted · traces: B-3 · source: code
 
 **Context.** GoRex had commands of its own before it took Rex's (D-2):
 `rex list`, `rex new-tab`, `rex send-keys`, `split -t`, `split -v`,
@@ -54,7 +54,7 @@ working as they did, beside Rex's.
 "GoRex's first …".
 
 ### D-4 No Lua
-status: proposed · traces: B-5 · source: code, rex-docs
+status: accepted · traces: B-5 · source: code, rex-docs
 
 **Context.** Rex is configured in Lua (`init.lua`) and runs Lua scripts
 and handlers with `rex do`.
@@ -65,7 +65,7 @@ and `rex do` runs only the app's actions.
 **Reason.** Unknown.
 
 ### D-5 A local server only
-status: proposed · traces: B-6 · source: code, rex-docs, repo
+status: accepted · traces: B-6 · source: code, rex-docs, repo
 
 **Context.** Rex's server can listen for other machines: remote hosts,
 home servers, Tailscale, shared and login servers, and `rex -S`.
@@ -76,7 +76,7 @@ refuse `-S`.
 **Reason.** Unknown. Access from a phone needs (a) or a part of it.
 
 ### D-6 One executable, which starts its own server
-status: proposed · traces: B-2 · source: code, rex-docs
+status: accepted · traces: B-2 · source: code, rex-docs
 
 **Context.** The app, the server and `rex` must be the same version: a
 `rex` of another version may not speak the server's protocol.
@@ -91,7 +91,7 @@ executable, and each block has that directory first in its `PATH`.
 documentation warns. One file to install.
 
 ### D-7 A protocol of GoRex's own
-status: proposed · traces: B-6 · source: code, rex-docs, owner
+status: accepted · traces: B-6 · source: code, rex-docs, owner
 
 **Context.** Rex's server has an API (`rex api`, its dotted methods and
 JSON schemas).
@@ -104,7 +104,7 @@ part of Rex's API.
 reverse.
 
 ### D-8 The server keeps each block's screen
-status: proposed · traces: B-2 · source: code
+status: accepted · traces: B-2 · source: code
 
 **Context.** An app that attaches, and `rex capture`, need the screen of
 a block whose program printed while no app showed it.
@@ -116,7 +116,7 @@ at the app's size.
 **Reason.** Full-screen programs do not survive (a).
 
 ### D-9 Restore shells, not commands
-status: proposed · traces: B-2 · source: code
+status: accepted · traces: B-2 · source: code
 
 **Context.** When the server ends, as at a reboot, its blocks' programs
 end. A new server finds the saved layout.
@@ -128,7 +128,7 @@ labels and layout.
 a deploy".
 
 ### D-10 Wide events for observation
-status: proposed · traces: B-8 · source: code
+status: accepted · traces: B-8 · source: code
 
 **Context.** The owner and agents need a record of real use (B-8) that
 holds no secrets.
@@ -162,7 +162,7 @@ documented API, examine (a) again. GoRex then gives a value only as the
 app, and its own server is a cost.
 
 ### D-12 A native app, without a web view
-status: proposed · traces: B-1 · source: repo, code
+status: accepted · traces: B-1 · source: repo, code
 
 **Context.** A terminal app needs a window, text and input on Linux
 (B-7).
@@ -236,7 +236,7 @@ listing commands; split and run already print only the new block's ID.
 one meaning", and scripts can send the ID to `/dev/null`.
 
 ### D-16 Linux only: no code for macOS and Windows
-status: proposed · traces: B-7 · source: owner
+status: accepted · traces: B-7 · source: owner
 
 **Context.** GoRex was built for Linux, macOS and Windows; `mise run
 check` built it for macOS and Windows too. The owner has a Linux laptop

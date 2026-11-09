@@ -573,3 +573,18 @@ events -s S` leaves out the end of `S`.
 
 - Status: resolved (2026-11-09): `session_destroyed` carries the
   session's ID, so `rex events -s S` prints it (F-169, T-106, T-161).
+
+## Finding 42: the first second of following gives no events
+
+- Kind: accidental behaviour
+- Items: F-171
+- Code: `internal/rex/` (the watcher of programs and directories)
+
+The server takes the first second after a client starts following as
+its baseline: a change of directory or program in that second may give
+no `pwd_changed` or `process_changed`. Found by reading the code while
+writing the tests of F-171.
+
+- Status: decided (2026-11-09): kept. The events say what changes after
+  a client follows; a client that needs the state at the start reads it
+  (`rex block inspect`). F-171 says so.

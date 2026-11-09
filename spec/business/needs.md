@@ -5,7 +5,7 @@ without a specification. The spec holds the owner's intent, so that agents
 change GoRex without breaking what the owner wanted.
 
 ### B-1 Rex's way of working, on Linux
-status: proposed · source: rex-docs, code, owner
+status: accepted · source: rex-docs, code, owner
 
 **Who.** A user who works in terminals and knows Rex.
 **Needs.** Rex's way of working on Linux, with an app: sessions of
@@ -16,7 +16,7 @@ app (D-11).
 Mac to see the sessions of a Linux machine.
 
 ### B-2 Work outlives the app
-status: proposed · source: rex-docs, code
+status: accepted · source: rex-docs, code
 
 **Who.** A user who keeps long work in terminals: editors, servers,
 builds, agents.
@@ -27,7 +27,7 @@ a reboot, the same layout, with shells in the same directories.
 layout.
 
 ### B-3 Scripts drive terminals
-status: proposed · source: rex-docs, code
+status: accepted · source: rex-docs, code
 
 **Who.** A user who automates the work of the terminal.
 **Needs.** To create sessions and blocks from a shell script, type into
@@ -37,7 +37,7 @@ them, read their screens, wait for their programs and react to events.
 missing target from a failed command.
 
 ### B-4 Agents work beside the user
-status: proposed · source: rex-docs, code
+status: accepted · source: rex-docs, code
 
 **Who.** A coding agent that runs in the user's terminal, such as Claude
 Code or Codex, and the user who works with it.
@@ -50,7 +50,7 @@ it.
 from the user, or waits for the user without the user seeing it.
 
 ### B-5 What works with Rex works with GoRex
-status: proposed · source: rex-docs, code
+status: accepted · source: rex-docs, code
 
 **Who.** A user, a script or an agent skill made for Rex's `rex` command.
 **Needs.** To work on GoRex without change.
@@ -59,7 +59,7 @@ status: proposed · source: rex-docs, code
 feature, or GoRex does less than Rex and does not say so.
 
 ### B-6 Only the user reaches their terminals
-status: proposed · source: code, rex-docs
+status: accepted · source: code, rex-docs
 
 **Who.** The user, who types secrets into terminals and runs programs
 with their own rights.
@@ -70,7 +70,7 @@ screens or drive their terminals.
 screen or types into a block without the user's permission.
 
 ### B-7 Linux only
-status: proposed · kind: constraint · source: owner
+status: accepted · kind: constraint · source: owner
 
 **Constraint.** GoRex runs on Linux, and only on Linux.
 **Why.** The owner works on one Linux laptop, where Rex has no app, and
@@ -79,7 +79,7 @@ can test nothing else.
 or a change is checked only on another system.
 
 ### B-8 Observe it without exposing the user
-status: proposed · source: code, rex-docs
+status: accepted · source: code, rex-docs
 
 **Who.** The owner, and the agents that change GoRex.
 **Needs.** To see what GoRex does in real use: to find faults and check
