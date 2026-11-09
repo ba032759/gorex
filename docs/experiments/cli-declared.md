@@ -36,9 +36,10 @@ stays hand-written beside them, and the faults remain.
 | Behaviour other than the help's layout | — | unchanged: the tests pass; every change in the reference's diff and in any output is explained and in the spec |
 | Rex compatibility (B-5): exit statuses, flags anywhere, `--`, several spellings | as now | as now |
 
-Three branches, from `retro-pilot`: `cli-kong` (kong), `cli-stdlib` (one
-declaration per command, Go's standard library only; added after kong's
-run, 2026-11-09), and `retro-pilot` itself, as it is.
+Four branches, from `retro-pilot`: `cli-kong` (kong), `cli-stdlib` (one
+declaration per command, Go's standard library only), `cli-urfave`
+(urfave/cli v3; both added after kong's run, 2026-11-09), and
+`retro-pilot` itself, as it is.
 
 Phase 2, on each branch, by a fresh agent per change, the same prompt:
 
