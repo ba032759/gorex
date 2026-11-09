@@ -8,12 +8,17 @@ yet; fixing a finding is a change of its own.
 
 - Kind: competing behaviour
 - Items: F-135, F-145
-- Code: `cli.go:1008`, `cli.go:1200`
+- Code: `cli.go:1109`, `cli.go:204`
 
 `rex split` and `rex run` take a `--ratio` above 0 and below 100, so
 `--ratio 0.5` gives the new block half a percent. Their error message
 says "between 1 and 99". `rex move` takes 1 to 99 only, with the same
 message. One flag, one meaning, two ranges.
+
+Changed by D-13 (proposed): each range is now one declaration, which
+the help and the reference show ("above 0 and below 100", "1 to 99").
+Making them one is a change of one line; the choice of range is the
+owner's.
 
 ## Finding 2: rex focus DIRECTION starts from another block than every other command
 
@@ -166,7 +171,10 @@ directory of the app.
 
 - Kind: other
 - Items: F-103, F-169, F-178, F-186
-- Code: `help.go:152`, `help.go:102`, `help.go:120`, `keymap.go:269`, `cli.go:302`
+- Code: `help.go:83`, `help.go:40`, `help.go:46`, `keymap.go:269`
+- Status: in part resolved by D-13 (proposed): the help lists every flag
+  from its declaration, and a group prints its own help. The prose
+  below is still written by hand, and still says less.
 
 - `rex help events`: without `-s`, only "sessions created and
   destroyed". The code also prints every session's window and block
@@ -175,7 +183,8 @@ directory of the app.
 - `rex help keymap`: presets `linux`, `macos`, `none`. On macOS the
   default is `darwin`.
 - `rex session` without a subcommand prints `help["session"]`, which
-  does not exist, so the overview prints.
+  does not exist, so the overview prints. Resolved: it prints the
+  group's help.
 
 ## Finding 16: global options work only by the name rex
 
@@ -190,12 +199,16 @@ directory of the app.
 
 - Kind: accidental behaviour
 - Items: F-101, F-161, F-164, F-176
-- Code: `cli.go:128`, `cli.go:130`, `cli.go:1091`, `cli.go:1119`, `cli.go:1653`
+- Code: `cli.go:469`, `cli.go:470`, `cli.go:191`, `cli.go:331`, `cli.go:1208`
 
 `--color`, `-v`, `capture --unwrap`, `send-key --action repeat`, and `do
 --origin`, `--for`, `--all`, `--fail-fast`, `-a` are taken so that Rex's
 command lines run. They change nothing. Rex's scripts then get
 different results with exit status 0.
+
+Changed by D-13 (proposed): a flag declared as ignored says so in the
+help and the reference ("taken, and ignored"). They still change
+nothing.
 
 ## Finding 18: Rex's flags that GoRex refuses with exit status 2
 
@@ -203,9 +216,14 @@ different results with exit status 0.
 - Items: F-156, F-179, F-180, F-182, F-183
 - Code: `cli.go:1767`, `cli.go:1856`, `cli.go:1487`, `cli.go:1881`
 
-`rex config check --json`, `rex config reload --json`, `rex server stop
---discard` and `--if-idle`, `rex server logs --follow` and `-n`, `rex
-client ls -q` and `--short` exit with 2. GoRex's `server stop --forget`
+`rex config check --json`, `rex server stop --discard` and `--if-idle`,
+`rex client ls -q` and `--short` exit with 2.
+
+Corrected while making the reference from declarations (D-13): `rex
+config reload --json` and `rex server logs --follow` and `-n` do not exit
+with 2. Those commands read no flags, and take any argument and ignore
+it, as Finding 17's flags. The old reference listed them as "Flags:
+none", which read as "refuses every flag". GoRex's `server stop --forget`
 is Rex's `--discard` under another name.
 
 ## Finding 19: what Rex has and rex does not
@@ -333,7 +351,7 @@ window in two states.
 
 - Kind: difference from Rex
 - Items: F-193
-- Code: `cli.go:1514`
+- Code: `cli.go:298`, `cli.go:1583`
 
 `rex client inspect` reads its arguments without parsing flags. `rex
 client inspect --json`, which Rex's reference shows, looks for a client
@@ -376,6 +394,9 @@ connected. Rex also prints the actions the client offers.
 - Kind: spec rules
 - Items: F-132, F-135, F-145, F-147
 - Code: `reference_test.go`
+- Status: resolved by D-13 (proposed): the reference lists each flag's
+  default from its declaration, and says in words the defaults that a
+  command computes, as the directory of F-132.
 
 The template says a default is not a rule: the reference lists it. The
 reference lists each command's flags and their spellings, not their
@@ -385,4 +406,28 @@ starts in is also a default, but it differs from command to command
 (Finding 3) and the owner is asked about it (question 14), so F-132
 keeps it, as a table. `conflicts:` cannot say that one item's table
 holds competing behaviour; Finding 3 does.
+
+## Finding 33: --autostart=VALUE is off for any value but true
+
+- Kind: accidental behaviour
+- Items: F-101, F-102, F-107
+- Code: `cli.go:478`
+
+`--autostart=1` turns the server's start off, and `--autostart=yes`
+too, without an error. The flags of a command take `1` as true and
+refuse `yes` with exit status 2 (F-102). D-13 kept the difference: the
+owner decides whether `--autostart` is a boolean as the others.
+
+## Finding 34: an unknown capture format exits with 1, html with 2
+
+- Kind: competing behaviour
+- Items: F-164, F-104
+- Code: `cli.go:1246`, `internal/rex/block.go:531`
+
+`rex capture --format html` exits with 2: `rex` refuses it. `rex
+capture --format foo` goes to the server, which refuses it with an
+error that is not a usage error, so `rex` exits with 1, and only when a
+server answers. A wrong value is a wrong command line (F-104: 2). D-13
+did not declare the formats as the values `--format` takes, which would
+make both exit with 2 before connecting.
 

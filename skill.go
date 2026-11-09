@@ -607,68 +607,29 @@ func skillRemove(o skillOptions) (skillReport, error) {
 	return r, nil
 }
 
-func parseSkillFlags(args []string) (skillOptions, bool, error) {
-	var o skillOptions
-	var agentsFlag []string
-	var jsonOut bool
-	f := newFlags().boolean("project", &o.project).boolean("dry-run", &o.dryRun).boolean("force", &o.force).
-		boolean("session-naming", &o.sessionNaming).boolean("json", &jsonOut)
-	// --agent repeats: gather every one.
-	var rest []string
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-		if v, ok := strings.CutPrefix(a, "--agent="); ok {
-			agentsFlag = append(agentsFlag, v)
-		} else if a == "--agent" && i+1 < len(args) {
-			agentsFlag = append(agentsFlag, args[i+1])
-			i++
-		} else {
-			rest = append(rest, a)
-		}
-	}
-	if err := f.parse(rest); err != nil {
-		return o, false, err
-	}
-	o.agents = agentsFlag
-	return o, jsonOut, nil
+// skillCLI is the flags of rex skill setup, status and remove.
+type skillCLI struct {
+	o    skillOptions
+	json bool
 }
 
-func cliSkillSetup(args []string) error {
-	o, jsonOut, err := parseSkillFlags(args)
-	if err != nil {
-		return err
-	}
-	r, err := skillSetup(o)
-	if err != nil {
-		return err
-	}
-	output(jsonOut, r, func() { r.print(os.Stdout) })
-	return nil
+func skillFlags(o *skillCLI, f *flagSet) {
+	f.list(&o.o.agents, "agent", "only this `AGENT`").defaults("every agent found")
+	f.boolean(&o.o.project, "project", false, "in this project, not in your home")
+	f.boolean(&o.o.dryRun, "dry-run", false, "tell what it would do, and do nothing")
+	f.boolean(&o.o.force, "force", false, "replace a skill of the same name that rex did not install")
+	f.boolean(&o.o.sessionNaming, "session-naming", false, "also have the agent name its session after its task")
+	jsonFlag(f, &o.json)
 }
 
-func cliSkillStatus(args []string) error {
-	o, jsonOut, err := parseSkillFlags(args)
+// cliSkill is rex skill setup, status or remove.
+func cliSkill(name string, o *skillCLI) error {
+	fn := map[string]func(skillOptions) (skillReport, error){"setup": skillSetup, "status": skillStatus, "remove": skillRemove}[name]
+	r, err := fn(o.o)
 	if err != nil {
 		return err
 	}
-	r, err := skillStatus(o)
-	if err != nil {
-		return err
-	}
-	output(jsonOut, r, func() { r.print(os.Stdout) })
-	return nil
-}
-
-func cliSkillRemove(args []string) error {
-	o, jsonOut, err := parseSkillFlags(args)
-	if err != nil {
-		return err
-	}
-	r, err := skillRemove(o)
-	if err != nil {
-		return err
-	}
-	output(jsonOut, r, func() { r.print(os.Stdout) })
+	output(o.json, r, func() { r.print(os.Stdout) })
 	return nil
 }
 

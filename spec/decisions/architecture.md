@@ -171,3 +171,38 @@ interface (MyGo) and a terminal emulator in the same executable
 (libghostty-vt), without cgo.
 **Choice.** (b). The executable is about 15 MB.
 **Reason.** Unknown. The README names it as a feature.
+
+### D-13 Declare rex's commands with Go's standard library
+status: proposed · traces: B-3, B-5 · source: code
+
+**Context.** A command of `rex` lived in five places: the list of
+commands, its handler's flags, the defaults in its logic, `help.go` and
+the completion. The help left out 13 flags of 3 commands (Finding 15).
+The reference ran each handler to find its flags, could not run six of
+them, and listed no defaults (Finding 32).
+
+**Options.** (a) The hand-written parser, as it was. (b) A library, such
+as kong or cobra. (c) One declaration per command and per flag, in Go's
+standard library only: a parser of GoRex's own that reads declarations
+in the shape of the `flag` package's. (d) The `flag` package's
+`FlagSet` as the parser.
+
+**Choice.** (c).
+
+**Reason.** With (c), a command and its flags are declared once, and the
+help, the completion and `spec/reference/cli.md` read the declarations:
+a flag cannot be missing from its help, and the reference lists every
+default without running a command. (a) keeps the copies. (b) adds a
+dependency to `go.mod` and a syntax of its own; branch `cli-kong`
+measures it. (d) does not fit Rex's command line: `FlagSet` stops at the
+first argument, does not tell whether `--` ended the flags, reads `-5`
+as a flag, takes `t`, `F` and `TRUE` as booleans, answers `-h` itself,
+makes each spelling a flag of its own, and its durations lose the
+message of `time.ParseDuration`.
+
+**Consequences.** A flag is added in one place, its declaration. The
+declared default is the value that `rex` sends: `--ratio` 50 and
+`--amount` 5 now go to the server, which had the same defaults, so its
+events show `arg_ratio` 0.5 where they showed 0. The two ranges of
+`--ratio` stay (Finding 1); the help now shows both. Look at the choice
+again when `rex` needs a syntax the parser lacks, as `-qA` for `-q -A`.

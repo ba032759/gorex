@@ -31,6 +31,10 @@ Before the command, `rex` SHALL take these options:
 
 WHEN an option before the command is not in the table THEN `rex` SHALL
 exit with 2. A bad `--timeout` value SHALL exit with 2.
+IF an option that takes a value is the last word, as `rex -C`, THEN
+`rex` SHALL exit with 2.
+WHEN the value of an option is empty, `rex` SHALL use the option's
+default.
 
 ### F-102 Flags of a command
 status: proposed · traces: B-3 · source: code
@@ -40,6 +44,7 @@ arguments, as `--name value`, `--name=value` or `-n value`.
 A boolean flag SHALL take no value, or `=true`, `=false`, `=1` or `=0`.
 Everything after `--` SHALL be the command to run, not flags.
 An argument that is a number, such as `-5`, SHALL be an argument.
+WHEN the value of a flag is empty, `rex` SHALL use the flag's default.
 WHEN a flag is unknown, lacks its value, or a boolean has another value,
 THEN `rex` SHALL exit with 2.
 
@@ -47,13 +52,16 @@ THEN `rex` SHALL exit with 2.
 status: proposed · traces: B-3 · source: code
 
 `rex help`, `rex --help` and `rex -h` SHALL print the overview: the
-commands, the target rules and the exit statuses.
-`rex help COMMAND` SHALL print the help of `split`, `run`, `capture`,
-`send-key`, `skill`, `keymap`, `status`, `do`, `events` or `wait`.
-For any other topic it SHALL print the overview.
-A group without a subcommand, such as `rex session`, SHALL print help
-and exit with 0.
-WHEN the command or subcommand is unknown THEN `rex` SHALL exit with 2.
+commands, the options before the command, the target rules and the exit
+statuses.
+`rex help COMMAND` SHALL print the help of any command or group, as
+`rex help session new`.
+The help of a command SHALL list every flag it takes, with its
+spellings, the values it takes and its default.
+For a topic that is not a command, `rex help` SHALL print the overview.
+A group without a subcommand, such as `rex session`, SHALL print the
+group's help, which lists its commands, and exit with 0.
+IF the command or subcommand is unknown, THEN `rex` SHALL exit with 2.
 
 ## Exit statuses and errors
 
@@ -283,5 +291,6 @@ runs.
 status: proposed · traces: B-3 · source: code
 
 `rex completion bash`, `zsh` or `fish` SHALL print a script that completes
-the first word with the commands of `rex`.
+the commands of `rex`, the commands of its groups, and the flags of each
+command.
 Another shell SHALL exit with 2.
