@@ -164,7 +164,7 @@ CLI together.
 
 The app keeps its state in its data directory: the server's socket and
 log, `state.json`, `settings.json` and `keymap.json`, in
-`~/Library/Application Support/GoRex` (`~/.config/gorex` on Linux) for the
+`~/Library/Application Support/GoRex` (`$XDG_CONFIG_HOME/GoRex`, else `~/.config/GoRex`, on Linux) for the
 built app and `GoRex Dev` for `mygo dev`'s, so that developing never
 touches the sessions of the app you use (`GOREX_DIR` names another
 directory; a terminal of GoRex sets it, so that its `rex` talks to the

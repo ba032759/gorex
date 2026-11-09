@@ -53,7 +53,7 @@ WHEN a flag is unknown, lacks its value, or a boolean has another value,
 THEN `rex` SHALL exit with 2.
 
 ### F-103 Help
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
 `rex help`, `rex --help` and `rex -h` SHALL print the overview: the
 commands, the options before the command, the target rules and the exit
@@ -62,6 +62,8 @@ statuses.
 `rex help session new`.
 The help of a command SHALL list every flag it takes, with its
 spellings, the values it takes and its default.
+The help SHALL say session, window and block, and tab and pane only for
+how the app shows a window and a block.
 For a topic that is not a command, `rex help` SHALL print the overview.
 A group without a subcommand, such as `rex session`, SHALL print the
 group's help, which lists its commands, and exit with 0.

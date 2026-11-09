@@ -221,7 +221,7 @@ func init() {
 	rexCommands = group(cliCmd{},
 		alias("ls", secCommon, sessionLs),
 		alias("new", secCommon, sessionNew),
-		cmd(cliCmd{name: "run", use: "-- COMMAND...", short: "run a command in a new tab, or beside a block (--split)", section: secCommon, help: placeHelp},
+		cmd(cliCmd{name: "run", use: "-- COMMAND...", short: "run a command in a new window, or beside a block (--split)", section: secCommon, help: placeHelp},
 			func(o *placeOpts, f *flagSet) { placeFlags(o, f, false) }, func(o *placeOpts, c *call) error { return cliPlace(o, c, false) }),
 		cmd(cliCmd{name: "split", use: "[-- COMMAND...]", short: "split a block (yours, by default)", section: secCommon, help: placeHelp},
 			func(o *placeOpts, f *flagSet) { placeFlags(o, f, true) }, func(o *placeOpts, c *call) error { return cliPlace(o, c, true) }),
@@ -256,7 +256,7 @@ func init() {
 			cmd(cliCmd{name: "move", use: "[SESSION]", short: "move a session in the order of sessions"},
 				func(o *orderOpts, f *flagSet) { orderFlags(f, o) }, cliSessionMove),
 			sessionKill),
-		group(cliCmd{name: "window", short: "windows (tabs)", section: secResources},
+		group(cliCmd{name: "window", short: "windows, the app's tabs", section: secResources},
 			windowNew,
 			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list a session's windows"},
 				func(o *lsOpts, f *flagSet) {
@@ -277,7 +277,7 @@ func init() {
 				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "s") }, cliWindowRename),
 			cmd(cliCmd{name: "close", use: "WINDOW...", short: "close windows"},
 				func(a *rex.Args, f *flagSet) { targetFlags(f, a, "s") }, cliWindowClose)),
-		group(cliCmd{name: "block", short: "blocks (terminals)", section: secResources},
+		group(cliCmd{name: "block", short: "blocks, each a terminal: the app's panes", section: secResources},
 			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list blocks"},
 				func(o *lsOpts, f *flagSet) {
 					targetFlags(f, &o.a, "sw")
@@ -1168,7 +1168,7 @@ func placeFlags(p *placeOpts, f *flagSet, split bool) {
 	targetFlags(f, &p.a, "swb")
 	d := f.str(&p.dir, "split", side, sideUsage)
 	if !split {
-		d.defaults("a new tab")
+		d.defaults("a new window")
 	}
 	f.percent(&p.ratio, "ratio", 50, pctRange{1, 99, true},
 		"the new block's share of the split, in percent: `PCT`")

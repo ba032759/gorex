@@ -139,6 +139,8 @@ The skill of Codex, OpenCode and Pi SHALL go to `~/.agents/skills/rex`.
 `--project` SHALL put them in the repository the user is in.
 For each item, `rex` SHALL print its agent, its path and its state:
 `created`, `updated`, `unchanged`, `foreign` or `unreadable`.
+The skill SHALL say session, window and block, and tab and pane only
+for how the app shows a window and a block.
 
 ### F-186 The hooks of Claude Code
 status: proposed · traces: B-4 · source: code, rex-docs, tests

@@ -241,7 +241,7 @@ Flags: none; it reads its arguments itself.
 | `-s`, `--session` | `SESSION` | none | the SESSION to act in |
 | `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
 | `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
-| `--split` | `DIRECTION` | a new tab | put the block beside the anchor, toward DIRECTION: right, left, above or below |
+| `--split` | `DIRECTION` | a new window | put the block beside the anchor, toward DIRECTION: right, left, above or below |
 | `--ratio` | `PCT`, from 1 to 99 | `50` | the new block's share of the split, in percent: PCT |
 | `--label` | `LABEL` | none | a LABEL to target it by |
 | `--focus` |  | `true` | focus it; --focus=false leaves the focus where it is |

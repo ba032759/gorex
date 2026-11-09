@@ -177,7 +177,7 @@ func chosen(o skillOptions, all bool) ([]agent, error) {
 func skillFile() string {
 	return `---
 name: rex
-description: Drive the terminal you run in with the rex command (GoRex, a Rex-compatible terminal) - open tabs and split panes, run commands beside you and wait for them, type into other terminals and read their screens, switch sessions. Use when asked to open, split, run something in, read, or close panes, tabs or sessions, or when a long-running command (dev server, tests, logs) deserves a terminal of its own.
+description: Drive the terminal you run in with the rex command (GoRex, a Rex-compatible terminal) - open windows (tabs) and split blocks (panes), run commands beside you and wait for them, type into other terminals and read their screens, switch sessions. Use when asked to open, split, run something in, read, or close blocks, windows or sessions (panes, tabs), or when a long-running command (dev server, tests, logs) deserves a terminal of its own.
 ---
 ` + skillMarker + "\n\n" + skillGuide
 }
@@ -190,8 +190,9 @@ follows Superlogical Rex's model and CLI. The ` + "`rex`" + ` command is on PATH
 
 ## Where you are
 
-- A **session** groups related work; a **window** is a tab of a session; a
-  **block** is one terminal (a pane) in a window.
+- A **session** groups related work, in windows; a **window** holds blocks;
+  a **block** is one terminal. The app shows a window as a tab and a block
+  as a pane.
 - ` + "`$REX_SESSION`" + ` is your session, ` + "`$REX_BLOCK`" + ` your own terminal. With no
   flags, commands act there: ` + "`rex split`" + ` splits your own terminal.
 - Target something else with ` + "`-s SESSION`" + `, ` + "`-w WINDOW`" + `, ` + "`-b BLOCK`" + `. A target
@@ -204,7 +205,7 @@ follows Superlogical Rex's model and CLI. The ` + "`rex`" + ` command is on PATH
 ## Look before acting
 
     rex ls                    # sessions
-    rex window ls             # tabs of your session (-A for all)
+    rex window ls             # windows of your session (-A for all)
     rex block ls              # terminals of your session: @ is you, * focused
     rex block inspect -b ID   # pid, program, dir, size of one terminal
     rex list                  # the whole tree
@@ -213,10 +214,10 @@ follows Superlogical Rex's model and CLI. The ` + "`rex`" + ` command is on PATH
 
     rex split -- htop                          # right of you, focus moves there
     rex split --split=below --ratio 30 --focus=false --label logs -- tail -f app.log
-    rex run -- npm run dev                     # a new tab running a command
+    rex run -- npm run dev                     # a new window running a command
     rex run --split=right -b editor -- lazygit # beside the block labeled editor
     rex new api --cwd ~/src/api -- nvim        # a new session
-    rex window new tests                       # a new tab with a shell
+    rex window new tests                       # a new window with a shell
 
 Add ` + "`--json`" + ` to get IDs: ` + "`rex split --json -- make | jq -r '.block_ids[0]'`" + `.
 Use ` + "`--focus=false`" + ` to leave the user's focus where it is, and
@@ -234,7 +235,8 @@ the login shell's environment, not its aliases: use ` + "`sh -c '...'`" + ` for 
     rex send -b logs 'make test'     # types text, no Enter
     rex send-key -b logs enter       # keys: enter, ctrl+c, escape, up, shift+tab, f5…
     printf 'y\n' | rex send -b logs  # from stdin
-    rex capture -b logs --trim       # the screen and scrollback as text
+    rex capture -b logs --trim       # the screen and scrollback as text, a line a row
+    rex capture -b logs --unwrap     # a line the terminal wrapped as one line
 
 Full-screen programs (vim, htop, less) show only their screen to capture.
 Poll ` + "`rex capture`" + ` until the output you expect appears rather than sleeping
@@ -250,8 +252,8 @@ long.
 
 ## Status
 
-Tell the user's tabs what a long job does, and what it waits for: they
-show it, and notify when the user is away.
+Tell the user what a long job does, and what it waits for: the app shows
+it on the window's tab and the block, and notifies when the user is away.
 
     rex status working --app build --msg "Building" --progress 40
     rex status blocked --kind question --msg "Deploy to prod?"
@@ -270,7 +272,7 @@ Claude Code reports its own status through rex's hooks; you need not.
 
 - Act where the user means: "beside you" or nothing is your own block; "the
   focused pane" is the focused block of the session the user views; a name
-  is the block, tab or session with that label.
+  is the block, window or session with that label.
 - Close what you opened when you are done with it, and only that.
 - Don't steal focus for background work: use --focus=false.
 - Never type into a terminal you have not looked at first (rex capture).
@@ -662,7 +664,7 @@ func cliSkillHook(args []string) error {
 	}
 	if event == "SessionStart" {
 		fmt.Printf("You are running inside GoRex, a Rex-compatible terminal. Your session is %s and your own terminal (block) is %s. "+
-			"Use the rex skill, or run `rex skill show`, to open panes and tabs, run commands beside you, and read other terminals.\n",
+			"Use the rex skill, or run `rex skill show`, to open windows and blocks (the app's tabs and panes), run commands beside you, and read other terminals.\n",
 			os.Getenv("REX_SESSION"), block)
 		if naming {
 			fmt.Println("Once you know your task, name the session after it: rex session rename \"<a few words>\".")

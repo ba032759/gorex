@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -313,5 +314,64 @@ func TestWindowFocusNextAnyCase(t *testing.T) {
 		if got := slices.IndexFunc(ss.Windows, func(w *rex.Window) bool { return w.ID == ss.Active }); got != step.want {
 			t.Errorf("window focus %s: window %d, want %d", step.word, got, step.want)
 		}
+	}
+}
+
+// The help and the skill say session, window and block; tab and pane
+// only for how the app shows them.
+//
+// spec: F-103, F-185
+func TestHelpTerms(t *testing.T) {
+	texts := map[string]string{"overview": overview(), "skill": skillGuide}
+	for _, c := range allCommands(rexCommands) {
+		texts["rex help "+c.path] = commandHelp(c)
+	}
+	// A sentence that names a tab or a pane is of the app, unless it
+	// names keys, an action or a command, or quotes the user.
+	sentence := regexp.MustCompile(`[.;:]\s+|\n\n`)
+	word := regexp.MustCompile(`(?i)(^|[^-+.\w])(tabs?|panes?)\b([^.]|\.\s|\.?$)`)
+	for name, text := range texts {
+		for _, s := range sentence.Split(text, -1) {
+			s = strings.Join(strings.Fields(s), " ")
+			if word.MatchString(s) && !strings.Contains(s, "app shows") && !strings.Contains(s, "app's") && !strings.Contains(s, "enter, tab") && !strings.Contains(s, `"`) {
+				t.Errorf("%s: %s", name, s)
+			}
+		}
+	}
+}
+
+// The help's prose says what the code does: the skill's hooks, the
+// events printed without -s, the keymap's default preset.
+//
+// spec: F-169, F-178, F-186
+func TestHelpProse(t *testing.T) {
+	for _, e := range hookEvents {
+		if !strings.Contains(skillHelp, e) {
+			t.Errorf("rex help skill does not name the hook of %s", e)
+		}
+	}
+	if !strings.Contains(eventsHelp, "every session's window and block events") {
+		t.Error("rex help events does not say what it prints without -s")
+	}
+	if !strings.Contains(keymapHelp, `"macosKeybindings": true`) {
+		t.Error("rex help keymap does not say when macos is the default")
+	}
+}
+
+// Without GOREX_DIR, the data directory is GoRex in the user's
+// configuration directory, as the README says.
+//
+// spec: F-106
+func TestDataDirectory(t *testing.T) {
+	config := t.TempDir()
+	t.Setenv("GOREX_DIR", "")
+	t.Setenv("XDG_CONFIG_HOME", config)
+	if d := rex.Dir(); d != filepath.Join(config, "GoRex") {
+		t.Errorf("data directory %s", d)
+	}
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("HOME", "/home/someone")
+	if d := rex.Dir(); d != "/home/someone/.config/GoRex" {
+		t.Errorf("data directory %s", d)
 	}
 }

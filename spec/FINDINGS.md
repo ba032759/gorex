@@ -180,7 +180,7 @@ The spec takes Rex's words: window (avoid tab), block (avoid pane).
 `rex kill` ends sessions and `rex close` closes blocks; the spec says
 close, and avoids kill.
 
-- Status: decided: the CLI, its help and the skill say session, window and block; the app shows a window as a tab and a block as a pane, as Rex's app does. The glossary says so.
+- Status: resolved (2026-11-09): the CLI, its help and the skill say session, window and block; the app shows a window as a tab and a block as a pane, as Rex's app does (F-103, F-185). The glossary says so (window, block). The app, the README and the actions' names (`pane.split`, `client.tab.new`) keep tab and pane.
 
 ## Finding 14: the data directory on Linux
 
@@ -193,16 +193,14 @@ the code say `GoRex`: `rex.Dir()` joins the user's configuration
 directory and `GoRex`, and the app sets `GOREX_DIR` from MyGo's data
 directory of the app.
 
-- Status: decided: the code is right (`GoRex`); the README is corrected.
+- Status: resolved (2026-11-09): the code is right (`GoRex`, F-106); the README is corrected: `$XDG_CONFIG_HOME/GoRex`, else `~/.config/GoRex`.
 
 ## Finding 15: help that says less, or other, than the code
 
 - Kind: other
 - Items: F-103, F-169, F-178, F-186
 - Code: `help.go:83`, `help.go:40`, `help.go:46`, `keymap.go:269`
-- Status: in part resolved by D-13 (proposed): the help lists every flag
-  from its declaration, and a group prints its own help. The prose
-  below is still written by hand, and still says less.
+- Status: resolved (2026-11-09): D-13 lists every flag from its declaration, and a group prints its own help; the prose now says what the code does: `rex help events` the window and block events printed without `-s` (F-169), `rex help skill` the seven hooks (F-186), `rex help keymap` the default preset, `macos` when `settings.json` asks for it (F-178). The `darwin` preset, the default on macOS, is left to the removal of macOS (D-16).
 
 - `rex help events`: without `-s`, only "sessions created and
   destroyed". The code also prints every session's window and block

@@ -11,9 +11,10 @@ import (
 // declarations (cli.go); the synopses, the lists of commands and of
 // flags, and the completion come from the declarations.
 
-const overviewHelp = `rex drives GoRex: sessions of tabs (windows) of terminals (blocks), kept
-by a server that outlives the app. Inside a GoRex terminal it knows where it
-runs, from REX_SESSION and REX_BLOCK.
+const overviewHelp = `rex drives GoRex: sessions of windows of blocks, each block a terminal, kept
+by a server that outlives the app. The app shows a window as a tab and a
+block as a pane. Inside a GoRex terminal rex knows where it runs, from
+REX_SESSION and REX_BLOCK.
 `
 
 const overviewEnd = `Targets (-s SESSION, -w WINDOW, -b BLOCK): a full ID, a label, a window's
@@ -27,7 +28,7 @@ Run "rex help COMMAND" for one command.
 `
 
 const placeHelp = `split splits a block (yours by default) and places a terminal beside it;
-run places one in a new tab, or beside a block with --split. Without a
+run places one in a new window, or beside a block with --split. Without a
 command, the terminal runs your shell.`
 
 const captureHelp = `Prints a terminal's screen and scrollback, a line for each row: a line the
@@ -40,10 +41,12 @@ home, end, pageup, pagedown, f1-f12, or a character. [KeyA] names a key by
 its place on a US keyboard.`
 
 const skillHelp = `Installs a skill that teaches agents rex (Claude Code: ~/.claude/skills/rex;
-Codex, OpenCode, Pi: ~/.agents/skills/rex) and, in Claude Code, a
-SessionStart hook in ~/.claude/settings.json that tells the agent which
-session and terminal it runs in. The rest of the settings file stays as it
-was. Run setup again to update; remove takes out only what rex installed.`
+Codex, OpenCode, Pi: ~/.agents/skills/rex) and, in Claude Code, hooks in
+~/.claude/settings.json for seven events: at SessionStart the hook tells the
+agent which session and block it runs in; at UserPromptSubmit, Notification,
+PermissionRequest, PostToolUse, Stop and SessionEnd it reports the agent's
+status (rex help status). The rest of the settings file stays as it was.
+Run setup again to update; remove takes out only what rex installed.`
 
 const keymapHelp = `Lists the key bindings in effect: the preset's and keymap.json's, beside
 settings.json in GoRex's data directory. keymap.json:
@@ -57,14 +60,15 @@ settings.json in GoRex's data directory. keymap.json:
     ]
   }
 
-Presets: linux (Ctrl+Shift, the default), macos (the Mac's shortcuts with
-Ctrl or Super for Cmd), none. Keys: modifiers (ctrl, alt, shift, super or
+Presets: linux (Ctrl+Shift), macos (the Mac's shortcuts with Ctrl or Super
+for Cmd), none. Without "preset", linux, or macos when settings.json has
+"macosKeybindings": true. Keys: modifiers (ctrl, alt, shift, super or
 cmd) and a key joined by "+", sequences joined by ">". "none" unbinds a
 key. "rex actions" lists the actions; "rex config reload" applies changes.`
 
 const statusHelp = `Program status (the OSC 7501 protocol): what a program in a terminal is
-doing, which tabs, headers and notifications show. A program can print it
-to its terminal:
+doing, which the app shows on its tabs and panes and in notifications. A
+program can print it to its terminal:
 
   printf '\033]7501;state=working:app=build:msg=%s\033\\' "$(printf 'Building' | base64)"
 
@@ -73,8 +77,8 @@ is idle, working, blocked (with --kind permission, question or auth),
 done, error, or clear. working and blocked end with the program, or when
 the shell shows its prompt; done and error stay until the user looks at
 them. Without STATE it prints the block's records. rex skill setup hooks
-Claude Code in, so that its tab tells when it works, waits for permission,
-or finished.`
+Claude Code in, so that the app's tab tells when it works, waits for
+permission, or finished.`
 
 const doHelp = `Asks the GoRex app to perform one of its actions, as its keys do:
   rex do pane.split direction=below
@@ -82,9 +86,11 @@ const doHelp = `Asks the GoRex app to perform one of its actions, as its keys do
   rex -C CLIENT do client.tab.goto index=2
 "rex actions" lists them. GoRex has no Lua: scripts are shell scripts.`
 
-const eventsHelp = `Prints events as they happen: sessions created and destroyed, and with -s,
-everything in one session, its terminals' events too (bell, child_exited,
-title_changed, pwd_changed, process_changed). --all prints every event.`
+const eventsHelp = `Prints events as they happen: the server's, as sessions created and
+destroyed, and every session's window and block events, without the
+terminals' events. With -s, one session's events, its terminals' too (bell,
+child_exited, title_changed, pwd_changed, process_changed). --all prints
+every event.`
 
 const stopHelp = `Stops the server, which ends every program in its sessions. The server saves
 the sessions first, and the next one starts them again, as shells in the
