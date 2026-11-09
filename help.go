@@ -85,6 +85,11 @@ const eventsHelp = `Prints events as they happen: sessions created and destroyed
 everything in one session, its terminals' events too (bell, child_exited,
 title_changed, pwd_changed, process_changed). --all prints every event.`
 
+const stopHelp = `Stops the server, which ends every program in its sessions. The server saves
+the sessions first, and the next one starts them again, as shells in the
+same directories, unless --discard. With --if-idle, it stops only if it has
+no session and no other client, else it goes on and rex exits with 1.`
+
 const waitHelp = `Waits for a block's program to exit, and exits with its status; or for a
 window or session to close.`
 

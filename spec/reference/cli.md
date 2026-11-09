@@ -156,8 +156,10 @@ Also: `rex client list`.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `--json` |  | `false` | print JSON |
 | `--all` |  | `false` | rex's commands too |
+| `--json` |  | `false` | print JSON |
+| `-q`, `--quiet` |  | `false` | print the IDs alone, one a line |
+| `--short` |  | `true` | short IDs; --short=false prints full ones |
 
 ## `rex completion`
 
@@ -255,7 +257,10 @@ Flags: none; it reads its arguments itself.
 
 ## `rex server logs`
 
-Flags: none; it reads its arguments itself.
+| Flag | Value | Default | Help |
+|---|---|---|---|
+| `--follow` |  | `false` | print what the server adds to it, until the server stops |
+| `-n`, `--lines` | `N`, from 1 | every line | print the newest N lines |
 
 ## `rex server run`
 
@@ -275,7 +280,8 @@ Flags: none; it reads its arguments itself.
 
 | Flag | Value | Default | Help |
 |---|---|---|---|
-| `--forget` |  | `false` | also forget the sessions |
+| `--discard`, `--forget` |  | `false` | delete the saved sessions once the server has stopped; --forget is GoRex's first name |
+| `--if-idle` |  | `false` | stop only if the server has no sessions and no other client |
 
 ## `rex session inspect`
 

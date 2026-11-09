@@ -364,12 +364,14 @@ IF `rex block new` is asked for a block, THEN `rex` SHALL exit with 2:
 `rex run` and `rex split` create blocks.
 
 ### F-156 List clients
-status: proposed · traces: B-3 · source: code, rex-docs
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex client ls` SHALL list the clients connected to the server, each with
 its kind, name, age and the session it shows.
 The table SHALL leave out clients of kind `cli`, unless `--all` is given.
 WHEN `--json` is given, `rex` SHALL print every client.
+WHEN `-q` is given, `rex` SHALL print the IDs of the clients alone, one a
+line, as `rex ls -q` does.
 
 ### F-193 Inspect a client
 status: proposed · traces: B-3 · source: code, rex-docs

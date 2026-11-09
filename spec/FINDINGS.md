@@ -258,7 +258,7 @@ it, as Finding 17's flags. The old reference listed them as "Flags:
 none", which read as "refuses every flag". GoRex's `server stop --forget`
 is Rex's `--discard` under another name.
 
-- Status: decided: take them as Rex: `client ls -q` and `--short`, `server stop --discard` (and `--forget`, GoRex's old name) and `--if-idle`, `config check --json`, `server logs --follow` and `-n`, `config reload --json`.
+- Status: resolved (2026-11-09): taken as Rex: `client ls -q` and `--short` (F-156), `server stop --discard` (and `--forget`, GoRex's old name) and `--if-idle` (F-182), `config check --json` (F-179), `server logs --follow` and `-n` (F-183), `config reload --json` (F-180).
 
 ## Finding 19: what Rex has and rex does not
 

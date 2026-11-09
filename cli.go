@@ -292,8 +292,8 @@ func init() {
 		group(cliCmd{name: "client", short: "the apps and commands connected", section: secResources},
 			cmd(cliCmd{name: "ls", names: []string{"list"}, short: "list the clients"},
 				func(o *clientLsOpts, f *flagSet) {
-					jsonFlag(f, &o.json)
 					f.boolean(&o.all, "all", false, "rex's commands too")
+					listFlags(&o.listOpts, f)
 				}, cliClientLs),
 			cmd(cliCmd{name: "inspect", use: "[CLIENT]", short: "print an app and the actions it offers",
 				help: "CLIENT is an app's ID, name, position or end of ID. Without it, -C or REX_CLIENT names\nthe app, else the app when exactly one is connected, as rex do finds it."},
@@ -357,9 +357,16 @@ func init() {
 
 		group(cliCmd{name: "server", short: "the server that keeps the sessions", section: secServer},
 			cmd(cliCmd{name: "status", short: "tell whether the server runs"}, func(o *bool, f *flagSet) { jsonFlag(f, o) }, cliServerStatus),
-			cmd(cliCmd{name: "stop", short: "stop the server and its programs"},
-				func(o *bool, f *flagSet) { f.boolean(o, "forget", false, "also forget the sessions") }, cliServerStop),
-			rawCmd(cliCmd{name: "logs", short: "print the server's log"}, cliServerLogs),
+			cmd(cliCmd{name: "stop", short: "stop the server and its programs", help: stopHelp},
+				func(o *stopOpts, f *flagSet) {
+					f.boolean(&o.discard, "discard,forget", false, "delete the saved sessions once the server has stopped; --forget is GoRex's first name")
+					f.boolean(&o.ifIdle, "if-idle", false, "stop only if the server has no sessions and no other client")
+				}, cliServerStop),
+			cmd(cliCmd{name: "logs", short: "print the server's log"},
+				func(o *logsOpts, f *flagSet) {
+					f.boolean(&o.follow, "follow", false, "print what the server adds to it, until the server stops")
+					f.position(&o.lines, "n,lines", "print the newest `N` lines").defaults("every line")
+				}, cliServerLogs),
 			rawCmd(cliCmd{name: "start", short: "start the server, unless one runs"}, cliServerStart),
 			rawCmd(cliCmd{name: "run", short: "run the server in the foreground"}, cliServerRun)),
 		cmd(cliCmd{name: "version", short: "print rex's version, and the server's", section: secServer},
@@ -1555,10 +1562,13 @@ func cliTree(o *bool, _ *call) error {
 	return nil
 }
 
-type clientLsOpts struct{ json, all bool }
+type clientLsOpts struct {
+	listOpts
+	all bool
+}
 
 func cliClientLs(o *clientLsOpts, _ *call) error {
-	jsonOut, all := o.json, o.all
+	jsonOut, all, full := o.json, o.all, !o.short
 	c, err := connect()
 	if err != nil {
 		return err
@@ -1573,12 +1583,17 @@ func cliClientLs(o *clientLsOpts, _ *call) error {
 		return nil
 	}
 	w := table()
-	fmt.Fprintln(w, "ID\tKIND\tNAME\tAGE\tVIEWING")
+	if !o.quiet {
+		fmt.Fprintln(w, "ID\tKIND\tNAME\tAGE\tVIEWING")
+	}
 	for _, cl := range cs {
-		if cl.Kind == "cli" && !all {
-			continue
+		switch {
+		case cl.Kind == "cli" && !all:
+		case o.quiet:
+			fmt.Fprintln(w, short(cl.ID, full))
+		default:
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", short(cl.ID, full), cl.Kind, dash(cl.Name), ago(cl.Connected), short(cl.Viewing, full))
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", rex.ShortID(cl.ID), cl.Kind, dash(cl.Name), ago(cl.Connected), short(cl.Viewing, false))
 	}
 	return w.Flush()
 }
@@ -1921,14 +1936,25 @@ func cliServerStatus(o *bool, _ *call) error {
 	return nil
 }
 
-func cliServerStop(o *bool, _ *call) error {
-	forget := *o
+type stopOpts struct{ discard, ifIdle bool }
+
+func cliServerStop(o *stopOpts, _ *call) error {
 	c, err := rex.Dial()
 	if err != nil {
+		if o.discard {
+			return rex.DiscardState()
+		}
 		return &cliError{exitNoServer, errors.New("the server is not running")}
 	}
 	defer c.Close()
-	if forget {
+	switch {
+	case o.ifIdle:
+		err = c.ShutdownIdle(o.discard)
+		if re, ok := errors.AsType[*rex.Error](err); ok && strings.HasPrefix(re.Msg, "unknown op") {
+			return &cliError{exitNoServer, errors.New("the server is too old for --if-idle: it goes on")}
+		}
+		return err
+	case o.discard:
 		return c.ShutdownForget()
 	}
 	return c.Shutdown()
@@ -1945,13 +1971,82 @@ func cliServerStart(args []string) error {
 
 func cliServerRun(args []string) error { return rex.Serve() }
 
-func cliServerLogs(args []string) error {
-	b, err := os.ReadFile(filepath.Join(rex.Dir(), "server.log"))
+type logsOpts struct {
+	follow bool
+	lines  int
+}
+
+// cliServerLogs prints server.log, or its last lines; with --follow, it
+// goes on printing what the server adds, until the server stops.
+func cliServerLogs(o *logsOpts, _ *call) error {
+	path := filepath.Join(rex.Dir(), "server.log")
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
+	at := int64(len(b))
+	if o.lines > 0 {
+		b = lastLines(b, o.lines)
+	}
 	os.Stdout.Write(b)
-	return nil
+	if !o.follow {
+		return nil
+	}
+	for {
+		time.Sleep(200 * time.Millisecond)
+		if b, at, err = readFrom(path, at); err != nil {
+			return err
+		}
+		os.Stdout.Write(b)
+		if len(b) == 0 && !serverRuns() {
+			return nil
+		}
+	}
+}
+
+// lastLines are the last n lines of b.
+func lastLines(b []byte, n int) []byte {
+	end := len(b)
+	if end > 0 && b[end-1] == '\n' {
+		end--
+	}
+	for i := end - 1; i >= 0; i-- {
+		if b[i] == '\n' {
+			if n--; n == 0 {
+				return b[i+1:]
+			}
+		}
+	}
+	return b
+}
+
+// readFrom reads a file from offset at, and returns where it ended; from
+// the start again when the file is shorter, as after it was replaced.
+func readFrom(path string, at int64) ([]byte, int64, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, at, err
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, at, err
+	}
+	if fi.Size() < at {
+		at = 0
+	}
+	b, err := io.ReadAll(io.NewSectionReader(f, at, fi.Size()-at))
+	return b, at + int64(len(b)), err
+}
+
+// serverRuns tells whether a server answers on the socket.
+func serverRuns() bool {
+	c, err := rex.Dial()
+	if err != nil {
+		return false
+	}
+	c.Close()
+	return true
 }
 
 // cliStatus reports a program's status for a block, as OSC 7501 would

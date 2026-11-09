@@ -63,7 +63,7 @@ status: proposed · traces: F-110, F-111, F-112, F-113 · source: code
 | `direction`, `ratio`, `amount`, `index`, `before`, `after` | placement; `ratio` from 0 to 1 |
 | `no_focus`, `wrap`, `zoom` | `zoom` is `on`, `off`, or empty to toggle |
 | `create` | a new block: `command`, `dir`, `shell`, `interactive`, `keep_open`, `label` |
-| `data`, `keys`, `format`, `trim` | text to type, keys, capture's format |
+| `data`, `keys`, `format`, `trim`, `unwrap` | text to type, keys, capture's format and rows |
 | `all`, `model` | what a subscription wants |
 | `client`, `action`, `params` | a client action |
 | `kind`, `name`, `forget` | `hello`; `shutdown` |
@@ -90,6 +90,7 @@ status: proposed · traces: F-130, F-131, F-134, F-135, F-140, F-142, F-160, F-1
 | `subscribe` | T-106 | — |
 | `client.do` | T-109 | the app's answer |
 | `shutdown` | ends the server after 50 ms | — |
+| `shutdown.idle` | as `shutdown`, only with no session and no other client; refuses clients from then on | — |
 
 ### T-106 Events
 status: proposed · traces: F-169, F-170 · source: code, tests

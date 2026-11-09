@@ -89,25 +89,34 @@ ID, uptime, socket, data directory, number of sessions and executable.
 WHEN no server runs THEN `rex` SHALL print `not running` and exit with 4.
 
 ### F-182 Stop the server
-status: proposed · traces: B-2 · source: code, rex-docs, tests
+status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server stop` SHALL end the server and every program in its blocks.
 The server SHALL save the model first: the next server restores it
 (D-9).
-`--forget` SHALL delete the saved state, so that the next server starts
-with no session.
-WHEN no server runs THEN `rex` SHALL exit with 4.
+WHEN `--discard`, or GoRex's first name `--forget`, is given, the server
+SHALL delete the saved state, so that the next server starts with no
+session.
+WHEN `--if-idle` is given, the server SHALL stop only if it has no
+session and no client but `rex`, and SHALL refuse a client that connects
+as it stops.
+IF `--if-idle` is given and the server is in use, THEN `rex` SHALL say
+what uses it, leave it running, and exit with 1.
+IF no server runs, THEN `rex` SHALL exit with 4, or, with `--discard`,
+delete the saved state and exit with 0.
 
 ### F-183 Start the server, read its log
-status: proposed · traces: B-2 · source: code, rex-docs
+status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server start` SHALL start a server when none runs, and exit with 0
 when one runs.
 `rex server run` SHALL run a server in the foreground.
-WHEN another server runs for the data directory THEN `rex server run`
+IF another server runs for the data directory, THEN `rex server run`
 SHALL exit with 1.
 `rex server logs` SHALL print the server's log, `server.log` in the data
-directory.
+directory; with `-n N`, its newest `N` lines.
+WHEN `--follow` is given, `rex` SHALL go on printing what the server adds
+to its log, until the server stops.
 
 ### F-184 A server with nothing to do
 status: proposed · traces: B-2 · source: code
