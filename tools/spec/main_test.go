@@ -31,8 +31,8 @@ func fixture(t *testing.T) string {
 func TestCheck(t *testing.T) {
 	root := fixture(t)
 	items, refs, probs := load(root)
-	if len(items) != 11 {
-		t.Fatalf("items = %d, want 11 (code blocks, the glossary and findings hold none)", len(items))
+	if len(items) != 12 {
+		t.Fatalf("items = %d, want 12 (code blocks, the glossary and findings hold none)", len(items))
 	}
 	var got []string
 	for _, p := range probs {
@@ -56,6 +56,9 @@ func TestCheck(t *testing.T) {
 		"error D-1 a decision without **Options.**",
 		"error F-3 neither a rule",
 		"error F-6 a use case without numbered steps",
+		"error F-8 kind speed is not one of function",
+		"error F-8 conflicts with F-77",
+		"warning F-8 not EARS: conditions first",
 	} {
 		if !strings.Contains(all, want) {
 			t.Errorf("no %q in:\n%s", want, all)
@@ -95,5 +98,24 @@ func TestCheckFiles(t *testing.T) {
 	out := string(b)
 	if code != 1 || !strings.Contains(out, "F-4: vague") || strings.Contains(out, "B-3") {
 		t.Errorf("code %d, out:\n%s", code, out)
+	}
+}
+
+func TestEARS(t *testing.T) {
+	for sn, want := range map[string]string{
+		"`rex ls` SHALL list the sessions.":                                "",
+		"WHEN a command follows `--`, the block SHALL run it.":             "",
+		"WHILE a block is zoomed, WHEN it is split, the app SHALL unzoom.": "",
+		"IF two labels are given, THEN `rex` SHALL exit with 2.":           "",
+		"WHERE the system is Windows, `rex` SHALL use a named pipe.":       "",
+		"WHEN two labels are given THEN `rex` SHALL exit with 2.":          "conditions first",
+		"WHEN two labels are given, THEN `rex` SHALL exit with 2.":         "THEN only after IF",
+		"IF two labels are given, `rex` SHALL exit with 2.":                "IF …, THEN",
+		"`rex` SHALL exit with 2 WHEN two labels are given.":               "conditions first",
+	} {
+		got := earsProblem(sn)
+		if want == "" && got != "" || want != "" && !strings.HasPrefix(got, want) {
+			t.Errorf("%q: %q, want %q", sn, got, want)
+		}
 	}
 }
