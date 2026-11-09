@@ -1,7 +1,7 @@
 # Technical: the protocol between rex and the server
 
 What another implementation of `rex` keeps to talk to GoRex's server.
-Protocol version 2.
+Protocol version 3.
 
 ### T-100 The socket
 status: proposed · traces: F-106, F-107 · source: code
