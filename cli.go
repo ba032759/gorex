@@ -607,6 +607,9 @@ func dispatch(word string, args []string) error {
 // connect connects to the server: it starts one when none runs, unless
 // --autostart=false.
 func connect() (*rex.Client, error) {
+	if err := rex.ServerEnvError(); err != nil {
+		return nil, &cliError{exitUsage, err}
+	}
 	var c *rex.Client
 	var err error
 	if opts.autostart {

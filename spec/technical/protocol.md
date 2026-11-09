@@ -8,6 +8,9 @@ status: proposed · traces: F-106, F-107 · source: code
 
 The server listens on a Unix socket (F-106), mode `0600`; Windows 10 has
 `AF_UNIX` too.
+A client connects to the socket of `REX_SERVER`, else to that of the
+data directory; the server ignores `REX_SERVER`, so that a server started
+in a block of another one does not take that server's socket.
 A connection's first line decides what it is.
 A line `{"op":"attach","sid":BLOCK,"cols":N,"rows":N}` makes it a
 terminal stream, which the app uses and `rex` does not.

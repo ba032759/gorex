@@ -151,3 +151,30 @@ func TestSeveralTargetsAllOrNothing(t *testing.T) {
 		t.Errorf("after closing: %d sessions, %d windows", ss, ws)
 	}
 }
+
+// spec: F-106, F-120
+func TestRexServerBeforeGorexDir(t *testing.T) {
+	c := startTestServer(t)
+	if err := c.Do("session.new", &rex.Args{Label: "here"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	sock := rex.SocketPath()
+	other := testDir(t)
+	t.Cleanup(func() { os.RemoveAll(other) })
+	t.Setenv("GOREX_DIR", other)
+	t.Setenv("REX_SERVER", "unix:"+sock)
+	if out, code := cli(t, nil, "ls"); code != 0 || !strings.Contains(out, "here") {
+		t.Errorf("rex ls by REX_SERVER: %d %s", code, out)
+	}
+	t.Setenv("REX_SERVER", "unix:"+other+"/nobody.sock")
+	if _, code := cli(t, nil, "--timeout", "300ms", "ls"); code != exitNoServer {
+		t.Errorf("REX_SERVER of no server: exit %d, not 4", code)
+	}
+	if _, err := os.Stat(other + "/server.log"); err == nil {
+		t.Error("rex started a server that would not listen on REX_SERVER")
+	}
+	t.Setenv("REX_SERVER", "host:7000")
+	if _, code := cli(t, nil, "ls"); code != exitUsage {
+		t.Errorf("REX_SERVER of a remote server: exit %d, not 2", code)
+	}
+}

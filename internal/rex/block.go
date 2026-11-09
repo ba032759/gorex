@@ -250,7 +250,7 @@ func blockEnvironment(where blockEnv, extra []string) []string {
 		"TERM_PROGRAM_VERSION="+Version,
 		"REX_SESSION="+where.session,
 		"REX_BLOCK="+where.block,
-		"REX_SERVER=unix:"+SocketPath(),
+		"REX_SERVER=unix:"+ListenPath(),
 		"REX_BIN_DIR="+bin,
 		// GOREX_DIR tells the rex command which server to talk to: a
 		// development build's has a directory of its own.

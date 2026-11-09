@@ -128,7 +128,7 @@ func Serve() error {
 		return errors.New("rex: a server already runs")
 	}
 	defer lock.Close()
-	sock := SocketPath()
+	sock := ListenPath()
 	os.Remove(sock)
 	ln, err := net.Listen("unix", sock)
 	if err != nil {

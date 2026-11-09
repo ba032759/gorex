@@ -152,7 +152,7 @@ by `GOREX_DIR` instead, and refuses `-S`, whose default in Rex is
 `REX_SERVER`. A block whose `GOREX_DIR` is removed reaches another
 server than the one `REX_SERVER` names.
 
-- Status: decided: `rex` reads `REX_SERVER` (`unix:PATH`) before `GOREX_DIR`.
+- Status: resolved (2026-11-09): every client (`rex`, the app) reads `REX_SERVER` (`unix:PATH`) before `GOREX_DIR`; the server listens on its data directory's socket; another form of `REX_SERVER` exits with 2 (F-106, F-120, T-100).
 
 ## Finding 12: GOREX_SESSION holds a block's ID
 

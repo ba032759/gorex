@@ -13,6 +13,7 @@ import (
 	"hash/fnv"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -237,9 +238,29 @@ func Dir() string {
 	return filepath.Join(base, "GoRex")
 }
 
-// SocketPath returns the path of the server's socket: in Dir, unless that
-// is too long a path for a socket, then in the temporary directory.
+// SocketPath returns the path of the socket a client connects to:
+// REX_SERVER's, when it is "unix:PATH", else ListenPath.
 func SocketPath() string {
+	if p, ok := strings.CutPrefix(os.Getenv("REX_SERVER"), "unix:"); ok && p != "" {
+		return p
+	}
+	return ListenPath()
+}
+
+// ServerEnvError reports a REX_SERVER that names no socket: GoRex has
+// local servers only.
+func ServerEnvError() error {
+	v := os.Getenv("REX_SERVER")
+	if p, ok := strings.CutPrefix(v, "unix:"); v == "" || ok && p != "" {
+		return nil
+	}
+	return fmt.Errorf("REX_SERVER is %q: GoRex reaches a local server only, as unix:PATH", v)
+}
+
+// ListenPath returns the path of the socket the server of Dir listens
+// on: in Dir, unless that is too long a path for a socket, then in the
+// temporary directory.
+func ListenPath() string {
 	p := filepath.Join(Dir(), "server.sock")
 	if len(p) < 100 {
 		return p

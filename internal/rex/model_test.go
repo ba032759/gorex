@@ -22,6 +22,7 @@ func startServer(t *testing.T) (*Client, string) {
 		t.Fatal(err)
 	}
 	t.Setenv("GOREX_DIR", dir)
+	t.Setenv("REX_SERVER", "") // not the server of a GoRex the tests run in
 	t.Setenv("SHELL", "/bin/sh")
 	t.Setenv("ENV", "") // no interactive startup file for sh
 	done := make(chan struct{})

@@ -99,13 +99,22 @@ nothing on standard error.
 ## The server
 
 ### F-106 Which server
-status: proposed · traces: B-6 · source: code
+status: proposed · traces: B-6 · source: code, rex-docs, owner
 
-`rex` SHALL talk to the server of the data directory: `GOREX_DIR`, else
-the user's configuration directory and `GoRex`.
-The socket SHALL be `server.sock` in the data directory.
-WHEN that path has 100 characters or more THEN the socket SHALL be
-`gorex-UID-HASH.sock` in the system's temporary directory.
+WHEN `REX_SERVER` is `unix:PATH`, `rex` SHALL talk to the server whose
+socket is `PATH`.
+WHEN `REX_SERVER` is empty, `rex` SHALL talk to the server of the data
+directory: `GOREX_DIR`, else the user's configuration directory and
+`GoRex`.
+The server SHALL listen on `server.sock` in its data directory, whatever
+`REX_SERVER` says.
+WHEN that path has 100 characters or more, the server SHALL listen on
+`gorex-UID-HASH.sock` in the system's temporary directory instead.
+IF `REX_SERVER` is not empty and not `unix:PATH`, THEN `rex` SHALL exit
+with 2.
+IF `REX_SERVER` names another socket than that of the data directory
+and no server answers on it, THEN `rex` SHALL exit with 4 and start
+nothing.
 
 ### F-107 Start a server when none runs
 status: proposed · traces: B-2, B-3 · source: code, rex-docs, owner
@@ -255,8 +264,8 @@ A block that runs `rex` SHALL then run the `rex` of its own server.
 status: proposed · traces: B-3 · source: code
 
 `rex` SHALL read `REX_SESSION`, `REX_BLOCK` and `GOREX_SESSION` (F-109),
-`REX_CLIENT` (F-101), `GOREX_DIR` (F-106) and `GOREX_EVENTS` (F-121).
-`rex` SHALL NOT read `REX_SERVER`.
+`REX_CLIENT` (F-101), `REX_SERVER` and `GOREX_DIR` (F-106), and
+`GOREX_EVENTS` (F-121).
 
 ### F-121 A wide event per command
 status: proposed · traces: B-8 · verify: event · source: code

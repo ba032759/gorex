@@ -60,9 +60,17 @@ func Connect() (*Client, error) { return ConnectFor(defaultTimeout) }
 // ConnectFor is Connect within d, starting a server included, whose
 // client waits at most d for each answer; 0 is no limit.
 func ConnectFor(d time.Duration) (*Client, error) {
+	if err := ServerEnvError(); err != nil {
+		return nil, err
+	}
 	deadline := time.Now().Add(d)
 	conn, err := dial(d)
 	if err != nil {
+		if SocketPath() != ListenPath() {
+			// REX_SERVER names another socket than the server of Dir
+			// would listen on: a server started would not answer there.
+			return nil, fmt.Errorf("rex: no server answers at %s: %w", SocketPath(), err)
+		}
 		if err := Spawn(); err != nil {
 			return nil, fmt.Errorf("rex: starting the server: %w", err)
 		}
@@ -90,6 +98,9 @@ func Dial() (*Client, error) { return DialFor(defaultTimeout) }
 // DialFor is Dial within d, whose client waits at most d for each
 // answer; 0 is no limit.
 func DialFor(d time.Duration) (*Client, error) {
+	if err := ServerEnvError(); err != nil {
+		return nil, err
+	}
 	conn, err := dial(d)
 	if err != nil {
 		return nil, err
