@@ -105,7 +105,9 @@ With `session`, it hears every event of that session.
 With `all`, it hears every event.
 With neither, it hears the server's events and the sessions' events
 without `block_event` and client events.
-An event is `{"type", "time", "session_id", "payload"}`.
+An event is `{"type", "time", "session_id", "payload"}`; an event of
+one session, `session_created`, `session_destroyed` or `session_event`,
+has its ID in `session_id`.
 A slow connection loses events, never answers.
 
 ### T-107 The model

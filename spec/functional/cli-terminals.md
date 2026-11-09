@@ -157,7 +157,7 @@ IF the server goes away during the wait, THEN `rex` SHALL exit with 4.
 ## Follow
 
 ### F-169 Follow events
-status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex events` SHALL print each event as it happens, until the server ends
 or the user interrupts it.
@@ -165,7 +165,8 @@ WHEN no flag is given, `rex events` SHALL print the server's events and
 every session's events, without the terminals' events and the clients'
 events.
 WHEN `-s SESSION` is given, `rex events` SHALL print that session's
-events only, its terminals' events too.
+events only, its terminals' events and its end (`session_destroyed`)
+too.
 WHEN `--all` is given, `rex events` SHALL print every event.
 
 A line tells when the event happened, its type, the item it concerns,

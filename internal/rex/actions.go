@@ -143,7 +143,7 @@ func (s *Server) endSession(ss *Session) {
 		}
 	}
 	s.model.Sessions = slices.DeleteFunc(s.model.Sessions, func(o *Session) bool { return o == ss })
-	s.emitLocked(Event{Type: "session_destroyed", Payload: map[string]any{"session_id": ss.ID}})
+	s.emitLocked(Event{Type: "session_destroyed", SessionID: ss.ID, Payload: map[string]any{"session_id": ss.ID}})
 	s.changed()
 }
 

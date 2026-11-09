@@ -571,5 +571,5 @@ and spend a turn on the error (B-4).
 `session_destroyed` carries no session ID at its top level, so `rex
 events -s S` leaves out the end of `S`.
 
-- Status: decided: `session_destroyed` carries the session's ID, so
-  `rex events -s S` prints it.
+- Status: resolved (2026-11-09): `session_destroyed` carries the
+  session's ID, so `rex events -s S` prints it (F-169, T-106, T-161).
