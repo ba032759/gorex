@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -219,5 +221,37 @@ func TestServerLogs(t *testing.T) {
 	}
 	if _, code := cli(t, nil, "server", "logs", "-n", "0"); code != exitUsage {
 		t.Errorf("logs -n 0: %d", code)
+	}
+}
+
+// An interrupt ends a command with 130, as Rex's.
+//
+// spec: F-104
+func TestInterruptExits130(t *testing.T) {
+	if args := os.Getenv("GOREX_TEST_RUN"); args != "" {
+		os.Exit(runCLI(strings.Fields(args)))
+	}
+	serveAlone(t)
+	os.WriteFile(filepath.Join(os.Getenv("GOREX_DIR"), "server.log"), []byte("ready\n"), 0o600)
+	cmd := exec.Command(os.Args[0], "-test.run=^TestInterruptExits130$")
+	cmd.Env = append(os.Environ(), "GOREX_TEST_RUN=server logs --follow")
+	out, _ := cmd.StdoutPipe()
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	line, _ := bufio.NewReader(out).ReadString('\n')
+	if line != "ready\n" {
+		t.Fatalf("logs --follow printed %q", line)
+	}
+	cmd.Process.Signal(os.Interrupt)
+	if err := cmd.Wait(); cmd.ProcessState.ExitCode() != exitInterrupted {
+		t.Errorf("interrupted: %v, status %d", err, cmd.ProcessState.ExitCode())
+	}
+}
+
+// spec: F-124
+func TestCompletionPowerShell(t *testing.T) {
+	if out, code := cli(t, nil, "completion", "powershell"); code != exitUsage || !strings.Contains(out, "Linux") {
+		t.Errorf("completion powershell: %d %s", code, out)
 	}
 }

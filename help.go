@@ -20,7 +20,8 @@ const overviewEnd = `Targets (-s SESSION, -w WINDOW, -b BLOCK): a full ID, a lab
 position from 1, or the last 4+ characters of an ID.
 
 Exit status: 0 ok, 1 failed, 2 usage, 3 target not found or ambiguous,
-4 server unreachable; wait and --wait exit with the program's status.
+4 server unreachable, 130 interrupted; wait and --wait exit with the
+program's status.
 
 Run "rex help COMMAND" for one command.
 `
@@ -300,6 +301,8 @@ func cliCompletion(args []string) error {
 				fmt.Fprintf(b, "complete -c rex -n '%s' %s\n", cond, opt)
 			}
 		}
+	case "powershell":
+		return usagef("rex completion powershell: GoRex runs on Linux, without PowerShell; bash, zsh or fish")
 	default:
 		return usagef("rex completion bash|zsh|fish")
 	}

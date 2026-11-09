@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -32,6 +33,9 @@ const (
 	exitUsage    = 2
 	exitTarget   = 3
 	exitNoServer = 4
+	// exitInterrupted is the status of a command an interrupt ended, as
+	// Ctrl+C: 128 and SIGINT's number, as a shell has it.
+	exitInterrupted = 130
 )
 
 // cliError is an error with the status the command exits with.
@@ -515,7 +519,12 @@ func runCLI(args []string) int {
 		opts.client = c
 	}
 	start := time.Now()
+	stop := onInterrupt(func() {
+		wideCommand(args, exitInterrupted, errors.New("interrupted"), start)
+		os.Exit(exitInterrupted)
+	})
 	err = dispatch(args[0], args[1:])
+	stop()
 	code := exitOK
 	if err != nil {
 		if !errors.Is(err, errQuiet) {
@@ -525,6 +534,24 @@ func runCLI(args []string) int {
 	}
 	wideCommand(args, code, err, start)
 	return code
+}
+
+// onInterrupt runs f when the command is interrupted, until stop.
+func onInterrupt(f func()) (stop func()) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ch:
+			f()
+		case <-done:
+		}
+	}()
+	return func() {
+		signal.Stop(ch)
+		close(done)
+	}
 }
 
 // wideCommand records a rex command that ran: which, from where (a GoRex

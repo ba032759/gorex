@@ -35,9 +35,10 @@ IF the value of `--timeout` is not a duration, THEN `rex` SHALL exit
 with 2.
 IF an option that takes a value is the last word, as `rex -C`, THEN
 `rex` SHALL exit with 2.
-WHEN the value of an option that is not a boolean is empty, `rex` SHALL
-use the option's default.
-`--autostart` SHALL take a value as a boolean flag does (F-102).
+IF `--autostart` has a value other than `true`, `false`, `1` or `0`, THEN
+`rex` SHALL exit with 2.
+WHEN the value of an option is empty, `rex` SHALL use the option's
+default.
 
 ### F-102 Flags of a command
 status: proposed · traces: B-3 · source: code
@@ -69,7 +70,7 @@ IF the command or subcommand is unknown, THEN `rex` SHALL exit with 2.
 ## Exit statuses and errors
 
 ### F-104 Exit statuses
-status: proposed · traces: B-3, B-5 · source: code, rex-docs
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, owner
 
 `rex` SHALL exit with:
 
@@ -81,6 +82,7 @@ status: proposed · traces: B-3, B-5 · source: code, rex-docs
 | 3 | a target matches nothing, or more than one thing |
 | 4 | no server answers |
 | the program's | `rex wait`, and `--wait`, for a block's program |
+| 130 | an interrupt, as `Ctrl+C`, ended the command |
 
 WHEN a command fails THEN `rex` SHALL print `Error: ` and the reason on
 standard error.
@@ -291,9 +293,11 @@ protocol.
 runs.
 
 ### F-124 Shell completion
-status: proposed · traces: B-3 · source: code
+status: proposed · traces: B-3 · source: code, owner
 
 `rex completion bash`, `zsh` or `fish` SHALL print a script that completes
 the commands of `rex`, the commands of its groups, and the flags of each
 command.
-Another shell SHALL exit with 2.
+IF the shell is `powershell`, THEN `rex` SHALL exit with 2 and say that
+GoRex runs on Linux (D-16).
+IF the shell is another, as `nu`, THEN `rex` SHALL exit with 2.

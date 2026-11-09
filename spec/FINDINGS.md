@@ -283,6 +283,7 @@ is Rex's `--discard` under another name.
   default handling of `SIGINT` decides it.
 
 - Status: decided, item by item: remote (`-S`, hosts, home) deferred to the phone feature (D-5); `rex api` and Lua stay out (D-7, D-4); scrollback about 64 MiB and `--unwrap` as Rex; exit 130 on an interrupt; `completion powershell` refused (Linux only), `nu` deferred; the Codex hook deferred; the event fields and `rex actions` stay as they are, as GoRex's.
+- Status: resolved (2026-11-09), for the items to change: scrollback about 64 MiB (F-165); `capture` keeps a wrapped line's rows apart unless `--unwrap` (F-164); 130 on an interrupt (F-104); `completion powershell` refused, saying GoRex runs on Linux (F-124). The rest stays deferred or kept, as decided.
 
 ## Finding 20: rex status is GoRex's own
 
