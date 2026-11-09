@@ -16,14 +16,14 @@ WHEN `rex` gets no arguments THEN it SHALL print the overview help and
 exit with 0.
 
 ### F-101 Global options
-status: proposed · traces: B-3, B-5 · source: code, rex-docs
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, owner
 
 Before the command, `rex` SHALL take these options:
 
 | Option | Effect |
 |---|---|
 | `-C`, `--client CLIENT` | the app that `rex do` asks; default `REX_CLIENT` |
-| `--timeout DURATION` | the longest wait for a request's answer; default `10s` |
+| `--timeout DURATION` | the longest wait to connect, and for each answer; default `10s` |
 | `--autostart[=false]` | start a server when none answers; default on |
 | `--color WHEN` | taken and ignored |
 | `-v`, `--verbose`, `-vv` | taken and ignored |
@@ -35,6 +35,9 @@ IF an option that takes a value is the last word, as `rex -C`, THEN
 `rex` SHALL exit with 2.
 WHEN the value of an option is empty, `rex` SHALL use the option's
 default.
+`--timeout` SHALL limit each connection to the server, a server started
+included, and the wait for each answer, except the waits of `rex wait`,
+`--wait` and `rex events`.
 
 ### F-102 Flags of a command
 status: proposed · traces: B-3 · source: code
@@ -104,13 +107,13 @@ WHEN that path has 100 characters or more THEN the socket SHALL be
 `gorex-UID-HASH.sock` in the system's temporary directory.
 
 ### F-107 Start a server when none runs
-status: proposed · traces: B-2, B-3 · source: code, rex-docs
+status: proposed · traces: B-2, B-3 · source: code, rex-docs, owner
 
-WHEN no server answers THEN `rex` SHALL start one in the background and
-wait up to 5 seconds for it.
-WHEN `--autostart=false` is given and no server answers THEN `rex` SHALL
+WHEN no server answers, `rex` SHALL start one in the background and
+wait for it up to `--timeout`.
+IF `--autostart=false` is given and no server answers, THEN `rex` SHALL
 exit with 4 and start nothing.
-WHEN the server still does not answer THEN `rex` SHALL exit with 4.
+IF the server still does not answer, THEN `rex` SHALL exit with 4.
 `rex version`, `rex server status` and `rex server stop` SHALL NOT start
 a server.
 

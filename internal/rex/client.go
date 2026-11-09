@@ -23,6 +23,8 @@ type Client struct {
 	pending map[int64]chan Response
 	err     error
 	closed  chan struct{}
+	// timeout limits each request that does not stream; 0 is no limit.
+	timeout time.Duration
 
 	// OnEvent, when set before Subscribe, hears the events the client
 	// subscribed to, from the reading goroutine.
@@ -37,40 +39,68 @@ type Error struct {
 
 func (e *Error) Error() string { return e.Msg }
 
+// ErrTimeout is the error of a request whose answer took too long.
+var ErrTimeout = errors.New("timed out")
+
+// defaultTimeout limits connecting and each request of Connect and Dial.
+const defaultTimeout = 15 * time.Second
+
 // Connect connects to the server, starting one in the background when
 // none runs.
-func Connect() (*Client, error) {
-	conn, err := net.Dial("unix", SocketPath())
+func Connect() (*Client, error) { return ConnectFor(defaultTimeout) }
+
+// ConnectFor is Connect within d, starting a server included, whose
+// client waits at most d for each answer; 0 is no limit.
+func ConnectFor(d time.Duration) (*Client, error) {
+	deadline := time.Now().Add(d)
+	conn, err := dial(d)
 	if err != nil {
 		if err := Spawn(); err != nil {
 			return nil, fmt.Errorf("rex: starting the server: %w", err)
 		}
-		deadline := time.Now().Add(5 * time.Second)
 		for {
 			time.Sleep(30 * time.Millisecond)
-			conn, err = net.Dial("unix", SocketPath())
+			left := time.Until(deadline)
+			if d == 0 {
+				left = 0
+			}
+			conn, err = dial(left)
 			if err == nil {
 				break
 			}
-			if time.Now().After(deadline) {
+			if d > 0 && left <= 0 {
 				return nil, fmt.Errorf("rex: connecting to the server: %w", err)
 			}
 		}
 	}
-	c := &Client{conn: conn, pending: map[int64]chan Response{}, closed: make(chan struct{})}
-	go c.read()
-	return c, nil
+	return newClient(conn, d), nil
 }
 
 // Dial connects to the server that runs, without starting one.
-func Dial() (*Client, error) {
-	conn, err := net.Dial("unix", SocketPath())
+func Dial() (*Client, error) { return DialFor(defaultTimeout) }
+
+// DialFor is Dial within d, whose client waits at most d for each
+// answer; 0 is no limit.
+func DialFor(d time.Duration) (*Client, error) {
+	conn, err := dial(d)
 	if err != nil {
 		return nil, err
 	}
-	c := &Client{conn: conn, pending: map[int64]chan Response{}, closed: make(chan struct{})}
+	return newClient(conn, d), nil
+}
+
+// dial dials the socket within d; 0 is no limit.
+func dial(d time.Duration) (net.Conn, error) {
+	if d < 0 {
+		d = time.Millisecond
+	}
+	return net.DialTimeout("unix", SocketPath(), d)
+}
+
+func newClient(conn net.Conn, d time.Duration) *Client {
+	c := &Client{conn: conn, pending: map[int64]chan Response{}, closed: make(chan struct{}), timeout: d}
 	go c.read()
-	return c, nil
+	return c
 }
 
 // Executable returns the path of the running executable and when it was
@@ -140,8 +170,9 @@ func (c *Client) read() {
 	}
 }
 
-// call sends a request and decodes the response's data into out.
-func (c *Client) call(req Request, out any) error { return c.callFor(req, out, 15*time.Second) }
+// call sends a request and decodes the response's data into out, waiting
+// as long as the client's timeout.
+func (c *Client) call(req Request, out any) error { return c.callFor(req, out, c.timeout) }
 
 // callFor is call waiting at most d for the answer, or forever when d is 0.
 func (c *Client) callFor(req Request, out any, d time.Duration) error {
@@ -175,7 +206,7 @@ func (c *Client) callFor(req Request, out any, d time.Duration) error {
 		c.mu.Lock()
 		delete(c.pending, req.ID)
 		c.mu.Unlock()
-		return fmt.Errorf("rex: %s timed out", req.Op)
+		return fmt.Errorf("rex: %s %w after %s", req.Op, ErrTimeout, d)
 	}
 	if res.Error != "" {
 		return &Error{Code: res.Code, Msg: res.Error}
@@ -226,8 +257,8 @@ func (c *Client) Do(op string, args *Args, out any) error {
 	return c.call(Request{Op: op, Args: args}, out)
 }
 
-// DoFor is Do waiting at most d, or forever when d is 0: for wait and for
-// client actions.
+// DoFor is Do waiting at most d, or forever when d is 0: for wait, which
+// streams until its block ends.
 func (c *Client) DoFor(op string, args *Args, out any, d time.Duration) error {
 	return c.callFor(Request{Op: op, Args: args}, out, d)
 }

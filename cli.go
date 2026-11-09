@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net"
 	"os"
 	"path/filepath"
 	"slices"
@@ -609,13 +608,9 @@ func connect() (*rex.Client, error) {
 	var c *rex.Client
 	var err error
 	if opts.autostart {
-		c, err = rex.Connect()
+		c, err = rex.ConnectFor(opts.timeout)
 	} else {
-		var nc net.Conn
-		if nc, err = net.DialTimeout("unix", rex.SocketPath(), opts.timeout); err == nil {
-			nc.Close()
-			c, err = rex.Connect()
-		}
+		c, err = rex.DialFor(opts.timeout)
 	}
 	if err != nil {
 		return nil, &cliError{exitNoServer, fmt.Errorf("could not reach the server at %s: %w", rex.SocketPath(), err)}
@@ -694,7 +689,7 @@ func dash(s string) string {
 func cliVersion(o *bool, _ *call) error {
 	jsonOut := *o
 	v := map[string]any{"version": rex.Version, "protocol": rex.ProtocolVersion, "name": "GoRex"}
-	if c, err := rex.Dial(); err == nil {
+	if c, err := rex.DialFor(opts.timeout); err == nil {
 		if h, err := c.Hello(); err == nil {
 			v["server"] = map[string]any{"pid": h.PID, "protocol": h.Version, "started": h.Started, "exe": h.Exe}
 		}
@@ -1705,7 +1700,7 @@ func cliWait(o *waitOpts, f *call) error {
 	defer c.Close()
 	var res map[string]any
 	if err := c.DoFor("wait", withContext(a), &res, d); err != nil {
-		if strings.Contains(err.Error(), "timed out") {
+		if errors.Is(err, rex.ErrTimeout) {
 			return &cliError{exitFailed, fmt.Errorf("gave up after %s", d)}
 		}
 		return err
@@ -1884,7 +1879,7 @@ func cliConfigReload(args []string) error {
 
 func cliServerStatus(o *bool, _ *call) error {
 	jsonOut := *o
-	c, err := rex.Dial()
+	c, err := rex.DialFor(opts.timeout)
 	if err != nil {
 		output(jsonOut, map[string]any{"running": false, "socket": rex.SocketPath()}, func() {
 			fmt.Printf("not running (socket %s)\n", rex.SocketPath())
@@ -1912,7 +1907,7 @@ func cliServerStatus(o *bool, _ *call) error {
 
 func cliServerStop(o *bool, _ *call) error {
 	forget := *o
-	c, err := rex.Dial()
+	c, err := rex.DialFor(opts.timeout)
 	if err != nil {
 		return &cliError{exitNoServer, errors.New("the server is not running")}
 	}
@@ -1924,7 +1919,7 @@ func cliServerStop(o *bool, _ *call) error {
 }
 
 func cliServerStart(args []string) error {
-	c, err := rex.Connect()
+	c, err := rex.ConnectFor(opts.timeout)
 	if err != nil {
 		return &cliError{exitNoServer, err}
 	}

@@ -65,7 +65,7 @@ target lookups (`model`, `list`, `clients`, `*.resolve`) use a fixed
 `--autostart=false` dials with `--timeout`. `rex wait` tells its own
 timeout from other errors by the words "timed out" in the message.
 
-- Status: decided: `--timeout` limits every connection and every request that does not stream, as Rex's reference says.
+- Status: resolved (2026-11-09): `--timeout` limits every connection, a server started included, and every request that does not stream; `rex wait` tells its timeout by the error, not the words (F-101, F-107, T-123).
 
 ## Finding 5: "no app" fails in rex do and succeeds in rex config reload
 
