@@ -130,6 +130,12 @@ with 4.
 `rex version`, `rex server status` and `rex server stop` SHALL NOT
 start a server.
 
+The tests start the tests' executable, which is not a server: they show
+that `rex` starts it and gives up after `--timeout`. The owner checks by
+hand that a server starts: with `REX_SERVER=` and a new, empty
+`GOREX_DIR`, `rex ls` exits with 0, and `rex server status` then tells
+that a server runs.
+
 
 ### F-108 A server of another version
 status: proposed · traces: B-2 · source: code
