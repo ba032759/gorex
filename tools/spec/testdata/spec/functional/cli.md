@@ -31,3 +31,8 @@ status: proposed · traces: B-1 · source: code
 
 **Actor.** A script.
 **Goal.** A new block beside the old one.
+
+### F-8 Exit on two labels
+status: proposed · traces: B-1 · source: code · kind: speed · conflicts: F-1, F-77
+
+WHEN two labels are given THEN `rex` SHALL exit with 2.

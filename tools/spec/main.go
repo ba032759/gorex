@@ -560,7 +560,15 @@ func cmdShow(root string, ids []string) {
 				fmt.Printf("  traces to   %s %s (%s)\n", t, to.Title, to.Status)
 			}
 		}
+		for _, c := range conflicts(it) {
+			if to := byID[c]; to != nil {
+				fmt.Printf("  conflicts   %s %s (%s)\n", c, to.Title, to.Status)
+			}
+		}
 		for _, o := range items {
+			if slices.Contains(conflicts(o), it.ID) {
+				fmt.Printf("  conflicts   %s %s (%s)\n", o.ID, o.Title, o.Status)
+			}
 			if slices.Contains(o.Traces, it.ID) {
 				fmt.Printf("  traced by   %s %s (%s)\n", o.ID, o.Title, o.Status)
 			}
@@ -856,9 +864,9 @@ var notItems = map[string]bool{"readme.md": true, "glossary.md": true, "findings
 
 var (
 	sources = []string{"owner", "rex-docs", "repo", "code", "tests"}
-	// A requirement is a sentence with SHALL, or a WHEN … THEN. In one,
-	// these words blur what must hold; in a description they are fine.
-	requirementRe = regexp.MustCompile(`\bSHALL\b|\bWHEN\b.*\bTHEN\b`)
+	// A requirement is a sentence with SHALL. In one, these words blur
+	// what must hold; in a description they are fine.
+	requirementRe = regexp.MustCompile(`\bSHALL\b`)
 	vagueReq      = regexp.MustCompile(`(?i)\b(should|may|might|can|could|will|would|typically|usually|normally|as needed|appropriate|if possible)\b`)
 	// Vague anywhere.
 	vagueAll = regexp.MustCompile(`(?i)\betc\b\.?|\band/or\b`)

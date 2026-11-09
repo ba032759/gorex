@@ -44,8 +44,8 @@ An item is a heading with an ID, then its fields, then its text:
 ### F-12 Answer a blocked session from the phone
 status: accepted · traces: B-3 · verify: test
 
-WHEN a session in any window is blocked on a permission prompt
-THEN the phone SHALL show it within 5 seconds, with the prompt's text.
+WHEN a session in any window is blocked on a permission prompt, the
+phone SHALL show it, with the prompt's text.
 ```
 
 - **ID**: `B-`, `D-`, `F-` or `T-` and a number, unique in the spec, never
@@ -62,7 +62,12 @@ THEN the phone SHALL show it within 5 seconds, with the prompt's text.
   `tests`; several joined by `,`. An item
   only the code shows is a description of what is, not yet of what is
   wanted.
-- **kind** (business): `need` (the default) or `constraint`.
+- **kind**: in business, `need` (the default) or `constraint`; in
+  functional, `function` (the default), `performance`, `security`,
+  `usability` or `operational`.
+- **conflicts**: the items this one contradicts, when both describe what
+  GoRex does (competing behaviour). Two accepted items in conflict are a
+  gap: the owner resolves it.
 - Fields go one per line or on one line joined by `·`. Any other field
   (`rationale:`, `actor:`, `priority:`) is kept.
 
@@ -139,22 +144,57 @@ status: proposed · traces: B-6 · source: code
 `Consequences` is optional. An idea rejected outright is a decision with
 `status: rejected` and a `rationale:`.
 
-### Functional: one of three forms
+### Functional: one item, one use case (after Volere and EARS)
 
-- A *rule*, for exact behaviour: one requirement per item, `SHALL` for
-  what must hold, `WHEN … THEN …` for a scenario (EARS style).
+A functional item is one *product use case*: what GoRex does in answer to
+one event from outside, one thing a user, a script or an agent sets off
+and would name: "create a session", "split a block", "show a blocked
+session on the phone". The title names it. Its rules are its fit
+criteria: each one a sentence a test, an event or a person can check.
 
-  ```markdown
-  ### F-12 Answer a blocked session from the phone
-  status: proposed · traces: B-3 · verify: test
+- One event per item. A second trigger is a second item; a variant of the
+  same one (a flag, an error) is a rule of the item.
+- The rules that matter to whoever sets it off, usually five or fewer.
+  Not every flag: the help lists them, the tests pin them down.
+- Output formats (the fields of `--json`, a file's layout) are technical
+  items. The functional item says what the output tells.
+- A behaviour that contradicts another item gets `conflicts:` on both
+  sides, until the owner resolves it.
 
-  WHEN a session in any window is blocked on a permission prompt
-  THEN the phone SHALL show it within 5 seconds, with the prompt's text.
-  ```
+Every rule is one sentence in one of the five EARS patterns. The
+conditions come first, each closed by a comma; then the subject; then
+`SHALL` or `SHALL NOT`:
 
-- A *use case*, for interaction (Cockburn's form): the actor, the goal,
-  the main success scenario as numbered steps, then the extensions, where
-  most tests come from.
+| Pattern | For | Form |
+|---|---|---|
+| always | what always holds | The X SHALL … |
+| event | an event | WHEN …, the X SHALL … |
+| state | while a state lasts | WHILE …, the X SHALL … |
+| unwanted | an error, a fault, a misuse | IF …, THEN the X SHALL … |
+| feature | where a feature or system applies | WHERE …, the X SHALL … |
+
+Patterns combine: `WHILE a block is zoomed, WHEN it is split, the app
+SHALL …`. Errors take IF … THEN, not WHEN: they are where tests are most
+often missing. `spec check` warns on a rule that fits no pattern.
+
+```markdown
+### F-131 Create a session
+status: proposed · traces: B-3 · source: code, rex-docs, tests
+
+`rex new` SHALL create a session, after the others, with one window of
+one block.
+The block SHALL start in the directory that `rex` runs in.
+WHEN a command follows `--`, the block SHALL run it instead of the shell.
+`rex new` SHALL print the new session's ID.
+IF two labels are given, THEN `rex` SHALL exit with 2.
+```
+
+Three forms hold the rules:
+
+- *Rules*, as above, for behaviour stated exactly.
+- A *use case*, for an interaction of several steps (Cockburn's form): the
+  actor, the goal, the main success scenario as numbered steps, then the
+  extensions, where most tests come from. Rules may follow.
 
   ```markdown
   ### F-310 Change session from the keyboard
@@ -172,6 +212,17 @@ status: proposed · traces: B-6 · source: code
 
 - A *table*, for exhaustive cases (exit statuses, key names), with a
   sentence that says what the table holds.
+
+A quality GoRex must have, not a function, is an item of its own with a
+`kind:` (Volere's non-functional requirements), in the same form:
+
+```markdown
+### F-420 Only the user's clients reach the server
+status: proposed · traces: B-6 · kind: security · verify: test
+
+IF a process of another user connects to the server's socket, THEN the
+server SHALL refuse it.
+```
 
 Say what an observer outside the system sees: the CLI's output and exit
 status, what is on screen, the protocol's messages, what the events say.
@@ -192,8 +243,8 @@ Readability comes first. Simple technical English, after ASD-STE100:
   check` warns); a longer term that contains one, as "tab bar", is fine.
 - Short sentences. One requirement per sentence.
 - Active voice. Say who does it: the server, the app, `rex`, the user.
-- A requirement says `SHALL` or `SHALL NOT`, or `WHEN … THEN`. In a
-  requirement, not should, may, can, will, typically, usually, as needed:
+- A requirement says `SHALL` or `SHALL NOT`, in an EARS pattern
+  (Templates). In a requirement, not should, may, can, will, typically, usually, as needed:
   they blur what must hold. A description says what is, in plain words,
   and may use them.
 - No filler: no "note that", "in order to", "it is important that".

@@ -45,11 +45,18 @@ and `rationale: unknown - ask the owner`.
   the owner's: `**Why.** Unknown.` and a question, never your guess.
 - Decision: `**Context.**`, `**Options.**`, `**Choice.**`, `**Reason.**`,
   and `**Consequences.**` when something follows from it.
-- Functional, one of three forms: a rule (`SHALL`, `WHEN … THEN`, one per
-  item); a use case (`**Actor.**`, `**Goal.**`, numbered steps,
-  `**Extensions.**`); a table of cases with a sentence that says what it
-  holds. What an observer outside sees. Say how it is verified
+- Functional: one item per product use case, one event from outside
+  that someone would name ("split a block"). Its rules are its fit
+  criteria, usually five or fewer, each one sentence in an EARS pattern:
+  `The X SHALL …`, `WHEN …, the X SHALL …`, `WHILE …, the X SHALL …`,
+  `IF …, THEN the X SHALL …` (errors), `WHERE …, the X SHALL …`. A
+  multi-step interaction is a use case (`**Actor.**`, `**Goal.**`,
+  numbered steps, `**Extensions.**`); exhaustive cases a table. Not every
+  flag; output formats (`--json` fields) are technical items. A quality
+  (speed, security) is an item with `kind:`. Say how it is verified
   (`verify: test | event | manual`).
+- Behaviour that contradicts another item: `conflicts: F-n` on both, and
+  tell the owner.
 - Technical items for what a reimplementation must keep (a protocol, a file
   format, an invariant), not for how the code happens to be organised.
 - Changed behaviour: edit the item, keep its ID; the diff shows the change.
