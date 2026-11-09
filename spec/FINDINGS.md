@@ -507,7 +507,7 @@ the name and the arguments, and acts where its own focus is. `rex do -b
 BLOCK pane.split` splits the focused block, with exit status 0. Rex
 applies the action to `BLOCK`, by default the focused block.
 
-- Status: decided: as Rex's: `rex do -s`, `-w` and `-b` name where the app applies the action; the app acts on the block of `ctx_block` (T-109), else where its focus is.
+- Status: resolved (2026-11-09): as Rex's: `rex do -s`, `-w` and `-b` name where the app applies the action; the app acts on the block of `ctx_block` (T-109), else where its focus is; an action of the whole app stays where it is (F-174, T-109).
 
 ## Finding 37: rex keymap exits with 0 on a keymap with errors
 
@@ -521,7 +521,7 @@ the same problems. `rex config check` exits with 1 when one is an error;
 reference says that `rex keymap` exits with 1 when a complaint is an
 error.
 
-- Status: decided: as Rex's reference: `rex keymap` exits with 1 when any complaint is an error, as `rex config check` does.
+- Status: resolved (2026-11-09): as Rex's reference: `rex keymap` exits with 1 when any complaint is an error, as `rex config check` does (F-178, F-179).
 
 ## Finding 38: rex server logs prints the whole log
 
@@ -533,7 +533,7 @@ Without `-n`, `rex server logs` prints all of `server.log`. Rex prints
 the newest 200 lines, and the whole log with `--all`, which GoRex does
 not have.
 
-- Status: decided: as Rex's: the newest 200 lines; `--all` prints the whole log, `-n` another count.
+- Status: resolved (2026-11-09): as Rex's: the newest 200 lines; `--all` prints the whole log, `-n` another count (F-430).
 
 ## Finding 39: the wide event of a command keeps an argument's words
 
@@ -545,8 +545,8 @@ The event of a command keeps up to four words before the first flag as
 the command, so `rex send ls` records `send ls`, the text typed into a
 terminal. B-8 says the record holds no text the user typed.
 
-- Status: decided: the command's words are the declared names of the
-  command (`session new`), never its arguments.
+- Status: resolved (2026-11-09): the command's words are the declared
+  names of the command (`session new`), never its arguments (F-121).
 
 ## Finding 40: --help after a command is an unknown flag
 
@@ -558,8 +558,9 @@ terminal. B-8 says the record holds no text the user typed.
 documentation shows `rex help COMMAND` only; agents try `--help` first,
 and spend a turn on the error (B-4).
 
-- Status: decided: `--help` or `-h` after a command prints that
-  command's help and exits with 0, as `rex help COMMAND` does.
+- Status: resolved (2026-11-09): `--help` or `-h` after a command prints
+  that command's help and exits with 0, as `rex help COMMAND` does
+  (F-103).
 
 ## Finding 41: rex events -s does not print its own session's end
 
@@ -570,5 +571,5 @@ and spend a turn on the error (B-4).
 `session_destroyed` carries no session ID at its top level, so `rex
 events -s S` leaves out the end of `S`.
 
-- Status: decided: `session_destroyed` carries the session's ID, so
-  `rex events -s S` prints it.
+- Status: resolved (2026-11-09): `session_destroyed` carries the
+  session's ID, so `rex events -s S` prints it (F-169, T-106, T-161).

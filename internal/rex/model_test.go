@@ -538,3 +538,38 @@ func TestMigrateLayout(t *testing.T) {
 		t.Errorf("first window %+v", ws[0])
 	}
 }
+
+// session_destroyed carries the session's ID, so that a subscription to
+// one session hears its end.
+//
+// spec: F-169, T-106, T-161
+func TestSessionDestroyedReachesItsSession(t *testing.T) {
+	c, _ := startServer(t)
+	s := act(t, c, "session.new", Args{Label: "end"})
+	ev, err := Connect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ev.Close()
+	got := make(chan Event, 64)
+	ev.OnEvent = func(e Event) { got <- e }
+	if err := ev.Subscribe(Args{Session: "end"}); err != nil {
+		t.Fatal(err)
+	}
+	act(t, c, "session.kill", Args{Session: "end"})
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case e := <-got:
+			if e.Type != "session_destroyed" {
+				continue
+			}
+			if e.SessionID != s["session_id"] || e.Payload["session_id"] != s["session_id"] {
+				t.Errorf("session_destroyed = %+v", e)
+			}
+			return
+		case <-deadline:
+			t.Fatal("no session_destroyed for the session followed")
+		}
+	}
+}

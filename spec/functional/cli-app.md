@@ -8,12 +8,19 @@ What these commands print, and where `rex skill setup` writes, are in
 ## Actions of the app
 
 ### F-174 Perform an action of the app
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex do ACTION [KEY=VALUE...]` SHALL ask the app of F-175 to perform the
 action, as its key binding does, and wait for its answer.
-The app SHALL perform the action where its own focus is, whatever `-s`
-and `-b` name (Finding 36).
+WHEN `-s`, `-w` or `-b` is given, the app SHALL apply an action of a
+block, a window or a session (`pane.`, `client.tab.`, `session.`) to the
+block of F-112 that they name.
+WHEN none of them is given, the app SHALL apply it to the context block,
+else, when the app does not have that block, where its own focus is.
+WHEN the app applies an action to a block, the app SHALL first show
+that block, focused, in its window and session.
+The app SHALL perform any other action on the app as a whole, whatever
+`-s`, `-w`, `-b` and the context name.
 A value SHALL go to the app as a number when it is one, as a boolean when
 it is `true` or `false`, and else as a string.
 WHERE `--args` is given, the action SHALL also take the arguments of its
@@ -63,7 +70,7 @@ server or an app (Finding 19).
 ## Keys and configuration
 
 ### F-178 Show the keymap
-status: proposed · traces: B-3 · source: code, rex-docs, tests
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex keymap` SHALL list the key bindings in effect, sorted by action,
 each with its keys, its arguments and where it comes from.
@@ -75,8 +82,8 @@ The preset SHALL be the one that `keymap.json` names, else the default
 of T-122.
 `rex keymap` SHALL print the problems of `keymap.json` on standard
 error.
-IF a problem is an error, THEN `rex keymap` SHALL still exit with 0
-(Finding 37).
+IF a problem is an error, THEN `rex keymap` SHALL exit with 1, as `rex
+config check` does (F-179).
 
 ### F-179 Check the keymap
 status: proposed · traces: B-3 · source: code, rex-docs, tests
@@ -149,10 +156,13 @@ IF another server runs for the data directory, THEN `rex server run`
 SHALL exit with 1.
 
 ### F-430 Read the server's log
-status: proposed · traces: B-2 · source: code, rex-docs, tests
+status: proposed · traces: B-2 · source: code, rex-docs, tests, owner
 
-`rex server logs` SHALL print the server's log, the whole of it, or with
-`-n N` its newest `N` lines (Finding 38).
+`rex server logs` SHALL print the newest 200 lines of the server's log,
+as Rex's.
+WHEN `--all` is given, `rex server logs` SHALL print the whole log.
+IF `--all` and `-n` are given together, THEN `rex server logs` SHALL
+exit with 2.
 WHEN `--follow` is given, `rex` SHALL go on printing what the server
 adds to its log, until the server stops.
 WHILE `rex` follows the log, WHEN the log is replaced, `rex` SHALL print

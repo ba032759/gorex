@@ -24,7 +24,7 @@ Exit status: 0 ok, 1 failed, 2 usage, 3 target not found or ambiguous,
 4 server unreachable, 130 interrupted; wait and --wait exit with the
 program's status.
 
-Run "rex help COMMAND" for one command.
+Run "rex help COMMAND", or "rex COMMAND --help", for one command.
 `
 
 const placeHelp = `split splits a block (yours by default) and places a terminal beside it;
@@ -64,7 +64,8 @@ Presets: linux (Ctrl+Shift), macos (the Mac's shortcuts with Ctrl or Super
 for Cmd), none. Without "preset", linux, or macos when settings.json has
 "macosKeybindings": true. Keys: modifiers (ctrl, alt, shift, super or
 cmd) and a key joined by "+", sequences joined by ">". "none" unbinds a
-key. "rex actions" lists the actions; "rex config reload" applies changes.`
+key. "rex actions" lists the actions; "rex config reload" applies changes.
+rex keymap exits with 1 when a problem is an error, as rex config check does.`
 
 const statusHelp = `Program status (the OSC 7501 protocol): what a program in a terminal is
 doing, which the app shows on its tabs and panes and in notifications. A
@@ -84,7 +85,10 @@ const doHelp = `Asks the GoRex app to perform one of its actions, as its keys do
   rex do pane.split direction=below
   rex do session.select session=work
   rex -C CLIENT do client.tab.goto index=2
-"rex actions" lists them. GoRex has no Lua: scripts are shell scripts.`
+"rex actions" lists them. GoRex has no Lua: scripts are shell scripts.
+An action of a block, a window or a session (pane.*, client.tab.*,
+session.*) acts on the block -s, -w or -b names, else yours, else the
+focused one: the app shows that block, focused, first.`
 
 const eventsHelp = `Prints events as they happen: the server's, as sessions created and
 destroyed, and every session's window and block events, without the

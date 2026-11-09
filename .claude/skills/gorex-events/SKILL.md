@@ -48,8 +48,9 @@ payload's scalar fields as `p_*` (`p_exit_code`, `p_window_id`,
 `status_msg_len`, and `payload`, the whole payload as JSON text (status
 messages and titles left out).
 
-**kind = 'cli'**, a `rex` command: `command` (the words before the first
-flag: "split", "server stop", "skill hook claude Stop"), `flags` (their
+**kind = 'cli'**, a `rex` command: `command` (the command's names, as
+the tree declares them, never its arguments: "split", "server stop",
+"session ls" for `rex session list`, "skill hook"), `flags` (their
 names only), `exit_code`, `ok`, `error`, `duration_ms`, `n_args`,
 `in_rex`, `rex_session`, `rex_block`, `client`, `agent` (claude-code,
 codex). Its `pid` is the `client_pid` of the requests it made.

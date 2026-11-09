@@ -332,8 +332,7 @@ func init() {
 			}, cliStatus),
 		cmd(cliCmd{name: "do", use: "ACTION [KEY=VALUE...]", short: "perform an action of the app, as its keys do", section: secAutomation, help: doHelp},
 			func(o *doOpts, f *flagSet) {
-				f.str(&o.a.Session, "s,session", "", "the `SESSION` to act in")
-				f.str(&o.a.Block, "b,block", "", "the `BLOCK` to act on")
+				targetFlags(f, &o.a, "swb")
 				f.str(&o.args, "args", "", "the action's arguments as a `JSON` object; - reads stdin, @FILE a file")
 				f.str(&o.eval, "e,eval", "", "Rex's Lua `CODE`: refused")
 				f.str(&o.action, "a,action", "", "Rex's `ACTION`").ignore()
@@ -371,7 +370,8 @@ func init() {
 			cmd(cliCmd{name: "logs", short: "print the server's log"},
 				func(o *logsOpts, f *flagSet) {
 					f.boolean(&o.follow, "follow", false, "print what the server adds to it, until the server stops")
-					f.position(&o.lines, "n,lines", "print the newest `N` lines").defaults("every line")
+					f.position(&o.lines, "n,lines", "print the newest `N` lines").defaults("200")
+					f.boolean(&o.all, "all", false, "print the whole log")
 				}, cliServerLogs),
 			rawCmd(cliCmd{name: "start", short: "start the server, unless one runs"}, cliServerStart),
 			rawCmd(cliCmd{name: "run", short: "run the server in the foreground"}, cliServerRun)),
@@ -558,30 +558,26 @@ func onInterrupt(f func()) (stop func()) {
 
 // wideCommand records a rex command that ran: which, from where (a GoRex
 // terminal, an agent), how it ended and how long it took. Of its
-// arguments, it keeps the subcommands and the flags' names, not the
-// values: those may be text typed into terminals.
+// arguments, it keeps the command's names, as the tree declares them,
+// and the flags' names, not the values or the other arguments: those
+// may be text typed into terminals.
 func wideCommand(args []string, code int, err error, start time.Time) {
 	switch args[0] {
 	case "help", "--help", "-h", "completion", "__complete":
 		return
 	}
-	var words, flags []string
-	// The words before the first flag name the command; after a flag, a
-	// word may be the flag's value.
+	var flags []string
 	for _, a := range args {
 		if a == "--" {
 			break // the command it runs
 		}
-		switch {
-		case strings.HasPrefix(a, "-"):
+		if strings.HasPrefix(a, "-") {
 			name, _, _ := strings.Cut(a, "=")
 			flags = append(flags, name)
-		case len(flags) == 0 && len(words) < 4 && !strings.ContainsAny(a, " /=\n") && len(a) <= 24:
-			words = append(words, a)
 		}
 	}
 	w := rex.W{
-		"command":     strings.Join(words, " "),
+		"command":     commandPath(args),
 		"exit_code":   code,
 		"ok":          code == exitOK,
 		"duration_ms": float64(time.Since(start).Microseconds()) / 1000,
@@ -611,6 +607,36 @@ func wideCommand(args []string, code int, err error, start time.Time) {
 	rex.WideFlush()
 }
 
+// asksHelp tells whether a command's arguments ask for its help: --help
+// or -h, before "--".
+func asksHelp(args []string) bool {
+	for _, a := range args {
+		switch a {
+		case "--":
+			return false
+		case "--help", "-h":
+			return true
+		}
+	}
+	return false
+}
+
+// commandPath is the path in the tree of the command that args name, as
+// dispatch finds it: "session new", or "session" for a group and a word
+// it does not have; empty for a word that is not a command.
+func commandPath(args []string) string {
+	c := rexCommands.find(args[0])
+	if c == nil {
+		return ""
+	}
+	if c.sub != nil && len(args) > 1 {
+		if s := c.find(args[1]); s != nil {
+			return s.path
+		}
+	}
+	return c.path
+}
+
 // dispatch runs the command that word names, with its arguments.
 func dispatch(word string, args []string) error {
 	switch word {
@@ -632,6 +658,10 @@ func dispatch(word string, args []string) error {
 			return usagef("unknown command \"%s %s\": run \"rex help %s\"", word, args[0], word)
 		}
 		c, args = s, args[1:]
+	}
+	if asksHelp(args) {
+		fmt.Print(commandHelp(c))
+		return nil
 	}
 	if c.raw != nil {
 		return c.raw(args)
@@ -1902,6 +1932,17 @@ func cliKeymap(o *bool, _ *call) error {
 			fmt.Fprintln(os.Stderr, p)
 		}
 	})
+	return keymapErrors(km.problems)
+}
+
+// keymapErrors fails when a problem of a keymap is an error, for rex
+// keymap and rex config check alike.
+func keymapErrors(problems []string) error {
+	for _, p := range problems {
+		if strings.HasPrefix(p, "error") {
+			return errors.New("the keymap has errors")
+		}
+	}
 	return nil
 }
 
@@ -1941,12 +1982,7 @@ func cliConfigCheck(o *bool, f *call) error {
 			fmt.Println(p)
 		}
 	})
-	for _, p := range r.Problems {
-		if strings.HasPrefix(p, "error") {
-			return errors.New("the keymap has errors")
-		}
-	}
-	return nil
+	return keymapErrors(r.Problems)
 }
 
 func presetOf(path string) string {
@@ -2042,21 +2078,33 @@ func cliServerStart(args []string) error {
 func cliServerRun(args []string) error { return rex.Serve() }
 
 type logsOpts struct {
-	follow bool
-	lines  int
+	follow, all bool
+	lines       int
 }
 
-// cliServerLogs prints server.log, or its last lines; with --follow, it
-// goes on printing what the server adds, until the server stops.
+// logLines is how many of its newest lines rex server logs prints, as
+// Rex's.
+const logLines = 200
+
+// cliServerLogs prints the newest lines of server.log, or all of it;
+// with --follow, it goes on printing what the server adds, until the
+// server stops.
 func cliServerLogs(o *logsOpts, _ *call) error {
+	if o.all && o.lines > 0 {
+		return usagef("--all or -n, not both")
+	}
 	path := filepath.Join(rex.Dir(), "server.log")
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	at := int64(len(b))
-	if o.lines > 0 {
-		b = lastLines(b, o.lines)
+	if !o.all {
+		n := o.lines
+		if n == 0 {
+			n = logLines
+		}
+		b = lastLines(b, n)
 	}
 	os.Stdout.Write(b)
 	if !o.follow {

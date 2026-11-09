@@ -105,7 +105,9 @@ With `session`, it hears every event of that session.
 With `all`, it hears every event.
 With neither, it hears the server's events and the sessions' events
 without `block_event` and client events.
-An event is `{"type", "time", "session_id", "payload"}`.
+An event is `{"type", "time", "session_id", "payload"}`; an event of
+one session, `session_created`, `session_destroyed` or `session_event`,
+has its ID in `session_id`.
 A slow connection loses events, never answers.
 
 ### T-107 The model
@@ -151,6 +153,11 @@ status: proposed · traces: F-174, F-175, F-193 · source: code, tests
 For `client.do`, the server sends the chosen app the event
 `client_action`, with `action_id`, `name`, `params`, `ctx_session` and
 `ctx_block`.
+When the request names a `session`, `window` or `block`, `ctx_block` is
+the block of F-112 they name and `ctx_session` its session; else they
+are the request's own.
+The app applies the action to the block of `ctx_block` when it has it,
+else where its focus is.
 The app answers with the request `client.reply`: `action_id`, and
 `result` or `error`.
 The server then answers `client.do` with the result, or fails it with the

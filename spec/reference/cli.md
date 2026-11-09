@@ -182,7 +182,8 @@ Flags: none; it reads its arguments itself.
 | Flag | Value | Default | Help |
 |---|---|---|---|
 | `-s`, `--session` | `SESSION` | none | the SESSION to act in |
-| `-b`, `--block` | `BLOCK` | none | the BLOCK to act on |
+| `-w`, `--window` | `WINDOW` | none | the WINDOW to act in |
+| `-b`, `--block` | `BLOCK` | yours, else the window's focused block | the BLOCK to act on |
 | `--args` | `JSON` | none | the action's arguments as a JSON object; - reads stdin, @FILE a file |
 | `-e`, `--eval` | `CODE` | none | Rex's Lua CODE: refused |
 | `-a`, `--action` | `ACTION` | none | Rex's ACTION; taken, and ignored |
@@ -260,7 +261,8 @@ Flags: none; it reads its arguments itself.
 | Flag | Value | Default | Help |
 |---|---|---|---|
 | `--follow` |  | `false` | print what the server adds to it, until the server stops |
-| `-n`, `--lines` | `N`, from 1 | every line | print the newest N lines |
+| `-n`, `--lines` | `N`, from 1 | 200 | print the newest N lines |
+| `--all` |  | `false` | print the whole log |
 
 ## `rex server run`
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -896,5 +897,127 @@ func TestClientInspect(t *testing.T) {
 			t.Fatalf("one app left: %d %s", code, out)
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// appDo asks the app for an action, as rex do does, and runs the app's
+// frames until it answers.
+func appDo(t *testing.T, tt *ui.Tester, args rex.Args) error {
+	t.Helper()
+	c, err := rex.Connect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	done := make(chan error, 1)
+	go func() {
+		var res json.RawMessage
+		done <- c.DoFor("client.do", &args, &res, 5*time.Second)
+	}()
+	for {
+		select {
+		case err := <-done:
+			tt.Frame()
+			return err
+		case <-time.After(10 * time.Millisecond):
+			tt.Frame()
+		}
+	}
+}
+
+// rex do -s, -w and -b name where the app applies the action; without
+// them, the block of the request's context, else the app's focus. An
+// action of the whole app stays where the app is.
+//
+// spec: F-174, T-109
+func TestDoActsOnItsBlock(t *testing.T) {
+	a, tt := newTestApp(t)
+	first := a.session
+	b1 := a.tab().Focus.SID
+	a.splitDir("right")
+	right := a.tab().Focus.SID
+	if right == b1 {
+		t.Fatal("the split did not focus the new block")
+	}
+	// beside is the block that shares a split with id, if a block does.
+	var beside func(l *rex.Layout, id string) string
+	beside = func(l *rex.Layout, id string) string {
+		if l == nil || l.IsLeaf() {
+			return ""
+		}
+		switch {
+		case l.A.Block == id:
+			return l.B.Block
+		case l.B.Block == id:
+			return l.A.Block
+		}
+		return beside(l.A, id) + beside(l.B, id)
+	}
+	blocks := func(id string) int {
+		_, w := a.model.BlockPlace(id)
+		if w == nil {
+			return 0
+		}
+		return len(w.Layout.Blocks())
+	}
+	other, err := rex.Connect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	var s2 map[string]any
+	if err := other.Do("session.new", &rex.Args{Label: "two"}, &s2); err != nil {
+		t.Fatal(err)
+	}
+	b2 := s2["block_id"].(string)
+	waitFor(t, tt, "the second session", func() bool { return a.model.Session(s2["session_id"].(string)) != nil })
+
+	// -b: the block named, split and focused.
+	if err := appDo(t, tt, rex.Args{Action: "pane.split", Block: b1}); err != nil {
+		t.Fatal(err)
+	}
+	_, w1 := a.model.BlockPlace(b1)
+	if n := beside(w1.Layout, b1); blocks(b1) != 3 || n == "" || n == right || a.session != first {
+		t.Errorf("-b: %d blocks, %q beside %s, session %s", blocks(b1), n, b1, a.session)
+	}
+	// An action of the app as a whole moves nothing.
+	if err := appDo(t, tt, rex.Args{Action: "client.font.reset", Block: b2}); err != nil {
+		t.Fatal(err)
+	}
+	if a.session != first {
+		t.Errorf("client.font.reset -b moved the app to %s", a.session)
+	}
+	// -s: the focused block of the session's active window.
+	if err := appDo(t, tt, rex.Args{Action: "pane.split", Session: "two"}); err != nil {
+		t.Fatal(err)
+	}
+	if blocks(b2) != 2 || a.session != s2["session_id"] {
+		t.Errorf("-s: %d blocks beside %s, session %s", blocks(b2), b2, a.session)
+	}
+	// -w: the focused block of the window.
+	if err := appDo(t, tt, rex.Args{Action: "pane.split", Window: w1.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if blocks(b1) != 4 || a.session != first {
+		t.Errorf("-w: %d blocks beside %s, session %s", blocks(b1), b1, a.session)
+	}
+	// The context's block, without -s, -w or -b.
+	if err := appDo(t, tt, rex.Args{Action: "pane.split", CtxBlock: b2}); err != nil {
+		t.Fatal(err)
+	}
+	if blocks(b2) != 3 || a.session != s2["session_id"] {
+		t.Errorf("the context: %d blocks beside %s, session %s", blocks(b2), b2, a.session)
+	}
+	// Else where the app's focus is.
+	if err := appDo(t, tt, rex.Args{Action: "pane.split"}); err != nil {
+		t.Fatal(err)
+	}
+	if blocks(b2) != 4 {
+		t.Errorf("the focus: %d blocks beside %s", blocks(b2), b2)
+	}
+	// A target that is not there changes nothing.
+	err = appDo(t, tt, rex.Args{Action: "pane.split", Block: "nope"})
+	if re, ok := errors.AsType[*rex.Error](err); !ok || re.Code != "not_found" || blocks(b2) != 4 {
+		t.Errorf("-b nope: %v", err)
 	}
 }

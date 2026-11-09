@@ -59,6 +59,8 @@ commands, the options before the command, the target rules and the exit
 statuses.
 `rex help COMMAND` SHALL print the help of a command or a group, as
 `rex help session new`.
+WHEN `--help` or `-h` follows a command, before `--`, `rex` SHALL print
+that command's help, as `rex help COMMAND` does, and exit with 0.
 WHEN a group runs without a command, as `rex session`, `rex` SHALL
 print the group's help, which lists its commands, and exit with 0.
 WHEN the topic of `rex help` is not a command, `rex` SHALL print the
@@ -289,19 +291,20 @@ F-121, `REX_CLIENT` in F-175; `GOREX_DIR` is the data directory's
 (F-121).
 
 ### F-121 A wide event per command
-status: proposed · traces: B-8 · verify: event · source: code
+status: proposed · traces: B-8 · verify: event · source: code, tests, owner
 
 WHEN a command ends, `rex` SHALL append one wide event of kind `cli`,
 except for `rex help` and `rex completion`.
 The event SHALL hold the command's words, the names of its flags, its
 exit status, its duration and its context.
 The event SHALL NOT hold the values of flags or the text of arguments.
+The command's words SHALL be the names of the command, as the tree of
+commands declares them (`session new`), and never its arguments.
 WHEN `CLAUDECODE` or `CODEX_SANDBOX` or `CODEX_HOME` is set, the event
 SHALL name the agent that runs `rex`.
 WHEN `GOREX_EVENTS` is `off` or `0`, `rex` SHALL record nothing.
 
-The command's words are the names of the command, as `rex session new`
-declares them, not its arguments (Finding 39). T-121 lists the fields.
+T-121 lists the fields.
 
 ## Other
 

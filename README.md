@@ -135,7 +135,7 @@ rex do session.select session=work        # an action of the window
 rex skill setup                           # Claude Code, Codex, OpenCode, Pi
 ```
 
-`rex help` lists everything, `rex help COMMAND` one command. Run as `rex`
+`rex help` lists everything, `rex help COMMAND` or `rex COMMAND --help` one command. Run as `rex`
 (the server links `bin/rex` in its directory to itself and puts it first
 in its terminals' `PATH`), or as `GoRex COMMAND`. Not in GoRex: Lua
 (`init.lua`, `rex do script.lua`), remote hosts (`-S`, `rex hosts`,

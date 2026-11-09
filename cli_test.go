@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -109,6 +110,28 @@ func TestConfigCheckJSON(t *testing.T) {
 	}
 }
 
+// rex keymap exits with 1 when a problem is an error, as rex config
+// check does, and with 0 for a warning alone.
+//
+// spec: F-178, F-179
+func TestKeymapErrorsExit1(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("GOREX_DIR", dir)
+	path := filepath.Join(dir, "keymap.json")
+	os.WriteFile(path, []byte(`{"preset": "nope"}`), 0o644)
+	for _, args := range [][]string{{"keymap"}, {"keymap", "--json"}, {"config", "check"}} {
+		if out, code := cli(t, nil, args...); code != exitFailed || !strings.Contains(out, "unknown preset") {
+			t.Errorf("%s of a bad file: %d %s", strings.Join(args, " "), code, out)
+		}
+	}
+	os.WriteFile(path, []byte(`{"preset": "linux", "bindings": [{"key": "ctrl+shift+k", "action": "nope.nothing"}]}`), 0o644)
+	for _, args := range [][]string{{"keymap"}, {"config", "check"}} {
+		if out, code := cli(t, nil, args...); code != 0 || !strings.Contains(out, "warning") {
+			t.Errorf("%s with a warning: %d %s", strings.Join(args, " "), code, out)
+		}
+	}
+}
+
 // rex client ls -q prints the IDs alone; --short=false, full ones.
 //
 // spec: F-156
@@ -204,13 +227,27 @@ func TestServerStopDiscard(t *testing.T) {
 	}
 }
 
-// rex server logs -n prints the newest lines; --follow ends with the
-// server.
+// rex server logs prints the newest 200 lines, --all the whole log, -n
+// another count; --follow ends with the server.
 //
 // spec: F-430
 func TestServerLogs(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("GOREX_DIR", dir)
+	var long strings.Builder
+	for i := range 250 {
+		fmt.Fprintf(&long, "line %d\n", i)
+	}
+	os.WriteFile(filepath.Join(dir, "server.log"), []byte(long.String()), 0o600)
+	if out, code := cli(t, nil, "server", "logs"); code != 0 || strings.Count(out, "\n") != 200 || !strings.HasPrefix(out, "line 50\n") {
+		t.Errorf("logs: %d, %d lines from %.8q", code, strings.Count(out, "\n"), out)
+	}
+	if out, code := cli(t, nil, "server", "logs", "--all"); code != 0 || out != long.String() {
+		t.Errorf("logs --all: %d, %d lines", code, strings.Count(out, "\n"))
+	}
+	if _, code := cli(t, nil, "server", "logs", "--all", "-n", "3"); code != exitUsage {
+		t.Errorf("logs --all -n 3: %d", code)
+	}
 	os.WriteFile(filepath.Join(dir, "server.log"), []byte("one\ntwo\nthree\n"), 0o600)
 	if out, code := cli(t, nil, "server", "logs", "-n", "2"); code != 0 || out != "two\nthree\n" {
 		t.Errorf("logs -n 2: %d %q", code, out)
@@ -577,5 +614,60 @@ func TestNoGorexSession(t *testing.T) {
 	}
 	if m, _ := c.Model(); m.Sessions[0].Windows[0].Zoom != first {
 		t.Errorf("zoom acted on %q, not the focused block %s", m.Sessions[0].Windows[0].Zoom, first)
+	}
+}
+
+// The wide event of a command names the command as the tree declares it,
+// never the text of its arguments.
+//
+// spec: F-121
+func TestWideCommandNames(t *testing.T) {
+	for args, want := range map[string]string{
+		"send ls":                 "send",
+		"send -b x echo secret":   "send",
+		"session new work":        "session new",
+		"session list":            "session ls",
+		"block send-key enter":    "block send-key",
+		"session nope secret":     "session",
+		"secret words here":       "",
+		"server logs -n 3":        "server logs",
+		"do pane.split dir=right": "do",
+	} {
+		if got := commandPath(strings.Fields(args)); got != want {
+			t.Errorf("rex %s: command %q, want %q", args, got, want)
+		}
+	}
+	dir := t.TempDir()
+	t.Setenv("GOREX_DIR", dir)
+	t.Setenv("GOREX_EVENTS", "")
+	cli(t, nil, "--autostart=false", "send", "ls", "secret")
+	files, _ := filepath.Glob(filepath.Join(dir, "events", "*.jsonl"))
+	var b []byte
+	for _, f := range files {
+		x, _ := os.ReadFile(f)
+		b = append(b, x...)
+	}
+	if !strings.Contains(string(b), `"command":"send"`) || strings.Contains(string(b), "secret") {
+		t.Errorf("the events of rex send ls secret: %s", b)
+	}
+}
+
+// --help or -h after a command prints its help, as rex help COMMAND does,
+// and exits with 0; after --, it is the command's.
+//
+// spec: F-103
+func TestHelpAfterCommand(t *testing.T) {
+	t.Setenv("GOREX_DIR", t.TempDir()) // no server runs there
+	for args, topic := range map[string]string{
+		"split --help": "split", "split -h": "split", "split --ratio 30 --help": "split",
+		"session new -h": "session new", "ls --help": "ls", "server run --help": "server run", "send-keys -h": "send-keys",
+	} {
+		want, _ := cli(t, nil, "help", topic)
+		if out, code := cli(t, nil, append([]string{"--autostart=false"}, strings.Fields(args)...)...); code != 0 || out != want || !strings.Contains(out, "Usage") {
+			t.Errorf("rex %s: %d %q", args, code, out)
+		}
+	}
+	if _, code := cli(t, nil, "--autostart=false", "split", "--", "grep", "-h"); code != exitNoServer {
+		t.Errorf("rex split -- grep -h: %d, want the split tried", code)
 	}
 }
