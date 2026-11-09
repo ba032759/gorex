@@ -897,8 +897,37 @@ func cliSessionKill(_ *struct{}, f *call) error {
 	if len(f.args) == 0 {
 		return usagef("usage: rex kill SESSION...")
 	}
-	for _, s := range f.args {
-		if _, err := resolveIDs("session.kill", &rex.Args{Session: s}); err != nil {
+	return eachTarget(&rex.Args{}, f.args, "session", func(a *rex.Args, t string) { a.Session = t })
+}
+
+// eachTarget closes every target of a kind, or kills every session, once
+// it resolved them all: when one does not resolve, nothing changes.
+func eachTarget(base *rex.Args, targets []string, kind string, set func(*rex.Args, string)) error {
+	c, err := connect()
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	var ids []string
+	for _, t := range targets {
+		a := *base
+		set(&a, t)
+		var res map[string]any
+		if err := c.Do(kind+".resolve", withContext(&a), &res); err != nil {
+			return err
+		}
+		if id, _ := res[kind+"_id"].(string); !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	op := kind + ".close"
+	if kind == "session" {
+		op = "session.kill"
+	}
+	for _, id := range ids {
+		a := *base
+		set(&a, id)
+		if err := c.Do(op, withContext(&a), nil); err != nil {
 			return err
 		}
 	}
@@ -1072,14 +1101,7 @@ func cliWindowClose(a *rex.Args, f *call) error {
 	if len(f.args) == 0 {
 		return usagef("usage: rex window close WINDOW...")
 	}
-	for _, w := range f.args {
-		a2 := *a
-		a2.Window = w
-		if _, err := resolveIDs("window.close", &a2); err != nil {
-			return err
-		}
-	}
-	return nil
+	return eachTarget(a, f.args, "window", func(a *rex.Args, t string) { a.Window = t })
 }
 
 // placeOpts are the flags of rex run and rex split.
@@ -1362,14 +1384,7 @@ func cliBlockClose(a *rex.Args, f *call) error {
 		_, err := resolveIDs("block.close", a)
 		return err
 	}
-	for _, b := range f.args {
-		a2 := *a
-		a2.Block = b
-		if _, err := resolveIDs("block.close", &a2); err != nil {
-			return err
-		}
-	}
-	return nil
+	return eachTarget(a, f.args, "block", func(a *rex.Args, t string) { a.Block = t })
 }
 
 // blockRow is a block, as listings show it.

@@ -105,3 +105,49 @@ func TestJSONKeysInSnakeCase(t *testing.T) {
 		}
 	}
 }
+
+// spec: F-140, F-113
+func TestSeveralTargetsAllOrNothing(t *testing.T) {
+	c := startTestServer(t)
+	for _, l := range []string{"a", "b", "c"} {
+		if err := c.Do("session.new", &rex.Args{Label: l}, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var s map[string]any
+	c.Do("session.resolve", &rex.Args{Session: "a"}, &s)
+	env := map[string]string{"REX_SESSION": s["session_id"].(string)}
+	if _, code := cli(t, env, "window", "new", "--focus=false"); code != 0 { // a second window in a
+		t.Fatalf("window new: exit %d", code)
+	}
+	m, _ := c.Model()
+	w2 := m.Sessions[0].Windows[1].ID
+	w1 := m.Sessions[0].Windows[0].ID
+	b1 := m.Sessions[0].Windows[0].Layout.Block
+	n := func() (sessions, windows int) {
+		m, _ := c.Model()
+		return len(m.Sessions), len(m.Sessions[0].Windows)
+	}
+	for _, args := range [][]string{
+		{"kill", "a", "nope", "b"},
+		{"window", "close", w1, "nope"},
+		{"close", b1, "nope"},
+	} {
+		if _, code := cli(t, env, args...); code != exitTarget {
+			t.Errorf("%v: exit %d, not 3", args, code)
+		}
+		if ss, ws := n(); ss != 3 || ws != 2 {
+			t.Errorf("%v changed something: %d sessions, %d windows in a", args, ss, ws)
+		}
+	}
+	// A target named twice acts once.
+	if _, code := cli(t, env, "window", "close", w2, w2); code != 0 {
+		t.Errorf("window close twice: exit %d", code)
+	}
+	if _, code := cli(t, env, "kill", "b", "c", "b"); code != 0 {
+		t.Errorf("kill: exit %d", code)
+	}
+	if ss, ws := n(); ss != 1 || ws != 1 {
+		t.Errorf("after closing: %d sessions, %d windows", ss, ws)
+	}
+}

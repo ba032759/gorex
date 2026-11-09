@@ -170,7 +170,7 @@ the command SHALL act on the focused block of the window of F-111, or on
 its first block.
 
 ### F-113 How a target matches
-status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests · conflicts: F-140
+status: proposed · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex` SHALL match a target in this order, and stop at the first kind
 that matches:
@@ -180,9 +180,12 @@ that matches:
 3. a position from 1, for sessions and windows;
 4. the end of an ID, of at least 4 characters, without a leading `…`.
 
-WHEN a target matches nothing THEN `rex` SHALL exit with 3.
-WHEN a kind matches more than one item THEN `rex` SHALL change nothing,
+IF a target matches nothing, THEN `rex` SHALL change nothing and exit
+with 3.
+IF a kind matches more than one item, THEN `rex` SHALL change nothing,
 list the matches with short ID and name, and exit with 3.
+WHEN a command has several targets, `rex` SHALL resolve them all before
+it acts on any.
 
 ### F-114 Where a block target matches
 status: proposed · traces: B-3 · source: code, tests

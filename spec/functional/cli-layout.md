@@ -138,14 +138,14 @@ WHILE such a block stays, it SHALL take no more input.
 ## Close
 
 ### F-140 Close blocks and windows, end sessions
-status: proposed · traces: B-3 · source: code, rex-docs, tests · conflicts: F-113
+status: proposed · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex close [BLOCK...]` and `rex block close` SHALL close each block
-named, in turn.
-`rex window close WINDOW...` SHALL close each window named, in turn, with
-every block in it.
+named.
+`rex window close WINDOW...` SHALL close each window named, with every
+block in it.
 `rex kill SESSION...` and `rex session kill` SHALL end each session
-named, in turn, with every block in it.
+named, with every block in it.
 WHEN a window loses its last block, the server SHALL close the window.
 WHEN a session loses its last window, the server SHALL end the session.
 WHEN the focused block closes, the focus SHALL go to the block of its
@@ -154,8 +154,9 @@ WHEN the active window closes, the window before it SHALL become active,
 else the first.
 IF `rex kill` or `rex window close` names nothing, THEN `rex` SHALL exit
 with 2.
-IF a target matches nothing, THEN `rex` SHALL exit with 3, and the items
-before it SHALL stay closed.
+`rex` SHALL resolve every target before it closes anything.
+IF one of the targets matches nothing, or more than one item, THEN `rex`
+SHALL change nothing and exit with 3.
 
 T-125 says how the server ends a block's program.
 

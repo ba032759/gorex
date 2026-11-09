@@ -139,7 +139,7 @@ Rex's documentation: an ambiguous target changes nothing. `rex kill a b
 c`, `rex close a b c` and `rex window close a b c` act on each target in
 turn. When `b` is ambiguous, `a` is already gone.
 
-- Status: decided: resolve every target first; IF one fails, THEN nothing changes and `rex` exits with 3.
+- Status: resolved (2026-11-09): `rex kill`, `rex close` and `rex window close` resolve every target first; IF one fails, THEN nothing changes and `rex` exits with 3; a target named twice acts once (F-113, F-140).
 
 ## Finding 11: rex sets REX_SERVER and does not read it
 
