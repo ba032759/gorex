@@ -44,7 +44,8 @@ func TestGoRexRunsAsRex(t *testing.T) {
 //
 // spec: F-101
 func TestAutostartIsBoolean(t *testing.T) {
-	for v, want := range map[string]bool{"": true, "=true": true, "=1": true, "=false": false, "=0": false} {
+	// An empty value is the default, as for every flag (F-101).
+	for v, want := range map[string]bool{"": true, "=": true, "=true": true, "=1": true, "=false": false, "=0": false} {
 		var g global
 		if _, err := globalFlags(&g).parseLeading([]string{"--autostart" + v, "ls"}); err != nil || g.autostart != want {
 			t.Errorf("--autostart%s: %v %v", v, g.autostart, err)

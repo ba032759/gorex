@@ -121,7 +121,7 @@ func (f *flagSet) str(p *string, names, def, usage string) *flagDef {
 // boolean declares a flag that is on or off.
 func (f *flagSet) boolean(p *bool, names string, def bool, usage string) *flagDef {
 	*p = def
-	return f.add(names, usage, (*boolValue)(p), true)
+	return f.add(names, usage, &boolValue{p, def}, true)
 }
 
 // duration declares a flag of a duration, as time.ParseDuration reads it.
@@ -248,21 +248,28 @@ type strValue string
 func (v *strValue) Set(s string) error { *v = strValue(s); return nil }
 func (v *strValue) String() string     { return string(*v) }
 
-type boolValue bool
+// boolValue is a boolean flag's value; an empty one, as --focus=, is the
+// default, as for every other flag.
+type boolValue struct {
+	p   *bool
+	def bool
+}
 
 func (v *boolValue) Set(s string) error {
 	switch s {
+	case "":
+		*v.p = v.def
 	case "true", "1":
-		*v = true
+		*v.p = true
 	case "false", "0":
-		*v = false
+		*v.p = false
 	default:
 		return phraseError("takes true or false")
 	}
 	return nil
 }
 
-func (v *boolValue) String() string { return strconv.FormatBool(bool(*v)) }
+func (v *boolValue) String() string { return strconv.FormatBool(*v.p) }
 
 type durationValue struct {
 	p   *time.Duration

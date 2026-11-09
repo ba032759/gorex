@@ -35,9 +35,9 @@ func TestFlagParse(t *testing.T) {
 	if !slices.Equal(c.args, []string{"a", "b", "-5"}) || !slices.Equal(c.command, []string{"sh", "-c", "--json"}) || !c.dashed {
 		t.Errorf("args %q command %q", c.args, c.command)
 	}
-	// An empty value is the default.
-	if _, err := f.parse([]string{"--ratio="}); err != nil || ratio != 50 {
-		t.Errorf("--ratio=: %v %v", ratio, err)
+	// An empty value is the default, a boolean's too.
+	if _, err := f.parse([]string{"--ratio=", "--focus=false", "--focus="}); err != nil || ratio != 50 || !focus {
+		t.Errorf("--ratio= --focus=: %v %v %v", ratio, focus, err)
 	}
 	for _, bad := range []struct{ args, msg string }{
 		{"--nope", "unknown flag --nope"},
