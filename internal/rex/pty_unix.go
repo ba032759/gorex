@@ -73,14 +73,33 @@ func (p *pty) kill() {
 
 func setSize(f *os.File, cols, rows int) error {
 	ws := &unix.Winsize{Col: uint16(clamp(cols)), Row: uint16(clamp(rows))}
-	return unix.IoctlSetWinsize(int(f.Fd()), unix.TIOCSWINSZ, ws)
+	return withFd(f, func(fd int) error { return unix.IoctlSetWinsize(fd, unix.TIOCSWINSZ, ws) })
+}
+
+// withFd runs fn on f's descriptor while f holds it open. f.Fd() would
+// race with the reader's Close, and could name a descriptor reused since:
+// Control fails on a closed f instead.
+func withFd(f *os.File, fn func(fd int) error) error {
+	rc, err := f.SyscallConn()
+	if err != nil {
+		return err
+	}
+	var ferr error
+	if err := rc.Control(func(fd uintptr) { ferr = fn(int(fd)) }); err != nil {
+		return err
+	}
+	return ferr
 }
 
 func clamp(v int) int { return max(1, min(v, 0xFFFF)) }
 
 // foreground returns the process group in the foreground of the terminal.
 func (p *pty) foreground() int {
-	pg, err := unix.IoctlGetInt(int(p.master.Fd()), unix.TIOCGPGRP)
+	var pg int
+	err := withFd(p.master, func(fd int) (err error) {
+		pg, err = unix.IoctlGetInt(fd, unix.TIOCGPGRP)
+		return err
+	})
 	if err != nil {
 		return 0
 	}
