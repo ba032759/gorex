@@ -8,6 +8,7 @@ What these commands print, and where `rex skill setup` writes, are in
 ## Actions of the app
 
 ### F-174 Perform an action of the app
+
 status: accepted · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex do ACTION [KEY=VALUE...]` SHALL ask the app of F-175 to perform the
@@ -32,6 +33,7 @@ IF the app does not have the action or fails to perform it, THEN `rex`
 SHALL print the app's error and exit with 1.
 
 ### F-175 Find the app that performs an action
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex do` (F-174), `rex config reload` (F-180) and `rex client inspect`
@@ -49,6 +51,7 @@ IF the app does not answer in 30 seconds or goes away, THEN `rex` SHALL
 exit with 1.
 
 ### F-176 Run a Rex script
+
 status: accepted · traces: B-5 · source: code, rex-docs
 
 GoRex runs no Lua (D-4). `rex do` takes as a script a first argument
@@ -60,6 +63,7 @@ no Lua and exit with 2.
 and `-a`, and ignore them (Finding 17).
 
 ### F-177 List the actions
+
 status: accepted · traces: B-3 · source: code, rex-docs
 
 `rex actions` SHALL list the actions of the app, sorted by name, each
@@ -70,6 +74,7 @@ server or an app (Finding 19).
 ## Keys and configuration
 
 ### F-178 Show the keymap
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex keymap` SHALL list the key bindings in effect, sorted by action,
@@ -86,6 +91,7 @@ IF a problem is an error, THEN `rex keymap` SHALL exit with 1, as `rex
 config check` does (F-179).
 
 ### F-179 Check the keymap
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex config check [PATH]` SHALL check `keymap.json` in the data
@@ -100,6 +106,7 @@ other bindings.
 IF a problem is an error, THEN `rex config check` SHALL exit with 1.
 
 ### F-180 Reload the keymap
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex config reload` SHALL ask the app of F-175 to read its keymap again,
@@ -112,6 +119,7 @@ exit with 1.
 ## The server
 
 ### F-181 Tell whether the server runs
+
 status: accepted · traces: B-2 · source: code, rex-docs
 
 `rex server status` SHALL tell whether a server runs for the data
@@ -123,6 +131,7 @@ IF no server runs, THEN `rex server status` SHALL print `not running`
 and exit with 4.
 
 ### F-182 Stop the server
+
 status: accepted · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server stop` SHALL end the server and every program in its blocks,
@@ -146,6 +155,7 @@ IF no server runs and `--discard` is given, THEN `rex` SHALL delete the
 saved model and exit with 0.
 
 ### F-183 Start the server
+
 status: accepted · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server start` SHALL start a server in the background when none
@@ -165,6 +175,7 @@ the tests' executable is not: with `REX_SERVER=` and a new, empty
 server runs.
 
 ### F-430 Read the server's log
+
 status: accepted · traces: B-2 · source: code, rex-docs, tests, owner
 
 `rex server logs` SHALL print the newest 200 lines of the server's log,
@@ -179,6 +190,7 @@ the new log from its start.
 IF the log does not exist, THEN `rex server logs` SHALL exit with 1.
 
 ### F-184 A server with nothing to do
+
 status: accepted · traces: B-2 · source: code · kind: operational · verify: manual
 
 WHEN a server has had no block and no client for 10 minutes, the server
@@ -191,6 +203,7 @@ exits with 4 (Finding 21).
 ## Agents
 
 ### F-185 Set up agents
+
 status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill setup` SHALL install the skill for each agent named with
@@ -217,6 +230,7 @@ choice.
 a hook of Codex, OpenCode or Pi as `unsupported` (question 25).
 
 ### F-186 The hooks of Claude Code
+
 status: superseded · superseded-by: F-185 · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill setup` SHALL add a hook to Claude Code's `settings.json` for
@@ -229,6 +243,7 @@ order.
 For Codex, OpenCode and Pi, the hook SHALL be `unsupported`.
 
 ### F-187 Safe setup
+
 status: superseded · superseded-by: F-185 · traces: B-4 · source: code, rex-docs, tests
 
 WHEN a `rex` skill that `rex` did not install is in the place THEN
@@ -240,6 +255,7 @@ A second setup SHALL report `unchanged` for what is current.
 session after its task; later setups SHALL keep this choice.
 
 ### F-188 Tell what is installed
+
 status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill status` SHALL report, for every agent or each one named with
@@ -251,6 +267,7 @@ WHERE `--project` is given, `rex skill status` SHALL report on the
 repository the user is in.
 
 ### F-431 Remove the skill
+
 status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill remove` SHALL remove the skill files and the hooks that `rex`
@@ -263,6 +280,7 @@ WHERE `--project` is given, `rex skill remove` SHALL remove them from
 the repository the user is in.
 
 ### F-432 Print the skill's guide
+
 status: accepted · traces: B-4 · source: code, rex-docs, tests
 
 `rex skill show` SHALL print the guide that the skill holds.
@@ -271,6 +289,7 @@ The guide SHALL use the app's own words for a window and a block only to
 say how the app shows them (Finding 13).
 
 ### F-189 Report an agent's status from its hooks
+
 status: accepted · traces: B-4 · source: code, tests
 
 Claude Code runs `rex skill hook claude EVENT` at its events, as F-185
@@ -284,15 +303,15 @@ session after its task.
 `rex` SHALL report the agent's program status to its block, as this
 table holds:
 
-| Event | Status |
-|---|---|
-| `SessionStart` | `idle` |
-| `UserPromptSubmit` | `working`, with the prompt |
-| `Notification` of a permission, `PermissionRequest` | `blocked`, kind `permission` |
-| `Notification` of a question | `blocked`, kind `question` |
-| another `Notification` | none |
-| `PostToolUse` | `working` |
-| `Stop` | `done`, with the agent's last text |
-| `SessionEnd` | `clear`, unless the status is `done` or `error` |
+| Event                                               | Status                                          |
+| --------------------------------------------------- | ----------------------------------------------- |
+| `SessionStart`                                      | `idle`                                          |
+| `UserPromptSubmit`                                  | `working`, with the prompt                      |
+| `Notification` of a permission, `PermissionRequest` | `blocked`, kind `permission`                    |
+| `Notification` of a question                        | `blocked`, kind `question`                      |
+| another `Notification`                              | none                                            |
+| `PostToolUse`                                       | `working`                                       |
+| `Stop`                                              | `done`, with the agent's last text              |
+| `SessionEnd`                                        | `clear`, unless the status is `done` or `error` |
 
 The hook SHALL always exit with 0.

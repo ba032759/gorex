@@ -24,17 +24,17 @@ stays hand-written beside them, and the faults remain.
 
 ## Measures
 
-| Measure | Before (retro-pilot, 2026-11-09) | Better if |
-|---|---|---|
-| Flags missing from their command's help (`spec/reference/cli.md`) | 13, in 3 commands | 0, by construction |
-| Findings that come from copies: 1 (`--ratio` ranges), 15 (help says less), 17 (flags taken and ignored), 29 (inspect takes no flags), 32 (no defaults in the reference) | 5 open | resolved by the structure, not by hand |
-| Defaults in `spec/reference/cli.md` | none | all |
-| The reference's probe: commands it cannot run safely (`noFlags`), timeout | 6, and a timeout | none: the reference reads the declarations |
-| Lines of `cli.go` + `help.go` | 1991 + 178 = 2169 | equal or fewer |
-| Size of the executable, stripped (`go build -ldflags=-s`) | 15.7 MB | not larger (D-12) |
-| Places to edit to add a flag to a command | handler, help, (reference) | one |
-| Behaviour other than the help's layout | — | unchanged: the tests pass; every change in the reference's diff and in any output is explained and in the spec |
-| Rex compatibility (B-5): exit statuses, flags anywhere, `--`, several spellings | as now | as now |
+| Measure                                                                                                                                                                 | Before (retro-pilot, 2026-11-09) | Better if                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Flags missing from their command's help (`spec/reference/cli.md`)                                                                                                       | 13, in 3 commands                | 0, by construction                                                                                             |
+| Findings that come from copies: 1 (`--ratio` ranges), 15 (help says less), 17 (flags taken and ignored), 29 (inspect takes no flags), 32 (no defaults in the reference) | 5 open                           | resolved by the structure, not by hand                                                                         |
+| Defaults in `spec/reference/cli.md`                                                                                                                                     | none                             | all                                                                                                            |
+| The reference's probe: commands it cannot run safely (`noFlags`), timeout                                                                                               | 6, and a timeout                 | none: the reference reads the declarations                                                                     |
+| Lines of `cli.go` + `help.go`                                                                                                                                           | 1991 + 178 = 2169                | equal or fewer                                                                                                 |
+| Size of the executable, stripped (`go build -ldflags=-s`)                                                                                                               | 15.7 MB                          | not larger (D-12)                                                                                              |
+| Places to edit to add a flag to a command                                                                                                                               | handler, help, (reference)       | one                                                                                                            |
+| Behaviour other than the help's layout                                                                                                                                  | —                                | unchanged: the tests pass; every change in the reference's diff and in any output is explained and in the spec |
+| Rex compatibility (B-5): exit statuses, flags anywhere, `--`, several spellings                                                                                         | as now                           | as now                                                                                                         |
 
 Four branches, from `retro-pilot`: `cli-kong` (kong), `cli-stdlib` (one
 declaration per command, Go's standard library only), `cli-urfave`
@@ -68,17 +68,17 @@ rather than forcing it.
 
 ### Phase 1: the conversion
 
-| | kong v1.17.0 | stdlib (own parser) | urfave/cli v3.14.0 |
-|---|---|---|---|
-| Converted | yes, 54 commands | yes, 54 commands | no: stopped at the fit check |
-| Flags missing from help | 13 → 0 (tested) | 13 → 0 (tested) | — |
-| Defaults in the reference | all | all | — |
-| Probe, `noFlags`, timeout | gone | gone (10 commands declared as reading their own arguments) | — |
-| Lines, CLI files | 2169 → 2272 (+103) | 2169 → 2685 (+516, `flags.go` 360) | — |
-| Stripped size | 15.7 → 18.9 MB (+20 %) | 15.7 → 15.8 MB (+0.8 %) | — |
-| New dependencies | kong | none | — |
-| Behaviour changes | 21 of 175 command lines (stricter refusals, kong's messages, `--help` after a command) | 4 exit statuses at edges, of 213 command lines; server output identical | — |
-| Rex compatibility | two gaps: a flag inside a list, `-5` as an argument | kept | `--` merged into the arguments; `-5` stops flag parsing silently |
+|                           | kong v1.17.0                                                                           | stdlib (own parser)                                                     | urfave/cli v3.14.0                                               |
+| ------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Converted                 | yes, 54 commands                                                                       | yes, 54 commands                                                        | no: stopped at the fit check                                     |
+| Flags missing from help   | 13 → 0 (tested)                                                                        | 13 → 0 (tested)                                                         | —                                                                |
+| Defaults in the reference | all                                                                                    | all                                                                     | —                                                                |
+| Probe, `noFlags`, timeout | gone                                                                                   | gone (10 commands declared as reading their own arguments)              | —                                                                |
+| Lines, CLI files          | 2169 → 2272 (+103)                                                                     | 2169 → 2685 (+516, `flags.go` 360)                                      | —                                                                |
+| Stripped size             | 15.7 → 18.9 MB (+20 %)                                                                 | 15.7 → 15.8 MB (+0.8 %)                                                 | —                                                                |
+| New dependencies          | kong                                                                                   | none                                                                    | —                                                                |
+| Behaviour changes         | 21 of 175 command lines (stricter refusals, kong's messages, `--help` after a command) | 4 exit statuses at edges, of 213 command lines; server output identical | —                                                                |
+| Rex compatibility         | two gaps: a flag inside a list, `-5` as an argument                                    | kept                                                                    | `--` merged into the arguments; `-5` stops flag parsing silently |
 
 urfave/cli: the `-5` case decides it. `rex send -5 -b logs` would type all
 three words into the user's own terminal with exit 0; kong refuses the
@@ -92,13 +92,13 @@ two more accidents (`--autostart=1` means off; `capture --format`).
 
 ### Phase 2: two changes on each branch (one run each)
 
-| | old | kong | stdlib |
-|---|---|---|---|
-| `-q`: code lines (+/−), tool calls, minutes | 7/4, 18, 3.3 | 10/4, 24, 5.4 | 9/5, 21, 3.9 |
-| `-q`: how `-q --json` ends | prints nothing | refused, exit 2, asked the owner | prints nothing |
-| Percentages: code lines (+/−), tool calls, minutes | 48/14, 26, 5.1 | 49/17, 26, 5.6 | 25/11, 21, 4.8 |
-| Places a percentage is parsed, after | 1 (the agent wrote the helper) | 1 (plus range tags) | 1 (was already 1) |
-| The 0.5 question (half a percent, or 50 %) | 50 %, marked `source: owner` (wrong: the owner did not decide) | 50 %, noted in Finding 1 | 50 %, D-14 "Reason: unknown, ask the owner" |
+|                                                    | old                                                            | kong                             | stdlib                                      |
+| -------------------------------------------------- | -------------------------------------------------------------- | -------------------------------- | ------------------------------------------- |
+| `-q`: code lines (+/−), tool calls, minutes        | 7/4, 18, 3.3                                                   | 10/4, 24, 5.4                    | 9/5, 21, 3.9                                |
+| `-q`: how `-q --json` ends                         | prints nothing                                                 | refused, exit 2, asked the owner | prints nothing                              |
+| Percentages: code lines (+/−), tool calls, minutes | 48/14, 26, 5.1                                                 | 49/17, 26, 5.6                   | 25/11, 21, 4.8                              |
+| Places a percentage is parsed, after               | 1 (the agent wrote the helper)                                 | 1 (plus range tags)              | 1 (was already 1)                           |
+| The 0.5 question (half a percent, or 50 %)         | 50 %, marked `source: owner` (wrong: the owner did not decide) | 50 %, noted in Finding 1         | 50 %, D-14 "Reason: unknown, ask the owner" |
 
 All six: `mise run check` passes, `spec check` has no errors, the
 reference agrees (its test).

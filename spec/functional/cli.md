@@ -9,6 +9,7 @@ socket's path, the marks of listings, a block's environment and what
 ## Invocation
 
 ### F-100 Run as rex
+
 status: accepted · traces: B-3, B-7 · source: code, tests, owner
 
 The executable SHALL run as `rex` when its file name, in any case, is
@@ -21,6 +22,7 @@ IF the command or subcommand is not one of `rex`'s, THEN `rex` SHALL
 exit with 2 and name `rex help`.
 
 ### F-101 Options before the command
+
 status: accepted · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex` SHALL take its options before the command, and read them as it
@@ -39,6 +41,7 @@ prints events, `--timeout` SHALL NOT end the wait.
 `-C` names the app of `rex do` (F-175); `--autostart` is F-107's.
 
 ### F-102 Flags of a command
+
 status: accepted · traces: B-3 · source: code, tests
 
 `rex` SHALL take a command's flags before, between and after its
@@ -52,6 +55,7 @@ IF a flag is unknown, lacks its value or has a value it does not take,
 THEN `rex` SHALL exit with 2 and name the flag.
 
 ### F-103 Help
+
 status: accepted · traces: B-3 · source: code, tests, owner
 
 `rex help` and `rex --help` and `rex -h` SHALL print the overview: the
@@ -73,24 +77,26 @@ words for them only to say how the app shows a window and a block.
 ## Exit statuses and errors
 
 ### F-104 Exit statuses
+
 status: accepted · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex` SHALL exit with the status of this table:
 
-| Status | When |
-|---|---|
-| 0 | the command did what it was asked |
-| 1 | it failed for another reason |
-| 2 | the command line is wrong, or the request makes no sense |
-| 3 | a target matches nothing, or more than one thing |
-| 4 | no server answers, or the server went away before it answered |
-| the program's | `rex wait`, and `--wait`, for a block's program (F-105) |
-| 130 | an interrupt, as `Ctrl+C`, ended the command |
+| Status        | When                                                          |
+| ------------- | ------------------------------------------------------------- |
+| 0             | the command did what it was asked                             |
+| 1             | it failed for another reason                                  |
+| 2             | the command line is wrong, or the request makes no sense      |
+| 3             | a target matches nothing, or more than one thing              |
+| 4             | no server answers, or the server went away before it answered |
+| the program's | `rex wait`, and `--wait`, for a block's program (F-105)       |
+| 130           | an interrupt, as `Ctrl+C`, ended the command                  |
 
 WHEN a command fails, `rex` SHALL print `Error: ` and the reason on
 standard error.
 
 ### F-105 The exit status of a program waited for
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 WHEN a block's program that `rex` waits for exits, `rex` SHALL exit
@@ -103,6 +109,7 @@ whatever its exit status.
 ## The server
 
 ### F-106 Which server
+
 status: accepted · traces: B-6 · source: code, rex-docs, tests, owner
 
 WHEN `REX_SERVER` is `unix:PATH`, `rex` SHALL talk to the server whose
@@ -118,6 +125,7 @@ and no server answers on it, THEN `rex` SHALL exit with 4 and start no
 server.
 
 ### F-107 Start a server when none runs
+
 status: accepted · traces: B-2, B-3 · source: code, rex-docs, tests, owner
 
 WHEN no server answers, `rex` SHALL start one in the background, and
@@ -136,8 +144,8 @@ hand that a server starts: with `REX_SERVER=` and a new, empty
 `GOREX_DIR`, `rex ls` exits with 0, and `rex server status` then tells
 that a server runs.
 
-
 ### F-108 A server of another version
+
 status: accepted · traces: B-2 · source: code
 
 IF the server speaks another protocol version than `rex`, THEN `rex`
@@ -148,6 +156,7 @@ which offers to restart the server.
 ## Context and targets
 
 ### F-109 Where rex runs
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex` SHALL take its context from `REX_SESSION` and `REX_BLOCK`.
@@ -156,6 +165,7 @@ WHEN a command names no target, it SHALL act in its context (F-110,
 F-111, F-112).
 
 ### F-110 The session a command acts in
+
 status: accepted · traces: B-3, B-4 · source: code, tests
 
 The session SHALL be the first of:
@@ -169,6 +179,7 @@ The session SHALL be the first of:
 IF there is no session, THEN `rex` SHALL exit with 3.
 
 ### F-111 The window a command acts in
+
 status: accepted · traces: B-3, B-4 · source: code, tests
 
 WHEN `-w` names a window, the command SHALL act in it.
@@ -178,6 +189,7 @@ WHEN `-s` is given without `-w`, the command SHALL act in the active
 window of the session of F-110.
 
 ### F-112 The block a command acts on
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 WHEN `-b` or the block argument names a block, the command SHALL act on
@@ -190,6 +202,7 @@ IF the context block is not one of the server's, THEN the command SHALL
 act on that block of the window of F-111 too.
 
 ### F-113 How a target matches
+
 status: accepted · traces: B-3, B-5 · source: code, rex-docs, tests, owner
 
 `rex` SHALL match a target in this order, and stop at the first kind
@@ -211,6 +224,7 @@ WHEN two targets of a command name one item, `rex` SHALL act on it
 once.
 
 ### F-114 Where a block target matches
+
 status: accepted · traces: B-3 · source: code, tests
 
 WHEN `-w` is given, a block target SHALL match in that window only.
@@ -222,6 +236,7 @@ IF a block target matches more than one block in the session of F-110,
 THEN `rex` SHALL exit with 3 and not look in the other sessions.
 
 ### F-115 Where a window target matches
+
 status: accepted · traces: B-3 · source: code
 
 A window target SHALL match in the session of F-110.
@@ -231,6 +246,7 @@ other session.
 ## Output
 
 ### F-116 Listings and JSON
+
 status: accepted · traces: B-3, B-4, B-5 · source: code, rex-docs, tests
 
 `rex ls` and the other `ls` commands SHALL print a table for people,
@@ -246,22 +262,24 @@ A command that creates something SHALL print the new item's ID on a
 line.
 
 ### F-117 Marks in listings
+
 status: superseded · superseded-by: F-116, T-141 · traces: B-4 · source: code, tests
 
 That a listing marks the context is now a rule of F-116; the marks are
 T-141.
 
-| Listing | Mark | Meaning |
-|---|---|---|
-| `rex ls` | `*` | the context session |
-| `rex window ls`, `rex session inspect` | `*` | the active window |
-| `rex block ls` | `@` | the context block |
-| `rex block ls` | `*` | a focused block, not the context block |
-| `rex list` | `*`, `>` | the active window, the focused block |
+| Listing                                | Mark     | Meaning                                |
+| -------------------------------------- | -------- | -------------------------------------- |
+| `rex ls`                               | `*`      | the context session                    |
+| `rex window ls`, `rex session inspect` | `*`      | the active window                      |
+| `rex block ls`                         | `@`      | the context block                      |
+| `rex block ls`                         | `*`      | a focused block, not the context block |
+| `rex list`                             | `*`, `>` | the active window, the focused block   |
 
 ## Environment
 
 ### F-118 The environment of a block
+
 status: accepted · traces: B-3, B-4, B-5 · source: code, rex-docs, tests, owner
 
 The server SHALL start each block's program with the server's
@@ -275,6 +293,7 @@ WHEN a block's program runs `rex` from `PATH`, it SHALL run the `rex`
 of the block's server, in the block's context.
 
 ### F-119 The rex of a block's PATH
+
 status: superseded · superseded-by: F-118, T-142 · traces: B-4, B-5 · source: code, rex-docs
 
 What a block's `rex` runs is now a rule of F-118; the link in
@@ -285,6 +304,7 @@ executable.
 A block that runs `rex` SHALL then run the `rex` of its own server.
 
 ### F-120 What rex reads from the environment
+
 status: superseded · superseded-by: F-106, F-109 · traces: B-3 · source: code, owner
 
 Each variable is now said once, in the item that uses it: `REX_SERVER`
@@ -297,6 +317,7 @@ F-121, `REX_CLIENT` in F-175; `GOREX_DIR` is the data directory's
 (F-121).
 
 ### F-121 A wide event per command
+
 status: accepted · traces: B-8 · verify: event · source: code, tests, owner
 
 WHEN a command ends, `rex` SHALL append one wide event of kind `cli`,
@@ -318,22 +339,24 @@ T-121 lists the fields.
 ## Other
 
 ### F-122 GoRex's first commands
+
 status: accepted · traces: B-3 · source: code, tests
 
 `rex` SHALL keep these forms of its first version (D-3):
 
-| Form | Is |
-|---|---|
-| `rex list` | the tree of sessions, windows and blocks (F-130) |
-| `rex new-tab [LABEL]` | `rex window new` |
-| `rex new-tab WORD WORD...`, `rex window new WORD WORD...` | `rex window new -- WORD WORD...`: two words or more are the command |
-| `rex send-keys [BLOCK] TEXT` | `rex send`, with `<CR>`, `<Esc>`, `\n`, `\r`, `\e` replaced by their keys |
-| `rex split -t BLOCK`, `--target BLOCK` | `-b BLOCK` |
-| `rex split -v`, `--vertical`, `--down`, `--below` | `--split=below` |
-| `rex split --horizontal`, `--right`, `--beside` | `--split=right` |
-| `rex split CMD...`, without `--` | `rex split -- CMD...` |
+| Form                                                      | Is                                                                        |
+| --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `rex list`                                                | the tree of sessions, windows and blocks (F-130)                          |
+| `rex new-tab [LABEL]`                                     | `rex window new`                                                          |
+| `rex new-tab WORD WORD...`, `rex window new WORD WORD...` | `rex window new -- WORD WORD...`: two words or more are the command       |
+| `rex send-keys [BLOCK] TEXT`                              | `rex send`, with `<CR>`, `<Esc>`, `\n`, `\r`, `\e` replaced by their keys |
+| `rex split -t BLOCK`, `--target BLOCK`                    | `-b BLOCK`                                                                |
+| `rex split -v`, `--vertical`, `--down`, `--below`         | `--split=below`                                                           |
+| `rex split --horizontal`, `--right`, `--beside`           | `--split=right`                                                           |
+| `rex split CMD...`, without `--`                          | `rex split -- CMD...`                                                     |
 
 ### F-123 Version
+
 status: accepted · traces: B-3 · source: code, tests
 
 `rex version` SHALL print the version of `rex` and its protocol.
@@ -344,6 +367,7 @@ process ID and protocol.
 T-143 says what it prints.
 
 ### F-124 Shell completion
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex completion bash` and `rex completion zsh` and `rex completion

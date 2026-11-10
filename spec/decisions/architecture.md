@@ -1,6 +1,7 @@
 # Decisions: architecture
 
 ### D-1 The server owns the model
+
 status: accepted · traces: B-2, B-3 · source: code, repo
 
 **Context.** The first versions kept the layout of windows and blocks in
@@ -23,6 +24,7 @@ model's revision. The app keeps no layout of its own. The first
 `layout.json` becomes a session once.
 
 ### D-2 Follow Rex's command line
+
 status: accepted · traces: B-5 · source: code, rex-docs
 
 **Context.** GoRex had its own first commands: `list`, `new-tab`,
@@ -41,6 +43,7 @@ message, or accepted and ignored. `spec/FINDINGS.md` lists the
 differences.
 
 ### D-3 Keep GoRex's first commands working
+
 status: accepted · traces: B-3 · source: code
 
 **Context.** GoRex had commands of its own before it took Rex's (D-2):
@@ -54,6 +57,7 @@ working as they did, beside Rex's.
 "GoRex's first …".
 
 ### D-4 No Lua
+
 status: accepted · traces: B-5 · source: code, rex-docs
 
 **Context.** Rex is configured in Lua (`init.lua`) and runs Lua scripts
@@ -65,6 +69,7 @@ and `rex do` runs only the app's actions.
 **Reason.** Unknown.
 
 ### D-5 A local server only
+
 status: accepted · traces: B-6 · source: code, rex-docs, repo
 
 **Context.** Rex's server can listen for other machines: remote hosts,
@@ -76,6 +81,7 @@ refuse `-S`.
 **Reason.** Unknown. Access from a phone needs (a) or a part of it.
 
 ### D-6 One executable, which starts its own server
+
 status: accepted · traces: B-2 · source: code, rex-docs
 
 **Context.** The app, the server and `rex` must be the same version: a
@@ -91,6 +97,7 @@ executable, and each block has that directory first in its `PATH`.
 documentation warns. One file to install.
 
 ### D-7 A protocol of GoRex's own
+
 status: accepted · traces: B-6 · source: code, rex-docs, owner
 
 **Context.** Rex's server has an API (`rex api`, its dotted methods and
@@ -104,6 +111,7 @@ part of Rex's API.
 reverse.
 
 ### D-8 The server keeps each block's screen
+
 status: accepted · traces: B-2 · source: code
 
 **Context.** An app that attaches, and `rex capture`, need the screen of
@@ -116,6 +124,7 @@ at the app's size.
 **Reason.** Full-screen programs do not survive (a).
 
 ### D-9 Restore shells, not commands
+
 status: accepted · traces: B-2 · source: code
 
 **Context.** When the server ends, as at a reboot, its blocks' programs
@@ -128,6 +137,7 @@ labels and layout.
 a deploy".
 
 ### D-10 Wide events for observation
+
 status: accepted · traces: B-8 · source: code
 
 **Context.** The owner and agents need a record of real use (B-8) that
@@ -141,6 +151,7 @@ lengths of text, not the text.
 data off the machine. Rex sends no telemetry either.
 
 ### D-11 GoRex keeps its own server, not Rex's Linux server
+
 status: accepted · traces: B-1 · source: owner, rex-docs
 
 **Context.** Superlogical ships a Rex server for Linux and FreeBSD: one
@@ -162,6 +173,7 @@ documented API, examine (a) again. GoRex then gives a value only as the
 app, and its own server is a cost.
 
 ### D-12 A native app, without a web view
+
 status: accepted · traces: B-1 · source: repo, code
 
 **Context.** A terminal app needs a window, text and input on Linux
@@ -173,6 +185,7 @@ interface (MyGo) and a terminal emulator in the same executable
 **Reason.** Unknown. The README names it as a feature.
 
 ### D-13 Declare rex's commands with Go's standard library
+
 status: accepted · traces: B-3, B-5 · source: code, owner
 
 **Context.** A command of `rex` lived in five places: the list of
@@ -208,6 +221,7 @@ events show `arg_ratio` 0.5 where they showed 0. The two ranges of
 again when `rex` needs a syntax the parser lacks, as `-qA` for `-q -A`.
 
 ### D-14 Percentages are percent, as Rex's
+
 status: rejected · traces: B-5 · source: rex-docs, owner
 rationale: Rex's reference takes `--ratio PCT` as percent, from 1 to 99;
 a fraction would make `0.5` mean another thing than in Rex.
@@ -223,6 +237,7 @@ parses a percentage, the message comes from the declared range, and NaN
 is refused.
 
 ### D-15 No --quiet for rex split and rex run
+
 status: rejected · traces: B-5 · source: rex-docs, owner
 rationale: in Rex, `-q`, `--quiet` means "print IDs only", on the
 listing commands; split and run already print only the new block's ID.
@@ -236,6 +251,7 @@ listing commands; split and run already print only the new block's ID.
 one meaning", and scripts can send the ID to `/dev/null`.
 
 ### D-16 Linux only: no code for macOS and Windows
+
 status: accepted · traces: B-7 · source: owner
 
 **Context.** GoRex was built for Linux, macOS and Windows; `mise run
@@ -250,4 +266,3 @@ compiles tells nothing of what it does. Git keeps what is removed.
 **Consequences.** `mise run check` builds for Linux only. Findings and
 items about macOS and Windows are resolved or superseded. A port is a
 decision of its own, with a system to test it on.
-

@@ -1,0 +1,15 @@
+{
+  "markdown": {
+    "textWrap": "maintain",
+    "emphasisKind": "asterisks",
+    "strongKind": "asterisks"
+  },
+  "excludes": [
+    "assets/**",
+    "tools/spec/testdata/**",
+    "spec/reference/**"
+  ],
+  "plugins": [
+    "npm:@dprint/markdown@0.29.0"
+  ]
+}

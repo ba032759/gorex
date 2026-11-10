@@ -127,4 +127,3 @@ never text a user typed or a terminal printed. Add it to this list.
 local time with a zone, so `ts > now() - interval 15 minute` shifts by the
 zone and can find nothing. Compare in UTC:
 `ts > (now() at time zone 'UTC') - interval 15 minute`.
-

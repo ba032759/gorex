@@ -61,22 +61,22 @@ terminal plugin (Ghostty's libghostty-vt). No webview, no cgo: one ~15 MB app.
 
 ## Keys
 
-| Keys | |
-|---|---|
-| Ctrl+Shift+T | New tab |
-| Ctrl+Shift+N | New session |
-| Ctrl+Shift+S | Change session |
-| Ctrl+Shift+D / Ctrl+Shift+E | Split right / down |
-| Ctrl+Shift+W | Close pane |
-| Ctrl+Shift+Enter | Zoom the pane |
-| Alt+arrows | Focus the pane in that direction |
-| Alt+Shift+arrows | Move the nearest divider |
-| Ctrl+Shift+1…9, Ctrl+PageUp/PageDown, Ctrl+Tab | Switch tabs |
-| Ctrl+Shift+PageUp/PageDown | Move the tab |
-| Ctrl+Shift+R | Rename tab |
-| Ctrl+Shift+P | Command palette |
-| Ctrl+Shift+K | Clear |
-| Ctrl+= Ctrl+- Ctrl+0 | Text size |
+| Keys                                           |                                  |
+| ---------------------------------------------- | -------------------------------- |
+| Ctrl+Shift+T                                   | New tab                          |
+| Ctrl+Shift+N                                   | New session                      |
+| Ctrl+Shift+S                                   | Change session                   |
+| Ctrl+Shift+D / Ctrl+Shift+E                    | Split right / down               |
+| Ctrl+Shift+W                                   | Close pane                       |
+| Ctrl+Shift+Enter                               | Zoom the pane                    |
+| Alt+arrows                                     | Focus the pane in that direction |
+| Alt+Shift+arrows                               | Move the nearest divider         |
+| Ctrl+Shift+1…9, Ctrl+PageUp/PageDown, Ctrl+Tab | Switch tabs                      |
+| Ctrl+Shift+PageUp/PageDown                     | Move the tab                     |
+| Ctrl+Shift+R                                   | Rename tab                       |
+| Ctrl+Shift+P                                   | Command palette                  |
+| Ctrl+Shift+K                                   | Clear                            |
+| Ctrl+= Ctrl+- Ctrl+0                           | Text size                        |
 
 Control and a letter are the terminal's (Ctrl+C, Ctrl+D, Ctrl+W…), so
 GoRex's keys take Shift too, as copying and pasting do (Ctrl+Shift+C,
@@ -170,16 +170,16 @@ the first version's `layout.json` becomes a session.
 
 ## Layout
 
-| | |
-|---|---|
-| `main.go` | the app, its window, `-server`, and running as `rex` |
-| `state.go` | the mirror of the server's model: tabs, the tree of splits, panes; the user's actions |
-| `view.go`, `tabs.go`, `sessions.go`, `host.go`, `palette.go` | the interface: title bar, tabs, session chip, panes, host popover, palette |
-| `commands.go`, `keymap.go` | the actions, by Rex's names; menus; the keymap and its presets |
-| `cli.go`, `help.go`, `skill.go` | the `rex` command; `rex skill` |
-| `programs.go` | how programs show: names, glyphs, tile colors |
-| `style.go`, `settings.go` | colors, fonts, terminal themes; appearance and text size |
-| `internal/rex` | the session server and its client: the model of sessions, windows and layouts (`model.go`, `actions.go`), blocks' PTYs and headless screens (`block.go`), foreground processes, keys, events, the socket protocol |
+|                                                              |                                                                                                                                                                                                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.go`                                                    | the app, its window, `-server`, and running as `rex`                                                                                                                                                              |
+| `state.go`                                                   | the mirror of the server's model: tabs, the tree of splits, panes; the user's actions                                                                                                                             |
+| `view.go`, `tabs.go`, `sessions.go`, `host.go`, `palette.go` | the interface: title bar, tabs, session chip, panes, host popover, palette                                                                                                                                        |
+| `commands.go`, `keymap.go`                                   | the actions, by Rex's names; menus; the keymap and its presets                                                                                                                                                    |
+| `cli.go`, `help.go`, `skill.go`                              | the `rex` command; `rex skill`                                                                                                                                                                                    |
+| `programs.go`                                                | how programs show: names, glyphs, tile colors                                                                                                                                                                     |
+| `style.go`, `settings.go`                                    | colors, fonts, terminal themes; appearance and text size                                                                                                                                                          |
+| `internal/rex`                                               | the session server and its client: the model of sessions, windows and layouts (`model.go`, `actions.go`), blocks' PTYs and headless screens (`block.go`), foreground processes, keys, events, the socket protocol |
 
 Not replicated: Rex's connections to servers on other machines (GoRex's
 server listens on a local socket only), its Lua configuration and

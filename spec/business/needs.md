@@ -5,6 +5,7 @@ without a specification. The spec holds the owner's intent, so that agents
 change GoRex without breaking what the owner wanted.
 
 ### B-1 Rex's way of working, on Linux
+
 status: accepted · source: rex-docs, code, owner
 
 **Who.** A user who works in terminals and knows Rex.
@@ -16,6 +17,7 @@ app (D-11).
 Mac to see the sessions of a Linux machine.
 
 ### B-2 Work outlives the app
+
 status: accepted · source: rex-docs, code
 
 **Who.** A user who keeps long work in terminals: editors, servers,
@@ -27,6 +29,7 @@ a reboot, the same layout, with shells in the same directories.
 layout.
 
 ### B-3 Scripts drive terminals
+
 status: accepted · source: rex-docs, code
 
 **Who.** A user who automates the work of the terminal.
@@ -37,6 +40,7 @@ them, read their screens, wait for their programs and react to events.
 missing target from a failed command.
 
 ### B-4 Agents work beside the user
+
 status: accepted · source: rex-docs, code
 
 **Who.** A coding agent that runs in the user's terminal, such as Claude
@@ -50,6 +54,7 @@ it.
 from the user, or waits for the user without the user seeing it.
 
 ### B-5 What works with Rex works with GoRex
+
 status: accepted · source: rex-docs, code
 
 **Who.** A user, a script or an agent skill made for Rex's `rex` command.
@@ -59,6 +64,7 @@ status: accepted · source: rex-docs, code
 feature, or GoRex does less than Rex and does not say so.
 
 ### B-6 Only the user reaches their terminals
+
 status: accepted · source: code, rex-docs
 
 **Who.** The user, who types secrets into terminals and runs programs
@@ -70,6 +76,7 @@ screens or drive their terminals.
 screen or types into a block without the user's permission.
 
 ### B-7 Linux only
+
 status: accepted · kind: constraint · source: owner
 
 **Constraint.** GoRex runs on Linux, and only on Linux.
@@ -79,6 +86,7 @@ can test nothing else.
 or a change is checked only on another system.
 
 ### B-8 Observe it without exposing the user
+
 status: accepted · source: code, rex-docs
 
 **Who.** The owner, and the agents that change GoRex.
@@ -91,6 +99,7 @@ record holds text the user typed or a program reported, or leaves the
 machine.
 
 ### B-9 Built and kept by agents for one owner
+
 status: rejected · source: code
 rationale: project background, not a need; it is now the text at the top
 of this file.

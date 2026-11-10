@@ -31,12 +31,12 @@ Then the owner skims it: is it readable, is it true, is it too much? We
 change `spec/README.md` where the pilot shows it is wrong, and specify the
 next areas the same way:
 
-| Area | Functional | Technical |
-|---|---|---|
-| CLI: commands, targets, output, exit codes, environment (pilot) | F-100… | T-100… |
-| Model and layout: sessions, windows, blocks, splits, focus, zoom, restore | F-200… | T-200… |
-| GUI: tabs, panes, palette, keymap, settings, notifications | F-300… | T-300… |
-| Programs: shells, terminals, program status, agent skills and hooks, events | F-400… | T-400… |
+| Area                                                                        | Functional | Technical |
+| --------------------------------------------------------------------------- | ---------- | --------- |
+| CLI: commands, targets, output, exit codes, environment (pilot)             | F-100…     | T-100…    |
+| Model and layout: sessions, windows, blocks, splits, focus, zoom, restore   | F-200…     | T-200…    |
+| GUI: tabs, panes, palette, keymap, settings, notifications                  | F-300…     | T-300…    |
+| Programs: shells, terminals, program status, agent skills and hooks, events | F-400…     | T-400…    |
 
 ## What we look at
 

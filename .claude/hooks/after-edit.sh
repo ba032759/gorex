@@ -27,8 +27,14 @@ case "$file" in
 */.github/workflows/*.yml | */.github/workflows/*.yaml)
 	out=$(actionlint "$file" 2>&1) || fail "actionlint found problems" "$out"
 	;;
-*/spec/*.md)
-	out=$(go run ./tools/spec check -q "$file" 2>&1) || fail "spec check found problems in $file (the templates and writing rules are in spec/README.md)" "$out"
+*.md)
+	# dprint.json's excludes leave the file as it is.
+	out=$(dprint fmt --allow-no-files "$file" 2>&1) || fail "dprint failed" "$out"
+	case "$file" in
+	*/spec/*.md)
+		out=$(go run ./tools/spec check -q "$file" 2>&1) || fail "spec check found problems in $file (the templates and writing rules are in spec/README.md)" "$out"
+		;;
+	esac
 	;;
 esac
 exit 0

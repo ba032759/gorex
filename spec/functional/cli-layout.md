@@ -9,6 +9,7 @@ the server starts and ends a program, are in `technical/cli-layout.md`
 ## Create
 
 ### F-130 List sessions, windows or blocks
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex ls` and `rex session ls` SHALL list the sessions, in their order.
@@ -25,6 +26,7 @@ what runs in it and in which directory. `--json` also tells each
 window's layout, focus and zoom. T-124 lists the columns and fields.
 
 ### F-131 Create a session
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex new [LABEL]` and `rex session new` SHALL create a session, after the
@@ -34,19 +36,20 @@ WHEN a command follows `--`, the block SHALL run it instead of the shell.
 IF two labels are given, THEN `rex` SHALL exit with 2.
 
 ### F-132 A new block
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex new`, `rex run`, `rex split` and `rex window new` SHALL take these
 options for the block they create:
 
-| Option | Effect |
-|---|---|
+| Option                           | Effect                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `-c`, `--cwd`, `-d`, `--dir DIR` | the block's directory; `~` is the user's home directory, `~NAME` that user's; a relative path starts from the directory `rex` runs in |
-| `--keep-open` | the block stays when its command exits (F-139) |
-| `--shell SHELL` | the shell whose environment runs the command; `none` starts it directly (F-133) |
-| `--interactive` | the shell also reads its interactive startup files (F-133) |
-| `--label TEXT` | the block's label; `rex run` and `rex split` only |
-| `--focus=false` | the focus and the active window stay as they were; not `rex new` |
+| `--keep-open`                    | the block stays when its command exits (F-139)                                                                                        |
+| `--shell SHELL`                  | the shell whose environment runs the command; `none` starts it directly (F-133)                                                       |
+| `--interactive`                  | the shell also reads its interactive startup files (F-133)                                                                            |
+| `--label TEXT`                   | the block's label; `rex run` and `rex split` only                                                                                     |
+| `--focus=false`                  | the focus and the active window stay as they were; not `rex new`                                                                      |
 
 WHEN `rex split` or `rex run --split` creates a block without `--cwd`,
 the block SHALL start in the directory of the block it goes beside.
@@ -60,6 +63,7 @@ IF the directory does not exist, THEN the block SHALL start in the home
 directory.
 
 ### F-133 Start a block's command
+
 status: accepted · traces: B-3 · source: code, rex-docs
 
 WHEN a block has no command, the server SHALL run the user's login shell
@@ -74,6 +78,7 @@ IF the server starts the command directly and does not find it, THEN
 `rex` SHALL exit with 1 and create no block.
 
 ### F-134 Run a command
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `rex run -- COMMAND...` SHALL run the command in a new block, in a new
@@ -87,6 +92,7 @@ WHILE `rex` waits for the program, `--timeout` SHALL NOT end the wait.
 IF no command follows `--`, THEN `rex` SHALL exit with 2.
 
 ### F-135 Split a block
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex split [-- COMMAND...]` SHALL put a new block beside the anchor: the
@@ -96,6 +102,7 @@ IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2, and say the rang
 The server SHALL hold the ratio from 5 to 95 percent (T-107).
 
 ### F-136 Focus after a new block
+
 status: superseded · superseded-by: F-132 · traces: B-4 · source: code, rex-docs, tests
 
 WHEN `rex run`, `rex split` or `rex window new` creates a block THEN the
@@ -104,6 +111,7 @@ WHEN `--focus=false` is given THEN the focus and the active window SHALL
 stay as they were.
 
 ### F-137 What run and split print
+
 status: superseded · superseded-by: F-134, F-135 · traces: B-3 · source: code, rex-docs, tests
 
 The ID they print is now a rule of F-134 and F-135; their JSON is T-124.
@@ -116,6 +124,7 @@ With `--json`, `rex run` without `--split` SHALL print `session_id`,
 `window_id`, `block_id`, `block_ids` and `revision`.
 
 ### F-138 Run a command and wait for it
+
 status: superseded · superseded-by: F-134 · traces: B-3, B-4 · source: code, rex-docs, tests
 
 `--wait` is a variant of `rex run`, so it is a rule of F-134.
@@ -127,6 +136,7 @@ exit status (F-105).
 `--timeout` SHALL NOT end this wait.
 
 ### F-139 A block's program exits
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 WHEN a block's program exits, the server SHALL close the block, as `rex
@@ -139,6 +149,7 @@ WHILE such a block stays, it SHALL take no more input.
 ## Close
 
 ### F-140 Close blocks and windows, end sessions
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex close [BLOCK...]` and `rex block close` SHALL close each block
@@ -162,6 +173,7 @@ SHALL change nothing and exit with 3.
 T-125 says how the server ends a block's program.
 
 ### F-141 End sessions
+
 status: superseded · superseded-by: F-140 · traces: B-3 · source: code, rex-docs, tests
 
 Closing a block, a window or a session is one event, so one item.
@@ -173,6 +185,7 @@ IF a session matches nothing, THEN `rex` SHALL exit with 3, and the
 sessions before it SHALL stay ended.
 
 ### F-192 Close windows
+
 status: superseded · superseded-by: F-140 · traces: B-3 · source: code, rex-docs
 
 Closing a block, a window or a session is one event, so one item.
@@ -189,6 +202,7 @@ windows before it SHALL stay closed.
 ## Arrange
 
 ### F-142 Move the focus by direction or order
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs, tests, owner
 
 `rex focus DIRECTION` SHALL move the focus from the block of F-112, and
@@ -205,6 +219,7 @@ WHILE the window is zoomed, `rex focus DIRECTION` SHALL move the focus
 as in the window without the zoom.
 
 ### F-143 Focus a window or a block
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex focus TARGET` SHALL make a window active, or give a block the focus
@@ -218,6 +233,7 @@ IF the target of `rex focus` matches both a window and a block and is
 not a full ID, THEN `rex` SHALL exit with 3 and change nothing.
 
 ### F-144 Zoom a block
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex zoom [BLOCK]` and `rex block zoom` SHALL zoom the block, or end its
@@ -228,6 +244,7 @@ The zoom SHALL NOT change the layout.
 IF both `--on` and `--off` are given, THEN `rex` SHALL exit with 2.
 
 ### F-145 Move a block
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex move [BLOCK] DIRECTION ANCHOR` SHALL take the block out of its
@@ -241,6 +258,7 @@ IF `--ratio` is not from 1 to 99, THEN `rex` SHALL exit with 2.
 The server SHALL hold the ratio from 5 to 95 percent (T-107).
 
 ### F-146 Swap two blocks
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex swap BLOCK OTHER` and `rex block swap` SHALL swap the places of two
@@ -250,6 +268,7 @@ to the block that takes the place of its focused block.
 IF the two are in different sessions, THEN `rex` SHALL exit with 2.
 
 ### F-147 Resize a block
+
 status: accepted · traces: B-3 · source: code, owner
 
 `rex resize [BLOCK] DIRECTION` SHALL move the nearest split around the
@@ -259,17 +278,18 @@ IF the block is in no split on that axis, THEN `rex` SHALL exit with 2.
 IF `--amount` is not a positive percentage, THEN `rex` SHALL exit with 2.
 
 ### F-148 Words for directions
+
 status: accepted · traces: B-3 · source: code
 
 `rex split`, `rex run --split`, `rex move` and `rex resize` SHALL take
 these words, in any case:
 
-| Direction | Words |
-|---|---|
-| right | `right`, `r`, `beside`, `horizontal` |
-| left | `left`, `l` |
-| above | `above`, `up`, `top`, `u` |
-| below | `below`, `down`, `bottom`, `d`, `vertical` |
+| Direction | Words                                      |
+| --------- | ------------------------------------------ |
+| right     | `right`, `r`, `beside`, `horizontal`       |
+| left      | `left`, `l`                                |
+| above     | `above`, `up`, `top`, `u`                  |
+| below     | `below`, `down`, `bottom`, `d`, `vertical` |
 
 IF a direction is not in the table, THEN `rex` SHALL exit with 2.
 
@@ -278,6 +298,7 @@ IF a direction is not in the table, THEN `rex` SHALL exit with 2.
 ## Sessions, windows and blocks
 
 ### F-149 Reorder sessions and windows
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex session move [SESSION]` SHALL move a session in the order of
@@ -290,6 +311,7 @@ IF none or two of `--before`, `--after` and `--index` are given, THEN
 IF the index is not a number from 1, THEN `rex` SHALL exit with 2.
 
 ### F-150 Create a window
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex window new [LABEL] [-- COMMAND...]` and `rex new-tab` SHALL open a
@@ -297,6 +319,7 @@ window of one block after the active window of the session of F-110.
 `rex window new` SHALL print the new window's ID.
 
 ### F-151 List windows
+
 status: superseded · superseded-by: F-130 · traces: B-3 · source: code, rex-docs
 
 Listing sessions, windows or blocks is one event, so one item.
@@ -307,6 +330,7 @@ Each line SHALL tell the window's position, label, session, number of
 blocks and focused block.
 
 ### F-191 Change the active window
+
 status: superseded · superseded-by: F-142, F-143 · traces: B-3 · source: code, rex-docs, tests
 
 `rex window focus next` and `prev` are F-142; `rex window focus WINDOW`
@@ -320,6 +344,7 @@ WHEN the window is the first or the last, `next` and `prev` SHALL change
 nothing, unless `--wrap` is given.
 
 ### F-152 List blocks
+
 status: superseded · superseded-by: F-130 · traces: B-3, B-4 · source: code, rex-docs, tests
 
 Listing sessions, windows or blocks is one event, so one item.
@@ -331,6 +356,7 @@ process ID, size and directory.
 A block whose program exited SHALL show `exited (N)` as its program.
 
 ### F-153 Show the whole tree
+
 status: superseded · superseded-by: F-130 · traces: B-3 · source: code
 
 Listing sessions, windows or blocks is one event, so one item.
@@ -339,6 +365,7 @@ Listing sessions, windows or blocks is one event, so one item.
 each block's process ID, program, size and directory.
 
 ### F-154 Rename a session, window or block
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests
 
 `rex session rename [SESSION] LABEL`, `rex window rename [WINDOW] LABEL`
@@ -348,6 +375,7 @@ IF no label or more than two arguments are given, THEN `rex` SHALL exit
 with 2.
 
 ### F-190 Inspect a session, window or block
+
 status: accepted · traces: B-3, B-4 · source: code, rex-docs
 
 `rex session inspect`, `rex window inspect` and `rex block inspect` SHALL
@@ -355,6 +383,7 @@ print one item, with what its listing tells and more (T-126).
 A block SHALL also show its exit status and its status records.
 
 ### F-155 Block types
+
 status: accepted · traces: B-5 · source: code, rex-docs
 
 `rex block types` SHALL print one type, `com.superlogical.terminal.shell`.
@@ -362,6 +391,7 @@ IF `rex block new` is asked for a block, THEN `rex` SHALL exit with 2:
 `rex run` and `rex split` create blocks.
 
 ### F-156 List clients
+
 status: accepted · traces: B-3 · source: code, rex-docs, tests, owner
 
 `rex client ls` SHALL list the clients connected to the server, each with
@@ -372,6 +402,7 @@ WHEN `-q` is given, `rex` SHALL print the IDs of the clients alone, one a
 line, as `rex ls -q` does.
 
 ### F-193 Inspect a client
+
 status: accepted · traces: B-3 · source: code, rex-docs
 
 `rex client inspect [CLIENT]` SHALL print an app and the actions it

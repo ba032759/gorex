@@ -1,6 +1,6 @@
 # The tools GoRex is built and checked with, and its tasks. `mise install`
 # installs the tools; `mise run check` is what every change must pass:
-# formatting, linting (Go, shell, CI workflows), the tests with the race
+# formatting (Go, shell, Markdown), linting (Go, shell, CI workflows), the tests with the race
 # detector, and the spec's consistency. GoRex builds for Linux only.
 # The Claude Code hooks in .claude/ and CI run it too. `mise run format`
 # formats everything.
@@ -12,6 +12,7 @@ golangci-lint = "2.15.0"
 shellcheck = "0.11.0"
 shfmt = "3.14.1"
 actionlint = "1.7.12"
+dprint = "0.64.3"
 
 [env]
 # The shell scripts' style, for shfmt.
@@ -22,14 +23,15 @@ description = "Everything a change must pass"
 depends = ["fmt", "lint", "test", "spec"]
 
 [tasks.format]
-description = "Format the Go code and the shell scripts"
-run = ["gofmt -w .", "shfmt $SHFMT_FLAGS -w .claude/hooks"]
+description = "Format the Go code, the shell scripts and the Markdown"
+run = ["gofmt -w .", "shfmt $SHFMT_FLAGS -w .claude/hooks", "dprint fmt"]
 
 [tasks.fmt]
 description = "Fail on files the formatters would change"
 run = [
   'out=$(gofmt -l .); if [ -n "$out" ]; then echo "not formatted (mise run format):"; echo "$out"; exit 1; fi',
   "shfmt $SHFMT_FLAGS -d .claude/hooks",
+  "dprint check",
 ]
 
 [tasks.lint]

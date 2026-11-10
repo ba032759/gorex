@@ -13,12 +13,12 @@ reasons.
 
 ## The layers
 
-| Layer | Prefix | Says | Written by | Verified by |
-|---|---|---|---|---|
-| Business | `B-` | why: needs, goals, constraints, who it is for | the owner (an agent may draft) | the owner's acceptance, by hand |
-| Decisions | `D-` | what was chosen, what was rejected, and why | whoever decides; the owner accepts | — |
-| Functional | `F-` | what the system does, seen from outside | the owner and agents | tests, events, or a manual check |
-| Technical | `T-` | how it is built: architecture, protocols, formats | agents | unit and integration tests |
+| Layer      | Prefix | Says                                              | Written by                         | Verified by                      |
+| ---------- | ------ | ------------------------------------------------- | ---------------------------------- | -------------------------------- |
+| Business   | `B-`   | why: needs, goals, constraints, who it is for     | the owner (an agent may draft)     | the owner's acceptance, by hand  |
+| Decisions  | `D-`   | what was chosen, what was rejected, and why       | whoever decides; the owner accepts | —                                |
+| Functional | `F-`   | what the system does, seen from outside           | the owner and agents               | tests, events, or a manual check |
+| Technical  | `T-`   | how it is built: architecture, protocols, formats | agents                             | unit and integration tests       |
 
 Files: `business/`, `decisions/`, `functional/`, `technical/`, one markdown
 file per area (`functional/layout.md`, `technical/protocol.md`). The file
@@ -42,6 +42,7 @@ An item is a heading with an ID, then its fields, then its text:
 
 ```markdown
 ### F-12 Answer a blocked session from the phone
+
 status: accepted · traces: B-3 · verify: test
 
 WHEN a session in any window is blocked on a permission prompt, the
@@ -94,6 +95,7 @@ Prose, no `SHALL`: the functional items that trace to it make it exact.
 
 ```markdown
 ### B-3 Scripts drive terminals
+
 status: proposed · source: rex-docs, code
 
 **Who.** A user who automates the work of the terminal.
@@ -117,6 +119,7 @@ it runs on, the law, the budget. It says `kind: constraint`:
 
 ```markdown
 ### B-7 Linux first
+
 status: proposed · kind: constraint · source: repo
 
 **Constraint.** GoRex runs on Linux, and also on macOS and Windows.
@@ -133,6 +136,7 @@ item; it goes at the top of the business file, as plain text.
 
 ```markdown
 ### D-5 A local server only
+
 status: proposed · traces: B-6 · source: code
 
 **Context.** What forces a choice.
@@ -176,13 +180,13 @@ Every rule is one sentence in one of the five EARS patterns. The
 conditions come first, each closed by a comma; then the subject; then
 `SHALL` or `SHALL NOT`:
 
-| Pattern | For | Form |
-|---|---|---|
-| always | what always holds | The X SHALL … |
-| event | an event | WHEN …, the X SHALL … |
-| state | while a state lasts | WHILE …, the X SHALL … |
-| unwanted | an error, a fault, a misuse | IF …, THEN the X SHALL … |
-| feature | where a feature or system applies | WHERE …, the X SHALL … |
+| Pattern  | For                               | Form                     |
+| -------- | --------------------------------- | ------------------------ |
+| always   | what always holds                 | The X SHALL …            |
+| event    | an event                          | WHEN …, the X SHALL …    |
+| state    | while a state lasts               | WHILE …, the X SHALL …   |
+| unwanted | an error, a fault, a misuse       | IF …, THEN the X SHALL … |
+| feature  | where a feature or system applies | WHERE …, the X SHALL …   |
 
 Patterns combine: `WHILE a block is zoomed, WHEN it is split, the app
 SHALL …`. Errors take IF … THEN, not WHEN: they are where tests are most
@@ -190,6 +194,7 @@ often missing. `spec check` warns on a rule that fits no pattern.
 
 ```markdown
 ### F-131 Create a session
+
 status: proposed · traces: B-3 · source: code, rex-docs, tests
 
 `rex new` SHALL create a session, after the others, with one window of
@@ -209,6 +214,7 @@ Three forms hold the rules:
 
   ```markdown
   ### F-310 Change session from the keyboard
+
   status: proposed · traces: B-1 · verify: manual
 
   **Actor.** The user, in the app.
@@ -229,6 +235,7 @@ A quality GoRex must have, not a function, is an item of its own with a
 
 ```markdown
 ### F-420 Only the user's clients reach the server
+
 status: proposed · traces: B-6 · kind: security · verify: test
 
 IF a process of another user connects to the server's socket, THEN the
@@ -273,6 +280,7 @@ The glossary's entries are headings, with an optional `avoid:` line:
 
 ```markdown
 ### block
+
 A terminal in a window, with its program: the leaf of a layout.
 avoid: pane
 ```
@@ -287,7 +295,7 @@ shows in the diff of a pull request, without a spec item to change.
 
 The functional items say what the commands are for; the reference says
 what they take. `spec check` reports a command of the reference that no
-functional item names (``rex split`` in its text) as a gap: code without
+functional item names (`rex split` in its text) as a gap: code without
 a stated intent. Write an item for it, or remove the command.
 
 ## Verification: tests name what they verify

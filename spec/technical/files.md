@@ -1,25 +1,27 @@
 # Technical: the files of the data directory that rex uses
 
 ### T-120 The data directory
+
 status: accepted · traces: F-106, F-118, F-183, F-430 · source: code
 
 The data directory is `GOREX_DIR`. The app sets it to the directory MyGo
 gives it, `$XDG_CONFIG_HOME/gorex`, else `~/.config/gorex`; without
 `GOREX_DIR`, `rex` takes the same directory.
 
-| File | What |
-|---|---|
-| `server.sock` | the socket (F-106) |
-| `server.lock` | locked by the server that runs; one server for each directory |
-| `server.log` | the server's standard output and error, appended |
-| `state.json` | the saved model, and each block's directory, size, command and label |
-| `settings.json`, `keymap.json` | the app's settings and keys (T-122) |
-| `bin/rex` | a link to the server's executable |
-| `events/YYYY-MM-DD.jsonl` | the wide events (T-121) |
+| File                           | What                                                                 |
+| ------------------------------ | -------------------------------------------------------------------- |
+| `server.sock`                  | the socket (F-106)                                                   |
+| `server.lock`                  | locked by the server that runs; one server for each directory        |
+| `server.log`                   | the server's standard output and error, appended                     |
+| `state.json`                   | the saved model, and each block's directory, size, command and label |
+| `settings.json`, `keymap.json` | the app's settings and keys (T-122)                                  |
+| `bin/rex`                      | a link to the server's executable                                    |
+| `events/YYYY-MM-DD.jsonl`      | the wide events (T-121)                                              |
 
 The directory and its files are for the user alone: `0700` and `0600`.
 
 ### T-121 Wide events
+
 status: accepted · traces: F-121 · source: code, tests
 
 Each wide event is one JSON object on one line, appended with one write
@@ -36,6 +38,7 @@ for a usage error, whose message quotes the command line), `rex_session`,
 The `gorex-events` skill describes the other kinds.
 
 ### T-122 keymap.json
+
 status: accepted · traces: F-178, F-179 · source: code, rex-docs
 
 `keymap.json` is `{"preset": NAME, "bindings": [...]}`.
@@ -48,6 +51,7 @@ Without `preset`, it is `macos` when `settings.json` has
 A preset other than `linux`, `macos` or `none` is an error.
 
 ### T-123 Starting the server
+
 status: accepted · traces: F-107, F-183 · source: code
 
 A client starts a server by running its own executable with the one
